@@ -6,12 +6,12 @@ import json
 
 config = {
     'warehousedir': 'dbestwarehouse',
-    'verbose': 'False',
     'verbose': 'True',
+    'b_show_latency': 'True',
 }
 
 
- 
+
 class DBEstPrompt(Cmd):
     def __init__(self):
         super(DBEstPrompt, self).__init__()
@@ -26,7 +26,9 @@ class DBEstPrompt(Cmd):
         else:
             print("Configuration file config.json does not exist! use default values")
             self.config=config
-            json.dump(self.config,open('config.json','w'))
+            json.dump(self.config,open('config.json', 'w'))
+        self.verbose = self.config['verbose']
+        self.b_show_latency = self.config['b_show_latency']
 
         # deal with warehouse
         if os.path.exists(self.config['warehousedir']):
@@ -46,7 +48,7 @@ class DBEstPrompt(Cmd):
 
     # process the query
     def default(self, inp):
-        if  ";" not in inp:
+        if ";" not in inp:
             self.query = self.query + inp + " "
         else:
             self.query += inp
@@ -54,8 +56,13 @@ class DBEstPrompt(Cmd):
 
             # query execution goes here
             # -------------------------------------------->>
-            parsed = sqlparse.parse(self.query)[0]
-            print(parsed.tokens)
+            # check if query begins with 'bypass', if so use backend server, otherwise use dbest to give a prediction
+            if self.query.lstrip()[0:6].lower() == 'bypass':
+                print("Bypass DBEst, use the backend server instead.")
+                # go to the backend server
+            else:
+                parsed = sqlparse.parse(self.query)[0]
+                print(parsed.tokens)
             # <<--------------------------------------------
 
             self.query=""
