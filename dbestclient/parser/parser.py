@@ -4,11 +4,50 @@ from sqlparse.tokens import Keyword, DML, DDL
 
 
 class DBEstParser:
+    """
+    parse a single SQL query, of the following form:
+
+    - **DDL**
+        >>> CREATE TABLE t_m(y real, x real)
+        >>> FROM tbl
+        >>> [GROUP BY z]
+        >>> [SIZE 0.01]
+        >>> [METHOD UNIFROM|HASH]
+
+    - **DML**
+        >>> SELECT AF(y)
+        >>> FROM t_m
+        >>> [WHERE x BETWEEN a AND b]
+        >>> [GROUP BY z]
+
+    .. note::
+        - model name should be ended with **_m** to indicate that it is a model, not a table.
+        - AF, or aggregate function, could be COUNT, SUM, AVG, VARIANCE, PERCENTILE, etc.
+    """
     def __init__(self):
         self.query = ""
         self.parsed = None
 
     def parse(self, query):
+        """
+        parse a single SQL query, of the following form:
+
+        - **DDL**
+            >>> CREATE TABLE t_m(y real, x real)
+            >>> FROM tbl
+            >>> [GROUP BY z]
+            >>> [SIZE 0.01]
+            >>> [METHOD UNIFROM|HASH]
+
+        - **DML**
+            >>> SELECT AF(y)
+            >>> FROM t_m
+            >>> [WHERE x BETWEEN a AND b]
+            >>> [GROUP BY z]
+
+        - **parameters**
+        :param query: a SQL query
+        """
         self.query = query
         self.parsed = sqlparse.parse(self.query)[0]
         # return self.parsed
@@ -17,9 +56,29 @@ class DBEstParser:
         if not self.parsed.is_group:
             return False
         for item in self.parsed.tokens:
-            if item.ttype is DML and item.value.upper() == 'SELECT':
+            if item.ttype is DML and item.value.lower() == 'select':
                 return True
         return False
+
+    def get_aggregate_function_and_variable(self):
+        for item in self.parsed.tokens:
+            if item.ttype is DML and item.value.lower() == 'select':
+                idx = self.parsed.token_index(item, 0) + 2
+                return self.parsed.tokens[idx].tokens[0].value, \
+                    self.parsed.tokens[idx].tokens[1].value.replace("(", "").replace(")", "")
+
+    def if_where_exists(self):
+        for item in self.parsed.tokens:
+            if 'where' in item.value.lower():
+                return True
+        return False
+
+    def get_where_name_and_range(self):
+        for item in self.parsed.tokens:
+            if 'where' in item.value.lower():
+                whereclause = item.value.split()
+                # print(whereclause)
+                return whereclause[1], whereclause[3], whereclause[5]
 
     def if_contain_groupby(self):
         for item in self.parsed.tokens:
@@ -39,7 +98,7 @@ class DBEstParser:
                 return True
         return False
 
-    def get_model_name(self):
+    def get_ddl_model_name(self):
         for item in self.parsed.tokens:
             if item.ttype is  None and "(" in item.value.lower():
                 return item.tokens[0].value
@@ -54,7 +113,7 @@ class DBEstParser:
             if item.ttype is  None and "(" in item.value.lower():
                 return item.tokens[1].tokens[6].value,item.tokens[1].tokens[8].value
 
-    def get_table_name(self):
+    def get_from_name(self):
         for item in self.parsed.tokens:
             if item.ttype is Keyword and item.value.lower() == "from":
                 idx = self.parsed.token_index(item, 0) + 2
@@ -75,23 +134,38 @@ class DBEstParser:
         return "uniform"
 
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
     parser = DBEstParser()
-    parser.parse("create table mdl(y real, x real) from tbl group by z method uniform size 0.1 ")
+    # parser.parse("create table mdl(y real, x real) from tbl group by z method uniform size 0.1 ")
+    #
+    # if parser.if_contain_groupby():
+    #     print("yes, group by")
+    #     print(parser.get_groupby_value())
+    # else:
+    #     print("no group by")
+    #
+    # if parser.if_ddl():
+    #     print("ddl")
+    #     print(parser.get_ddl_model_name())
+    #     print(parser.get_y())
+    #     print(parser.get_x())
+    #     print(parser.get_from_name())
+    #     print(parser.get_sampling_method())
+    #     print(parser.get_sampling_ratio())
 
+    parser.parse("select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z")
     if parser.if_contain_groupby():
         print("yes, group by")
         print(parser.get_groupby_value())
     else:
         print("no group by")
+    if not parser.if_ddl():
+        print("DML")
+        print(parser.get_aggregate_function_and_variable())
 
-    if parser.if_ddl():
-        print("ddl")
-        print(parser.get_model_name())
-        print(parser.get_y())
-        print(parser.get_x())
-        print(parser.get_table_name())
-        print(parser.get_sampling_method())
-        print(parser.get_sampling_ratio())
+    if parser.if_where_exists():
+        print("where exists!")
+        print(parser.get_where_name_and_range())
+
+
 

@@ -1,15 +1,16 @@
 from cmd import Cmd
-import sqlparse
+# import sqlparse
 import os
-
 import json
+
+from dbestclient.parser import parser
 
 config = {
     'warehousedir': 'dbestwarehouse',
     'verbose': 'True',
     'b_show_latency': 'True',
+    'backend_server': 'None',
 }
-
 
 
 class DBEstPrompt(Cmd):
@@ -37,9 +38,6 @@ class DBEstPrompt(Cmd):
             print("warehouse does not exists, so initialize one.")
             os.mkdir(self.config['warehousedir'])
 
-
-
-
     # print the exit message.
     def do_exit(self, inp):
         '''exit the application.'''
@@ -61,11 +59,13 @@ class DBEstPrompt(Cmd):
                 print("Bypass DBEst, use the backend server instead.")
                 # go to the backend server
             else:
-                parsed = sqlparse.parse(self.query)[0]
-                print(parsed.tokens)
+                parsed = parser.DBEstParser()
+                parsed.parse(self.query)
+                print(parsed.get_sampling_ratio())
             # <<--------------------------------------------
 
-            self.query=""
+            # restore the query for the next coming query
+            self.query = ""
 
     # deal with KeyboardInterrupt caused by ctrl+c
     def cmdloop(self, intro=None):

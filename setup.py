@@ -28,7 +28,7 @@ setup(
     packages=['dbestclient'],#find_packages(exclude=('tests', 'docs','results'))
     zip_safe=False,
     install_requires=[
-          'numpy'
+          'numpy','sqlparse'
       ],
     test_suite='nose.collector',
     tests_require=['nose'],
