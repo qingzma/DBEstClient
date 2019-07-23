@@ -50,7 +50,6 @@ class DBEstParser:
         """
         self.query = query
         self.parsed = sqlparse.parse(self.query)[0]
-        # return self.parsed
 
     def if_nested_query(self):
         if not self.parsed.is_group:

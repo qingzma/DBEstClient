@@ -2,3 +2,5 @@
 .idea/
 config.json
 dbestwarehouse/
+*.pyc
+resources/

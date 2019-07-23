@@ -1,15 +1,18 @@
 from cmd import Cmd
-# import sqlparse
 import os
 import json
 
-from dbestclient.parser import parser
+from dbestclient.executor.executor import SqlExecutor
 
 config = {
     'warehousedir': 'dbestwarehouse',
     'verbose': 'True',
     'b_show_latency': 'True',
     'backend_server': 'None',
+    'epsabs': 10.0,
+    'epsrel': 0.1,
+    'mesh_grid_num': 20,
+    'limit': 30,
 }
 
 
@@ -23,11 +26,11 @@ class DBEstPrompt(Cmd):
         # deal with configuration file
         if os.path.exists('config.json'):
             print("Configuration file loaded.")
-            self.config=json.load(open('config.json'))
+            self.config = json.load(open('config.json'))
         else:
             print("Configuration file config.json does not exist! use default values")
-            self.config=config
-            json.dump(self.config,open('config.json', 'w'))
+            self.config = config
+            json.dump(self.config, open('config.json', 'w'))
         self.verbose = self.config['verbose']
         self.b_show_latency = self.config['b_show_latency']
 
@@ -59,9 +62,9 @@ class DBEstPrompt(Cmd):
                 print("Bypass DBEst, use the backend server instead.")
                 # go to the backend server
             else:
-                parsed = parser.DBEstParser()
-                parsed.parse(self.query)
-                print(parsed.get_sampling_ratio())
+                sqlExecutor = SqlExecutor(config)
+                # sqlExecutor.execute(self.query)
+                sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 0.1")
             # <<--------------------------------------------
 
             # restore the query for the next coming query
@@ -82,6 +85,6 @@ class DBEstPrompt(Cmd):
     do_EOF = do_exit
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     p = DBEstPrompt()
     p.cmdloop()

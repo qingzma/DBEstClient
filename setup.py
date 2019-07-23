@@ -25,10 +25,11 @@ setup(
     author_email='Q.Ma.2@warwick.ac.uk',
     long_description=readme,
     license=license,
-    packages=['dbestclient'],#find_packages(exclude=('tests', 'docs','results'))
+    packages=['dbestclient'],
+    #find_packages(exclude=('examples', 'docs'))
     zip_safe=False,
     install_requires=[
-          'numpy','sqlparse'
+          'numpy','sqlparse','pandas','scikit-learn','qregpy', 'scipy'
       ],
     test_suite='nose.collector',
     tests_require=['nose'],
