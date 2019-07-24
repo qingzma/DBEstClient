@@ -52,11 +52,14 @@ class DBEstParser:
         self.parsed = sqlparse.parse(self.query)[0]
 
     def if_nested_query(self):
+        idx = 0
         if not self.parsed.is_group:
             return False
         for item in self.parsed.tokens:
             if item.ttype is DML and item.value.lower() == 'select':
-                return True
+                idx +=1
+        if idx >1:
+            return True
         return False
 
     def get_aggregate_function_and_variable(self):

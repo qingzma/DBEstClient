@@ -13,6 +13,7 @@ config = {
     'epsrel': 0.1,
     'mesh_grid_num': 20,
     'limit': 30,
+    'csv_split_char': '|'
 }
 
 
@@ -64,7 +65,13 @@ class DBEstPrompt(Cmd):
             else:
                 sqlExecutor = SqlExecutor(config)
                 # sqlExecutor.execute(self.query)
-                sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 0.1")
+                # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 100")
+                # sqlExecutor.execute("select count(pm25 real) from mdl where PRES between 1000 and 1020")
+                # sqlExecutor.execute("select sum(pm25 real) from mdl where PRES between 1000 and 1020")
+                # sqlExecutor.execute("select avg(pm25 real) from mdl where PRES between 1000 and 1020")
+                sqlExecutor.execute("create table ss(ss_list_price real, ss_wholesale_cost real) from store_sales.dat  method uniform size 100000 group by ss_store_sk")
+                # sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1000 and 1020 group by ss_store_sk")
+
             # <<--------------------------------------------
 
             # restore the query for the next coming query
