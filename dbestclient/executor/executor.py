@@ -16,6 +16,7 @@ from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.tools.dftools import convert_df_to_yx, get_group_count_from_df, get_group_count_from_file
 import numpy as np
+from datetime import datetime
 
 class SqlExecutor:
     """
@@ -81,10 +82,13 @@ class SqlExecutor:
                     groupby_attribute = self.parser.get_groupby_value()
                     xys = sampler.getyx(yheader,xheader)
                     # print(xys[groupby_attribute])
-                    print(get_group_count_from_file(original_data_file,groupby_attribute,sep=self.config['csv_split_char']))
-                    print(get_group_count_from_df(xys,groupby_attribute))
-                    # groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute, n_total_point, n_sample_point,
-                    #                                             x_min_value=-np.inf, x_max_value=np.inf)
+                    n_total_point = get_group_count_from_file(original_data_file,groupby_attribute,sep=self.config['csv_split_char'])
+                    n_sample_point = get_group_count_from_df(xys,groupby_attribute)
+                    groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute, n_total_point, n_sample_point,
+                                                                x_min_value=-np.inf, x_max_value=np.inf).fit_from_df(xys)
+                    groupby_model_wrapper.serialize2warehouse(self.config['warehousedir']+"/"+groupby_model_wrapper.dir)
+                    self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
+
             else:
                 # DML, provide the prediction using models
                 mdl = self.parser.get_from_name()
@@ -93,6 +97,11 @@ class SqlExecutor:
                     xheader, x_lb, x_ub = self.parser.get_where_name_and_range()
                     x_lb = float(x_lb)
                     x_ub = float(x_ub)
+
+                else:
+                    print("support for query without where clause is not implemented yet! abort!")
+
+                if not self.parser.if_contain_groupby():  # if group by is not involved in the query
                     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(mdl)]
                     reg = simple_model_wrapper.reg
                     density = simple_model_wrapper.density
@@ -100,20 +109,42 @@ class SqlExecutor:
                     n_total_point = int(simple_model_wrapper.n_total_point)
                     x_min_value = float(simple_model_wrapper.x_min_value)
                     x_max_value = float(simple_model_wrapper.x_max_value)
-                if not self.parser.if_contain_groupby():  # if group by is not involved in the query
-                    queryengine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value, x_max_value,
+                    query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value, x_max_value,
                                               self.config)
-                    if func.lower() == "count":
-                        queryengine.approx_count(x_lb, x_ub)
-                    elif func.lower() == "sum":
-                        queryengine.approx_sum(x_lb, x_ub)
-                    elif func.lower() == "avg":
-                        queryengine.approx_avg(x_lb, x_ub)
-                    else:
-                        print("Aggregate function "+ func + " is not implemented yet!")
+                    p,t = query_engine.predict(func,x_lb=x_lb,x_ub=x_ub)
+                    print(p)
+                    if self.config['verbose']:
+                        print("time cost: "+ str(t))
 
                 else:  # if group by is involved in the query
-                    print("group by is currently not supported.")
+                    start=datetime.now()
+                    predictions={}
+                    groupby_attribute =self.parser.get_groupby_value()
+                    groupby_key = mdl + "_groupby_"+groupby_attribute
+                    for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
+                        reg = model_wrapper.reg
+                        density =model_wrapper.density
+                        n_sample_point = int(model_wrapper.n_sample_point)
+                        n_total_point = int(model_wrapper.n_total_point)
+                        x_min_value = float(model_wrapper.x_min_value)
+                        x_max_value = float(model_wrapper.x_max_value)
+                        query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
+                                                   x_max_value,
+                                                   self.config)
+                        predictions[model_wrapper.groupby_tag.replace("_groupby_","")]=query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)[0]
+                    for key, item in predictions.items():
+                        print(key, item)
+
+                    if self.config['verbose']:
+                        end = datetime.now()
+                        time_cost = (end - start).total_seconds()
+                        print("Time cost: %.4fs." % time_cost)
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

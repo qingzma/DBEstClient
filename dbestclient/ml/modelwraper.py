@@ -5,7 +5,7 @@
 # Q.Ma.2@warwick.ac.uk
 import pickle
 import numpy as np
-
+import os
 
 def deserialize_model_wrapper(file):
     return pickle.load(file)
@@ -100,6 +100,14 @@ class GroupByModelWrapper:
 
     def add_simple_model(self,simple_model):
         self.models[simple_model.init_pickle_file_name()] = simple_model
+
+    def serialize2warehouse(self, warehouse):
+        if os.path.exists(warehouse):
+            print("warehouse for the group by exists! abort!")
+        else:
+            os.mkdir(warehouse)
+            for group, model_wrapper in self.models.items():
+                model_wrapper.serialize2warehouse(warehouse)
 
 
 

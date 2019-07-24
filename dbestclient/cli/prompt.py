@@ -69,8 +69,8 @@ class DBEstPrompt(Cmd):
                 # sqlExecutor.execute("select count(pm25 real) from mdl where PRES between 1000 and 1020")
                 # sqlExecutor.execute("select sum(pm25 real) from mdl where PRES between 1000 and 1020")
                 # sqlExecutor.execute("select avg(pm25 real) from mdl where PRES between 1000 and 1020")
-                sqlExecutor.execute("create table ss(ss_list_price real, ss_wholesale_cost real) from store_sales.dat  method uniform size 100000 group by ss_store_sk")
-                # sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1000 and 1020 group by ss_store_sk")
+                sqlExecutor.execute("create table ss(ss_list_price real, ss_wholesale_cost real) from store_sales.dat  method uniform size 10000 group by ss_store_sk")
+                sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1 and 100 group by ss_store_sk")
 
             # <<--------------------------------------------
 

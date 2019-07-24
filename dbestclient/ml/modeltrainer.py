@@ -13,6 +13,8 @@ import numpy as np
 class SimpleModelTrainer:
 
     def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point,groupby_tag=None):
+        self.xheader = xheader
+        self.yheader = yheader
         self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
                                                       n_sample_point=n_sample_point, groupby_tag=groupby_tag)
 
@@ -33,7 +35,7 @@ class GroupByModelTrainer:
         self.groupby_model_wrapper = GroupByModelWrapper(mdl, tbl, xheader, yheader, groupby_attribute,
                                                          n_total_point=n_total_point, n_sample_point=n_sample_point,
                                                          x_min_value=x_min_value, x_max_value=x_max_value)
-        self.groupby_attibute = groupby_attribute
+        self.groupby_attribute = groupby_attribute
         self.mdl = mdl
         self.tbl = tbl
         self.xheader = xheader
@@ -47,9 +49,11 @@ class GroupByModelTrainer:
     def fit_from_df(self,df):
         sample_grouped = df.groupby(by=self.groupby_attribute)
         for name, group in sample_grouped:
+            print("training " +name )
             simple_model_wrapper = SimpleModelTrainer(self.mdl, self.tbl, self.xheader, self.yheader,
-                                                      self.n_total_point, self.ratio,groupby_tag="_groupby_"+name).fit_from_df(group)
+                                                      self.n_total_point[name], self.n_sample_point[name],
+                                                      groupby_tag="_groupby_"+name).fit_from_df(group)
             self.groupby_model_wrapper.add_simple_model(simple_model_wrapper)
-        print(self.groupby_model_wrapper)
+        # print(self.groupby_model_wrapper)
         return self.groupby_model_wrapper
 
