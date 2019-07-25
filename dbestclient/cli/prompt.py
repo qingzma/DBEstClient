@@ -24,6 +24,7 @@ class DBEstPrompt(Cmd):
         self.intro = "Welcome to DBEst: a model-based AQP engine! Type exit to exit!"
         self.query = ""
 
+
         # deal with configuration file
         if os.path.exists('config.json'):
             print("Configuration file loaded.")
@@ -41,6 +42,8 @@ class DBEstPrompt(Cmd):
         else:
             print("warehouse does not exists, so initialize one.")
             os.mkdir(self.config['warehousedir'])
+
+        self.sqlExecutor = SqlExecutor(self.config)
 
     # print the exit message.
     def do_exit(self, inp):
@@ -63,14 +66,14 @@ class DBEstPrompt(Cmd):
                 print("Bypass DBEst, use the backend server instead.")
                 # go to the backend server
             else:
-                sqlExecutor = SqlExecutor(config)
+                # sqlExecutor = SqlExecutor(config)
                 # sqlExecutor.execute(self.query)
-                # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 100")
-                # sqlExecutor.execute("select count(pm25 real) from mdl where PRES between 1000 and 1020")
+                # self.sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 100")
+                self.sqlExecutor.execute("select count(pm25 real) from mdl where PRES between 1000 and 1020")
                 # sqlExecutor.execute("select sum(pm25 real) from mdl where PRES between 1000 and 1020")
                 # sqlExecutor.execute("select avg(pm25 real) from mdl where PRES between 1000 and 1020")
-                sqlExecutor.execute("create table ss(ss_list_price real, ss_wholesale_cost real) from store_sales.dat  method uniform size 10000 group by ss_store_sk")
-                sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1 and 100 group by ss_store_sk")
+                # self.sqlExecutor.execute("create table ss(ss_list_price real, ss_wholesale_cost real) from store_sales.dat  method uniform size 10000 group by ss_store_sk")
+                self.sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1 and 100 group by ss_store_sk")
 
             # <<--------------------------------------------
 

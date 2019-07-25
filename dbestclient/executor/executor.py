@@ -12,11 +12,12 @@ from dbestclient.io import getxy
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.ml.density import DBEstDensity
 from dbestclient.executor.queryengine import QueryEngine
-from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name
+from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name, GroupByModelWrapper
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.tools.dftools import convert_df_to_yx, get_group_count_from_df, get_group_count_from_file
 import numpy as np
 from datetime import datetime
+import os
 
 class SqlExecutor:
     """
@@ -29,11 +30,49 @@ class SqlExecutor:
 
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
+        # exit()
 
     def init_model_catalog(self):
         # search the warehouse, and add all available models.
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
-        pass
+        n_model = 0
+        for file_name in os.listdir(self.config['warehousedir']):
+
+            # load simple models
+            if file_name.endswith(".pkl"):
+                if n_model == 0:
+                    print("start loading pre-existing models.")
+
+                with open(self.config['warehousedir'] + "/"+ file_name, 'rb') as f:
+                    model = pickle.load(f)
+                self.model_catalog.model_catalog[model.init_pickle_file_name()]=model
+                n_model += 1
+
+            # load group by models
+            if os.path.isdir(self.config['warehousedir'] + "/"+ file_name):
+                n_models_in_groupby = 0
+                if n_model == 0:
+                    print("start loading pre-existing models.")
+
+                for model_name in os.listdir(self.config['warehousedir'] + "/"+ file_name):
+                    if model_name.endswith(".pkl"):
+                        with open(self.config['warehousedir'] + "/"+ file_name +"/"+model_name, 'rb') as f:
+                            model = pickle.load(f)
+                            n_models_in_groupby += 1
+
+                        if n_models_in_groupby == 1:
+                            groupby_model_wrapper = GroupByModelWrapper(model.mdl, model.tbl, model.x, model.y,
+                                                                        model.groupby_attribute,
+                                                                        x_min_value=model.x_min_value,
+                                                                        x_max_value=model.x_max_value)
+                        groupby_model_wrapper.add_simple_model(model)
+
+                self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
+                n_model += 1
+
+
+        if n_model >0:
+            print("Loaded " + str(n_model) + " models." )
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
     def execute(self, sql):
@@ -65,6 +104,11 @@ class SqlExecutor:
                 sampler.make_sample(original_data_file, ratio, method, split_char=self.config['csv_split_char'])
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
+                    # check whether this model exists, if so, skip training
+                    if os.path.exists(self.config['warehousedir'] + "/" +mdl + '.pkl'):
+                        print("Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                        return
+
                     n_total_point = sampler.n_total_point
                     xys = sampler.getyx(yheader, xheader)
                     simple_model_wrapper = SimpleModelTrainer(mdl,tbl, xheader, yheader,
@@ -80,6 +124,13 @@ class SqlExecutor:
 
                 else:  # if group by is involved in the query
                     groupby_attribute = self.parser.get_groupby_value()
+                    # check whether this model exists, if so, skip training
+                    if os.path.exists(self.config['warehousedir'] + "/" + mdl+"_groupby_" + groupby_attribute):
+                        print(
+                            "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                        return
+
+
                     xys = sampler.getyx(yheader,xheader)
                     # print(xys[groupby_attribute])
                     n_total_point = get_group_count_from_file(original_data_file,groupby_attribute,sep=self.config['csv_split_char'])
@@ -112,15 +163,18 @@ class SqlExecutor:
                     query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value, x_max_value,
                                               self.config)
                     p,t = query_engine.predict(func,x_lb=x_lb,x_ub=x_ub)
+                    print("OK")
                     print(p)
                     if self.config['verbose']:
                         print("time cost: "+ str(t))
+                    print("------------------------")
 
                 else:  # if group by is involved in the query
                     start=datetime.now()
                     predictions={}
                     groupby_attribute =self.parser.get_groupby_value()
                     groupby_key = mdl + "_groupby_"+groupby_attribute
+
                     for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
                         reg = model_wrapper.reg
                         density =model_wrapper.density
@@ -131,7 +185,9 @@ class SqlExecutor:
                         query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
                                                    x_max_value,
                                                    self.config)
-                        predictions[model_wrapper.groupby_tag.replace("_groupby_","")]=query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)[0]
+                        predictions[model_wrapper.groupby_value]=query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)[0]
+
+                    print("OK")
                     for key, item in predictions.items():
                         print(key, item)
 
@@ -139,6 +195,7 @@ class SqlExecutor:
                         end = datetime.now()
                         time_cost = (end - start).total_seconds()
                         print("Time cost: %.4fs." % time_cost)
+                    print("------------------------")
 
 
 

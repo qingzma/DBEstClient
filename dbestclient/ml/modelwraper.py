@@ -18,7 +18,7 @@ def get_pickle_file_name(mdl):
 
 class SimpleModelWrapper:
     def __init__(self, mdl, tbl, x, y=None, n_total_point=1.0,
-                 n_sample_point=1.0, x_min_value=-np.inf, x_max_value=np.inf, groupby_tag=None):
+                 n_sample_point=1.0, x_min_value=-np.inf, x_max_value=np.inf, groupby_attribute=None, groupby_value=None):
         self.mdl = mdl
         self.tbl = tbl
         self.x = x
@@ -27,7 +27,8 @@ class SimpleModelWrapper:
         self.n_sample_point = n_sample_point
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
-        self.groupby_tag=groupby_tag
+        self.groupby_attribute=groupby_attribute
+        self.groupby_value = groupby_value
 
         self.reg = None
         self.density = None
@@ -53,8 +54,8 @@ class SimpleModelWrapper:
         # self.pickle_file_name += ".pkl"
         # return self.pickle_file_name
         self.pickle_file_name = self.mdl
-        if self.groupby_tag is not None:
-            self.pickle_file_name += self.groupby_tag
+        if self.groupby_value is not None:
+            self.pickle_file_name += "_groupby_" + self.groupby_value
         self.pickle_file_name += ".pkl"
         return self.pickle_file_name
 
@@ -81,14 +82,13 @@ class SimpleModelWrapper:
 
 
 class GroupByModelWrapper:
-    def __init__(self, mdl, tbl, x, y, groupby_attribute, n_total_point={},
-                 n_sample_point={}, x_min_value=-np.inf, x_max_value=np.inf):
+    def __init__(self, mdl, tbl, x, y, groupby_attribute,  x_min_value=-np.inf, x_max_value=np.inf):
         self.mdl = mdl
         self.tbl = tbl
         self.x = x
         self.y = y
-        self.n_total_point = n_total_point
-        self.n_sample_point = n_sample_point
+        self.n_total_point = {} #n_total_point
+        self.n_sample_point = {} #n_sample_point
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
         self.groupby_attribute = groupby_attribute
@@ -97,9 +97,10 @@ class GroupByModelWrapper:
         # generate the pickle file names
         self.dir = self.mdl + "_groupby_" + self.groupby_attribute
 
-
     def add_simple_model(self,simple_model):
         self.models[simple_model.init_pickle_file_name()] = simple_model
+        self.n_total_point[simple_model.groupby_value] = simple_model.n_total_point
+        self.n_sample_point[simple_model.groupby_value] = simple_model.n_sample_point
 
     def serialize2warehouse(self, warehouse):
         if os.path.exists(warehouse):
