@@ -13,7 +13,7 @@ config = {
     'epsrel': 0.1,
     'mesh_grid_num': 20,
     'limit': 30,
-    'csv_split_char': '|'
+    'csv_split_char': ','
 }
 
 
@@ -56,8 +56,9 @@ class DBEstPrompt(Cmd):
         if ";" not in inp:
             self.query = self.query + inp + " "
         else:
-            self.query += inp
-            print("Executing query: " + self.query + "...")
+            self.query += inp.split(";")[0]
+            if self.config['verbose']:
+                print("Executing query >>> " + self.query + "...")
 
             # query execution goes here
             # -------------------------------------------->>
@@ -67,13 +68,16 @@ class DBEstPrompt(Cmd):
                 # go to the backend server
             else:
                 # sqlExecutor = SqlExecutor(config)
-                # sqlExecutor.execute(self.query)
-                # self.sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 100")
-                self.sqlExecutor.execute("select count(pm25 real) from mdl where PRES between 1000 and 1020")
+                # print(self.query)
+                # self.query.replace(";",'')
+                self.sqlExecutor.execute(self.query)
+
+                # self.sqlExecutor.execute("create table mdl1(pm25 real, PRES real) from pm25.csv  method uniform size 100")
+                # self.sqlExecutor.execute("select count(pm25 real) from mdl1 where PRES between 1000 and 1020")
                 # sqlExecutor.execute("select sum(pm25 real) from mdl where PRES between 1000 and 1020")
                 # sqlExecutor.execute("select avg(pm25 real) from mdl where PRES between 1000 and 1020")
                 # self.sqlExecutor.execute("create table ss(ss_list_price real, ss_wholesale_cost real) from store_sales.dat  method uniform size 10000 group by ss_store_sk")
-                self.sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1 and 100 group by ss_store_sk")
+                # self.sqlExecutor.execute("select count(ss_list_price) from ss where ss_wholesale_cost between 1 and 100 group by ss_store_sk")
 
             # <<--------------------------------------------
 

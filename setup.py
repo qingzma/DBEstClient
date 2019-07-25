@@ -11,7 +11,7 @@ with open('LICENSE') as f:
 
 setup(
     name='dbestclient',
-    version='3.0',
+    version='1.0',
     description='Model-based Approximate Query Processing (AQP) engine.',
     classifiers=[
         'Development Status :: 3.0',
@@ -25,8 +25,10 @@ setup(
     author_email='Q.Ma.2@warwick.ac.uk',
     long_description=readme,
     license=license,
-    packages=['dbestclient'],
-    #find_packages(exclude=('examples', 'docs'))
+    packages=['dbestclient'], #find_packages(exclude=('examples', 'docs')),
+    entry_points = {
+            'console_scripts': ['dbestclient=dbestclient.main:main'],
+        },
     zip_safe=False,
     install_requires=[
           'numpy','sqlparse','pandas','scikit-learn','qregpy', 'scipy'
