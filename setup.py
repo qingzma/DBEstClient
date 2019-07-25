@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 
-with open('README.md') as f:
+with open('README.rst') as f:
     readme = f.read()
 
 with open('LICENSE') as f:
@@ -11,10 +11,10 @@ with open('LICENSE') as f:
 
 setup(
     name='dbestclient',
-    version='1.0',
+    version='1.2',
     description='Model-based Approximate Query Processing (AQP) engine.',
     classifiers=[
-        'Development Status :: 3.0',
+        'Development Status :: 1.2',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
         'Topic :: Approximate Query Processing :: AQP :: Data Warehouse',
