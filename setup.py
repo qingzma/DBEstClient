@@ -27,7 +27,7 @@ setup(
     license=license,
     packages=['dbestclient'], #find_packages(exclude=('examples', 'docs')),
     entry_points = {
-            'console_scripts': ['dbestclient=dbestclient.main:main'],
+            'console_scripts': ['dbestclient=dbestclient.main:main','dbestcmd=dbestclient.main:cmd'],
         },
     zip_safe=False,
     install_requires=[

@@ -7,3 +7,4 @@ resources/
 dbestclient.egg-info/
 build/
 dist/
+MNIST_data/
