@@ -8,3 +8,5 @@ dbestclient.egg-info/
 build/
 dist/
 MNIST_data/
+dbest.sublime-workspace
+.vscode/
