@@ -7,3 +7,5 @@ resources/
 dbestclient.egg-info/
 build/
 dist/
+.vscode/
+dbest.sublime-workspace
