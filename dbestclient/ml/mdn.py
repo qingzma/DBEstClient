@@ -10,7 +10,7 @@ from copy import deepcopy
 
 class MDN():
     def __init__(self, n_features=1, n_kernels=20):
-        tf.executing_eagerly()
+        # tf.executing_eagerly()
         self.n_features=n_features
         self.n_kernels=n_kernels
         self.model = None
@@ -60,17 +60,28 @@ class MDN():
             plt.show()
 
 
-    def predict(self, Xs):
+    def predict(self, Xs, b_return_avg=True):
         pi_vals, mu_vals, var_vals = self.model.predict(Xs)
 
         sampled_predictions = sample_predictions(pi_vals, mu_vals, var_vals, self.n_features, 10)
         
-
-        print(np.mean(sampled_predictions, axis=1))
-        return sampled_predictions
+        if b_return_avg:
+            return np.mean(sampled_predictions, axis=1)
+        else:
+            return sampled_predictions
+        
 
     def save(self, path):
+        print("Saving model " + path.split('/')[-1] +'...')
         self.model.save(path)
+        print('Saved.')
+    
+    def load(self, path):
+        print("Loading model " + path.split('/')[-1] +'...')
+        self.model = tf.keras.models.load_model(path)
+        print("Loaded")
+
+
 
 
 def create_book_example(n=1000):
@@ -286,6 +297,7 @@ def train_step(model, optimizer, train_x, train_y):
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     return loss
 
+
 if __name__=="__main__":
     mdn1= MDN()
 
@@ -293,6 +305,10 @@ if __name__=="__main__":
     mdn1.network()
     mdn1.fit(X, y,epochs=1000,b_show_loss_curve=False)
     print(X[:2])
+    mdn1.predict(X[:2])
+    mdn1.save("/home/u1796377/Desktop/tfmodel")
+    mdn1.load('/home/u1796377/Desktop/tfmodel')
+
     mdn1.predict(X[:2])
 
     # mdn1.save("/home/u1796377/Desktop/model/")
