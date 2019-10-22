@@ -101,6 +101,7 @@ class SqlExecutor:
                 method = self.parser.get_sampling_method()
 
                 sampler = DBEstSampling()
+                # print(self.config)
                 sampler.make_sample(original_data_file, ratio, method, split_char=self.config['csv_split_char'])
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
@@ -206,11 +207,13 @@ class SqlExecutor:
 
 if __name__ == "__main__":
     config = {
-        'warehousedir': 'dbestwarehouse',
+        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
         'verbose': 'True',
         'b_show_latency': 'True',
         'backend_server': 'None',
+        'csv_split_char': ',',
     }
     sqlExecutor = SqlExecutor(config)
-    sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
+    # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
+    sqlExecutor.execute("create table mdl1(pm25 real, PRES real) from pm25.csv method uniform size 1000")
     print(sqlExecutor.parser.parsed)

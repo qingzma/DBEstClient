@@ -37,10 +37,17 @@ class MDN():
         losses = []
         EPOCHS = epochs
         N = X.shape[0]
+        print(X,Y, type(X), type(Y))
+        Y= np.reshape(Y, (-1, 1))
+        print(X,Y, type(X), type(Y))
         dataset = tf.data.Dataset \
             .from_tensor_slices((X, Y)) \
             .shuffle(N).batch(N)
         print_every = int(0.1 * EPOCHS)
+
+        
+
+
 
         # Start training
         print('Print every {} epochs'.format(print_every))
@@ -58,6 +65,7 @@ class MDN():
             plt.ylabel('Loss')
             plt.title('Training loss')
             plt.show()
+        return self
 
 
     def predict(self, Xs, b_return_avg=True):
@@ -66,7 +74,7 @@ class MDN():
         sampled_predictions = sample_predictions(pi_vals, mu_vals, var_vals, self.n_features, 10)
         
         if b_return_avg:
-            return np.mean(sampled_predictions, axis=1)
+            return np.mean(sampled_predictions, axis=1).flatten()
         else:
             return sampled_predictions
         
@@ -305,11 +313,11 @@ if __name__=="__main__":
     mdn1.network()
     mdn1.fit(X, y,epochs=1000,b_show_loss_curve=False)
     print(X[:2])
-    mdn1.predict(X[:2])
-    mdn1.save("/home/u1796377/Desktop/tfmodel")
-    mdn1.load('/home/u1796377/Desktop/tfmodel')
+    print(mdn1.predict(X[:2]))
+    # mdn1.save("/home/u1796377/Desktop/tfmodel")
+    # mdn1.load('/home/u1796377/Desktop/tfmodel')
 
-    mdn1.predict(X[:2])
+    # mdn1.predict(X[:2])
 
     # mdn1.save("/home/u1796377/Desktop/model/")
     
