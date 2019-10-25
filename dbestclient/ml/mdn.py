@@ -321,6 +321,8 @@
 
 #     # mdn1.save("/home/u1796377/Desktop/model/")
 
+
+# https://github.com/sagelywizard/pytorch-mdn
 """A module for a mixture density network layer
 For more info on MDNs, see _Mixture Desity Networks_ by Bishop, 1994.
 """
@@ -330,6 +332,10 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.distributions import Categorical
 import math
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2*math.pi)
@@ -393,12 +399,12 @@ def gaussian_probability(sigma, mu, data):
     return torch.prod(ret, 2)
 
 
-def mdn_loss(pi, sigma, mu, data):
+def mdn_loss(pi, sigma, mu, target):
     """Calculates the error, given the MoG parameters and the target
     The loss is the negative log likelihood of the data given the MoG
     parameters.
     """
-    prob = pi * gaussian_probability(sigma, mu, data)
+    prob = pi * gaussian_probability(sigma, mu, target)
     nll = -torch.log(torch.sum(prob, dim=1))
     return torch.mean(nll)
 
@@ -414,72 +420,60 @@ def sample(pi, sigma, mu):
     return sample
 
 
+if __name__=="__main__":
+    from torch.utils.data import Dataset
+    x = np.random.uniform(low=-1, high=1, size=(1000,))
+    # y = np.random.uniform(low=-1, high=1, size=(1000,))
+    y = np.random.randint(0,7, size=(1000,))
+    z = x**2 - y**2
+    # z = x**2 + x
 
-# from torch.distributions import Normal, OneHotCategorical
-# class MixtureDensityNetwork(nn.Module):
-#     """
-#     Mixture density network.
-#     [ Bishop, 1994 ]
-#     Parameters
-#     ----------
-#     dim_in: int; dimensionality of the covariates
-#     dim_out: int; dimensionality of the response variable
-#     n_components: int; number of components in the mixture model
-#     """
-#     def __init__(self, dim_in, dim_out, n_components):
-#         super().__init__()
-#         self.pi_network = CategoricalNetwork(dim_in, n_components)
-#         self.normal_network = MixtureDiagNormalNetwork(dim_in, dim_out,
-#                                                        n_components)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(x,y,z)
+    # plt.show()
 
-#     def forward(self, x):
-#         return self.pi_network(x), self.normal_network(x)
+    xy=[[x[i],y[i]] for i in range(len(x))]
+    # xy =x[:,np.newaxis]
+    z = z[:,np.newaxis]
+    tensor_xy = torch.stack([torch.Tensor(i) for i in xy]) # transform to torch tensors
+    
+    # tensor_x.flatten(-1)
+    tensor_z = torch.stack([torch.Tensor(i) for i in z])
+    
+    my_dataset = torch.utils.data.TensorDataset(tensor_xy,tensor_z) # create your datset
+    my_dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=1000, shuffle=False)#, num_workers=8) # create your dataloader
 
-#     def loss(self, x, y):
-#         pi, normal = self.forward(x)
-#         loglik = normal.log_prob(y.unsqueeze(1).expand_as(normal.loc))
-#         loglik = torch.sum(loglik, dim=2)
-#         loss = -torch.logsumexp(torch.log(pi.probs) + loglik, dim=1)
-#         return loss
+    # initialize the model
+    model = nn.Sequential(
+        # nn.Linear(1, 2),
+        # nn.Tanh(),
+        MDN(2, 1, 20)
+    )
 
-#     def sample(self, x):
-#         pi, normal = self.forward(x)
-#         samples = torch.sum(pi.sample().unsqueeze(2) * normal.sample(), dim=1)
-#         return samples
+    optimizer = optim.Adam(model.parameters())
+    for epoch in range(1000):
+        if epoch%100==0:
+            print("< Epoch {}".format(epoch))
+        # train the model
+        for minibatch, labels in my_dataloader:
+            # print(minibatch.size(), minibatch)
+            model.zero_grad()
+            # model.train()
+            pi, sigma, mu = model(minibatch)
+            loss = mdn_loss(pi, sigma, mu, labels)
+            loss.backward()
+            optimizer.step()
 
-
-# class MixtureDiagNormalNetwork(nn.Module):
-
-#     def __init__(self, in_dim, out_dim, n_components, hidden_dim=None):
-#         super().__init__()
-#         self.n_components = n_components
-#         if hidden_dim is None:
-#             hidden_dim = in_dim
-#         self.network = nn.Sequential(
-#             nn.Linear(in_dim, hidden_dim),
-#             nn.ELU(),
-#             nn.Linear(hidden_dim, 2 * out_dim * n_components),
-#         )
-
-#     def forward(self, x):
-#         params = self.network(x)
-#         mean, sd = torch.split(params, params.shape[1] // 2, dim=1)
-#         mean = torch.stack(mean.split(mean.shape[1] // self.n_components, 1))
-#         sd = torch.stack(sd.split(sd.shape[1] // self.n_components, 1))
-#         return Normal(mean.transpose(0, 1), torch.exp(sd).transpose(0, 1))
-
-# class CategoricalNetwork(nn.Module):
-
-#     def __init__(self, in_dim, out_dim, hidden_dim=None):
-#         super().__init__()
-#         if hidden_dim is None:
-#             hidden_dim = in_dim
-#         self.network = nn.Sequential(
-#             nn.Linear(in_dim, hidden_dim),
-#             nn.ELU(),
-#             nn.Linear(hidden_dim, out_dim)
-#         )
-
-#     def forward(self, x):
-#         params = self.network(x)
-#         return OneHotCategorical(logits=params)
+    pi, sigma, mu = model(minibatch)
+    samples = sample(pi, sigma, mu)
+    print(samples.data.numpy().reshape(-1))
+    xy_test = minibatch.data.numpy()
+    x_test = xy_test[:,0]
+    y_test = xy_test[:,1]
+    print(x_test)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x,y,z)
+    ax.scatter(x_test ,y_test,samples.data.numpy().reshape(-1))
+    plt.show()

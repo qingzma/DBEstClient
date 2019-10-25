@@ -20,7 +20,6 @@
 # import seaborn as sns
 
 
-
 # def test():
 #     mnist = tf.keras.datasets.mnist
 #     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -314,7 +313,7 @@
 #     train_stats = train_dataset.describe()
 #     train_stats.pop("MPG")
 #     train_stats =train_stats.transpose()
-    
+
 #     train_labels = train_dataset.pop('MPG')
 #     test_labels = test_dataset.pop('MPG')
 
@@ -327,15 +326,15 @@
 #     train_labels = train_labels.values
 #     test_labels = test_labels.values
 
-    
+
 #     # train_dataset = tf.data.Dataset.from_tensor_slices((normed_train_data.values, train_labels.values))
 #     # test_dataset = tf.data.Dataset.from_tensor_slices((normed_test_data.values, test_labels.values))
-    
+
 #     # BATCH_SIZE=1000
 #     # SHUFFLE_BUFFER_SIZE = 100
 #     # train_dataset = train_dataset.batch(BATCH_SIZE)
 #     # test_dataset = test_dataset.batch(BATCH_SIZE)
-    
+
 
 #     def build_model():
 #         model = keras.Sequential([
@@ -408,11 +407,205 @@
 #     _ = plt.plot([-100, 100], [-100, 100])
 #     plt.show()
 
-    
-    
-    
-    
-
 
 # if __name__ == "__main__":
 #     reg1()
+from __future__ import absolute_import, division, print_function, unicode_literals
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+
+import matplotlib as mpl
+from matplotlib.colors import ListedColormap
+
+import tensorflow as tf
+
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras import backend
+from tensorflow.keras.callbacks import Callback
+
+# x = np.arange(-1, 1, 0.08)
+# y = np.arange(-1, 1, 0.08)
+# x, y = np.meshgrid(x, y)
+# z = x**2 - y**2
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot_wireframe(x, y, z, alpha=0.2)
+# plt.show()
+
+# Real z = (x²-y²) figure
+
+
+def build_toy_dataset(N):
+    # [i for i in range(-1, 1, 0.1) for j in range(-1, 1, 0.1)]#np.float32(np.random.uniform(-1, 1, N))
+    x_data = np.array([(2*i/float(N))-1 for i in range(0, N)
+                       for j in range(0, N)])
+    # np.arange(-1, 1, 0.1)#np.float32(np.random.uniform(-1, 1, N))
+    y_data = np.array([(2*j/float(N))-1 for i in range(0, N)
+                       for j in range(0, N)])
+    z_data = x_data**2-y_data**2
+    return x_data, y_data, z_data
+
+
+def unison_shuffled_copies(a, b, c):
+    assert len(a) == len(b)
+    assert len(a) == len(c)
+    p = np.random.permutation(len(a))
+    return a[p], b[p], c[p]
+
+
+def plot3d(x_data, y_data, z_data):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    x_data, y_data, z_data = build_toy_dataset(100)
+    ax.scatter(x_data, y_data, z_data, c='b', marker='o', alpha=0.2)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.show()
+
+
+# x_data, y_data, z_data = build_toy_dataset(1000)
+# x_data, y_data, z_data = unison_shuffled_copies(x_data, y_data, z_data)
+# # plot3d(x_data, y_data, z_data)
+x_data = np.linspace(-1,1,1000)
+y_data=x_data**2 +x_data+0.01
+c = 1  # The number of outputs we want to predict
+m = 24  # The number of distributions we want to use in the mixture
+
+# Note: The output size will be (c + 2) * m
+
+
+def elu_modif(x):
+    return tf.nn.elu(x)+1.+1e-8
+
+
+def log_sum_exp(x, axis=None):
+    """ Log-sum-exp trick implementation """
+    x_max = backend.max(x,  axis=axis, keepdims=True)
+    return backend.log(backend.sum(backend.exp(x - x_max),
+                                   axis=axis, keepdims=True))+x_max
+
+
+def mean_log_Gaussian_like(y_true, parameters):
+    """Mean Log Gaussian Likelihood distribution
+    Note: The 'c' variable is obtained as global variable
+    """
+    components = tf.keras.backend.reshape(parameters, [-1, c + 2, m])
+    mu = components[:, :c, :]
+    sigma = components[:, c, :]
+    alpha = components[:, c + 1, :]
+    alpha = tf.keras.backend.softmax(tf.keras.backend.clip(alpha, 1e-8, 1.))
+
+    exponent = backend.log(alpha) - .5 * float(c) * backend.log(2 * np.pi) \
+        - float(c) * backend.log(sigma) \
+        - backend.sum((backend.expand_dims(y_true, 2) - mu)
+                      ** 2, axis=1)/(2*(sigma)**2)
+
+    log_gauss = log_sum_exp(exponent, axis=1)
+    res = - backend.mean(log_gauss)
+    return res
+
+
+def mean_log_LaPlace_like(y_true, parameters):
+    """Mean Log Laplace Likelihood distribution
+    Note: The 'c' variable is obtained as global variable
+    """
+    components = backend.reshape(parameters, [-1, c + 2, m])
+    mu = components[:, :c, :]
+    sigma = components[:, c, :]
+    alpha = components[:, c + 1, :]
+    alpha = backend.softmax(backend.clip(alpha, 1e-2, 1.))
+
+    exponent = backend.log(alpha) - float(c) * backend.log(2 * sigma) \
+        - backend.sum(backend.abs(backend.expand_dims(y_true,
+                                                      2) - mu), axis=1)/(sigma)
+
+    log_gauss = log_sum_exp(exponent, axis=1)
+    res = - backend.mean(log_gauss)
+    return res
+class LossHistory(Callback):
+    def on_train_begin(self, logs={}):
+        self.losses = []
+    def on_batch_end(self, batch, logs={}):
+        self.losses.append(logs.get('loss'))
+
+inputs = keras.Input(shape=(1,), name='input')
+x = keras.layers.Dense(24, activation='relu', name='dense1')(inputs)
+x = keras.layers.Dropout(0.25,name='drop1')(x)
+
+FC_mus = keras.layers.Dense(c*m, name='FC_mus')(x)
+FC_sigmas = keras.layers.Dense(m, activation=elu_modif, name='FC_sigmas')(x)
+FC_alphas = keras.layers.Dense(m,activation='softmax', name='FC_alphas')(x)
+output = keras.layers.Concatenate(name="pvec",axis=1)([FC_mus, FC_sigmas, FC_alphas])
+
+model = keras.Model(inputs=inputs, outputs=output)
+lossHistory = LossHistory()
+
+from datetime import datetime
+start_time = datetime.now()
+epoch=1000
+
+model.compile(optimizer='rmsprop',loss=mean_log_Gaussian_like,metrics=['accuracy'])
+# out = np.array(list(zip(y_data, z_data)))
+# print(out)
+train_data = tf.data.Dataset.from_tensor_slices((x_data,y_data))
+history = model.fit(train_data, epochs=epoch)#,  verbose=1, batch_size=10000, validation_split=0.1)
+
+end_time = datetime.now()
+print() 
+print("*********************************  End  *********************************")
+print()
+print('Duration: {}'.format(end_time - start_time))
+
+
+def nnelu(input):
+    """ Computes the Non-Negative Exponential Linear Unit
+    """
+    return tf.add(tf.constant(1, dtype=tf.float32), tf.nn.elu(input))
+
+def slice_parameter_vectors(parameter_vector):
+    """ Returns an unpacked list of paramter vectors.
+    """
+    return [parameter_vector[:,i*components:(i+1)*components] for i in range(no_parameters)]
+
+def gnll_loss(y, parameter_vector):
+    """ Computes the mean negative log-likelihood loss of y given the mixture parameters.
+    """
+    alpha, mu, sigma = slice_parameter_vectors(parameter_vector) # Unpack parameter vectors
+    
+    gm = tfd.MixtureSameFamily(
+        mixture_distribution=tfd.Categorical(probs=alpha),
+        components_distribution=tfd.Normal(
+            loc=mu,       
+            scale=sigma))
+    
+    log_likelihood = gm.log_prob(tf.transpose(y)) # Evaluate log-probability of y
+    
+    return -tf.reduce_mean(log_likelihood, axis=-1)
+class MDN(tf.keras.Model):
+    def __init__(self,neurons=100, components=2, dimension=2):
+        super(MDN, self).__init__(name="MDN")
+        self.neurons = neurons
+        self.components = components
+        self.dimension = dimension
+        self.h1 = keras.layers.Dense(neurons,activation='relu',name='h1')
+        self.dropout1 = keras.layers.Dropout(0.25)
+        self.h2 = keras.layers.Dense(neurons, activation='relu', name='h2')
+        self.dropout2 = keras.layers.Dropout(0.25)
+
+        self.mus = keras.layers.Dense(components, name='FC_mus')
+        self.sigmas = keras.layers.Dense(components, activation='nnelu', name='FC_sigmas')
+        self.alphas = keras.layers.Dense(components,activation='softmax', name='FC_alphas')
+        self.pvec = keras.layers.Concatenate(name="pvec")
+
+    def call(self, inputs):
+        x = self.h1(inputs)
+        x = self.dropout1(x)
+        x = self.h2(x)
+        alpha_v = self.alphas(x)
+        mu_v = self.mus(x)
+        sigma_v = self.sigmas(x)
+        
+        return self.pvec([alpha_v, mu_v, sigma_v])

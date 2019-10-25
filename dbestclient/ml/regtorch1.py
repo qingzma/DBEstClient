@@ -16,7 +16,7 @@
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
-
+import sys
 import math
 
 import matplotlib.pyplot as plt
@@ -26,6 +26,11 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+
+
+from matplotlib import pyplot
+from mpl_toolkits.mplot3d import Axes3D
 
 
 np.random.seed(42)
@@ -58,16 +63,44 @@ torch.cuda.manual_seed(0)
 n = 2500
 d = 1
 t = 1
-x_train = np.random.uniform(0, 1, (n, d)).astype(np.float32)
-noise = np.random.uniform(-0.1, 0.1, (n, d)).astype(np.float32)
-y_train = x_train + 0.3*np.sin(2*np.pi*x_train) + noise
-x_test = np.linspace(0, 1, n).reshape(-1, 1).astype(np.float32)
+x_train = np.random.uniform(0, 1, (n, d)).astype(np.float32)#np.random.uniform(0, 6, (n, d)).astype(np.float32) #
+noise = np.random.uniform(-0.5, 0.5, (n, d)).astype(np.float32)
+y_train = x_train + 0.3*np.sin(2*np.pi*x_train) + noise #np.random.randint(0,6, (n,d)).astype(np.float32)
+x_test = np.linspace(0, 1, n).reshape(-1, 1).astype(np.float32) #np.random.uniform(0, 6, (n, d)).astype(np.float32)
+y_test = x_test + 0.3*np.sin(2*np.pi*x_test) + noise#np.random.randint(0,6, (n,d)).astype(np.float32) 
+
+x_train = np.random.uniform(0, 6, (n, d)).astype(np.float32)# #
+noise = np.random.uniform(-0.5, 0.5, (n, d)).astype(np.float32)
+y_train = np.random.randint(0,6, (n,d)).astype(np.float32) #
+x_test = np.random.uniform(0, 6, (n, d)).astype(np.float32) #
+y_test = np.random.randint(0,6, (n,d)).astype(np.float32)#np.random.randint(0,6, (n,d)).astype(np.float32) 
 
 
-x_train_inv = y_train
-y_train_inv = x_train
-# new x has a slightly different range
-x_test = np.linspace(-0.1, 1.1, n).reshape(-1, 1).astype(np.float32)
+print(x_train)
+print(y_train)
+xy_train = np.concatenate((x_train, y_train),axis=1)
+xy_test = np.concatenate((x_test, y_test),axis=1)
+print(xy_train)
+z_train = np.array([[a[0]**2+a[1]**3 + a[0]*a[1]]for a in xy_train]) + noise
+print(z_train)
+
+
+
+# fig = plt.figure()
+# ax = fig.add_subplot(111,projection='3d')
+# ax.scatter(x_train, y_train, z_train)
+# ax.set_xlabel('X Label')
+# ax.set_ylabel('Y Label')
+# ax.set_zlabel('Z Label')
+# plt.show()
+# sys.exit()
+
+d=2
+
+
+
+
+
 
 
 # dimensionality of hidden layer
@@ -77,7 +110,7 @@ h = 50
 # encoded, latent variable $$z$$, and have the model
 # produce values for $$\mu_k = p(z_k = 1)$$, i.e., the
 # prob of each possible state of $$z$$. (PRML p. 430)
-k = 30  # 3
+k =  1 # 3
 # We specialize to the case of isotropic covariances (PRML p. 273),
 # so the covariance matrix is diagonal with equal diagonal elements,
 # i.e., the variances for each dimension of y are equivalent.
@@ -131,11 +164,14 @@ def loss_fn(pi, sigmasq, mu, target):
     # distributions.  here, p(z) is the prior over z, and p(y|x,z)
     # is the likelihood conditioned on z and x.
     losses = Variable(torch.zeros(n))  # p(y|x)
+    # print(k)
     for i in range(k):  # marginalize over z
+        # print(i)
         likelihood_z_x = gaussian_pdf(
             target, mu[:, i*t:(i+1)*t], sigmasq[:, i])
         prior_z = pi[:, i]
         losses += prior_z * likelihood_z_x
+
     loss = torch.mean(-torch.log(losses))
     return loss
 
@@ -144,13 +180,17 @@ opt = optim.Adam([w1, b1, w_pi, b_pi, w_sigmasq,
                   b_sigmasq, w_mu, b_mu], lr=0.008)
 
 # wrap up the inverse data as Variables
-x = Variable(torch.from_numpy(x_train_inv))
-y = Variable(torch.from_numpy(y_train_inv))
+x = Variable(torch.from_numpy(xy_train))
+y = Variable(torch.from_numpy(z_train))
 
-for e in range(500):
+for e in range(1500):
     opt.zero_grad()
+    
     pi, sigmasq, mu = forward(x)
+    
     loss = loss_fn(pi, sigmasq, mu, y)
+    
+    
     if e % 100 == 0:
         print(loss.item())
     loss.backward()
@@ -207,14 +247,20 @@ def sample_preds(pi, sigmasq, mu, samples=10):
 
 
 # sample
-pi, sigmasq, mu = forward(Variable(torch.from_numpy(x_test)))
+pi, sigmasq, mu = forward(Variable(torch.from_numpy(xy_test)))
 cond_mode = sample_mode(pi, sigmasq, mu)
-preds = sample_preds(pi, sigmasq, mu, samples=10)
+preds = sample_preds(pi, sigmasq, mu, samples=1)
+print(preds)
+
+
+
 
 # plot the conditional mode at each point along x
-fig = plt.figure(figsize=(8, 8))
-plt.plot(x_train_inv, y_train_inv, 'go', alpha=0.5, markerfacecolor='none')
-plt.plot(x_test, cond_mode.data.numpy(), 'r.')
+fig = plt.figure()
+ax = fig.add_subplot(111,projection='3d')
+ax.scatter(x_train, y_train, z_train,alpha=0.4)
+ax.scatter(x_test, y_test, preds,alpha=0.2)
+
 plt.show()
 
 # plot the means at each point along x
