@@ -45,9 +45,6 @@
 #             .shuffle(N).batch(N)
 #         print_every = int(0.1 * EPOCHS)
 
-        
-
-
 
 #         # Start training
 #         print('Print every {} epochs'.format(print_every))
@@ -57,7 +54,7 @@
 #                 losses.append(loss)
 #             if i % print_every == 0:
 #                 print('Epoch {}/{}: loss {}'.format(i, EPOCHS, losses[-1]))
-        
+
 #         if b_show_loss_curve:
 #             # Let's plot the training loss
 #             plt.plot(range(len(losses)), losses)
@@ -72,33 +69,31 @@
 #         pi_vals, mu_vals, var_vals = self.model.predict(Xs)
 
 #         sampled_predictions = sample_predictions(pi_vals, mu_vals, var_vals, self.n_features, 10)
-        
+
 #         if b_return_avg:
 #             return np.mean(sampled_predictions, axis=1).flatten()
 #         else:
 #             return sampled_predictions
-        
+
 
 #     def save(self, path):
 #         print("Saving model " + path.split('/')[-1] +'...')
 #         self.model.save(path)
 #         print('Saved.')
-    
+
 #     def load(self, path):
 #         print("Loading model " + path.split('/')[-1] +'...')
 #         self.model = tf.keras.models.load_model(path)
 #         print("Loaded")
 
 
-
-
 # def create_book_example(n=1000):
 #     # sample uniformly over the interval (0,1)
-#     X = np.random.uniform(0., 1., (n,1)).astype(np.float32)    
-#     # target values 
+#     X = np.random.uniform(0., 1., (n,1)).astype(np.float32)
+#     # target values
 #     y = X + 0.3 * np.sin(2 * np.pi * X) + np.random.uniform(-0.1, 0.1, size=(n,1)).astype(np.float32)
 #     # test data
-#     x_test = np.linspace(0, 1, n).reshape(-1, 1).astype(np.float32)    
+#     x_test = np.linspace(0, 1, n).reshape(-1, 1).astype(np.float32)
 #     return X, y, x_test
 
 # # Build model
@@ -183,7 +178,7 @@
 #         .from_tensor_slices((flipped_x, flipped_y)) \
 #         .shuffle(N).batch(N)
 
-    
+
 #     losses = []
 #     EPOCHS = 6000
 #     print_every = int(0.1 * EPOCHS)
@@ -200,7 +195,7 @@
 #             losses.append(loss)
 #         if i % print_every == 0:
 #             print('Epoch {}/{}: loss {}'.format(i, EPOCHS, losses[-1]))
-    
+
 #     # Let's plot the training loss
 #     plt.plot(range(len(losses)), losses)
 #     plt.xlabel('Epochs')
@@ -225,7 +220,7 @@
 
 #     sampled_predictions = sample_predictions(pi_vals, mu_vals, var_vals,l, 10)
 
-#     # Plot the predictions along with the flipped data 
+#     # Plot the predictions along with the flipped data
 #     import matplotlib.patches as mpatches
 
 #     fig = plt.figure(figsize=(6, 6))
@@ -249,7 +244,7 @@
 
 # def mdn_loss(y_true, pi, mu, var):
 #     """MDN Loss Function
-#     The eager mode in tensorflow 2.0 makes is extremely easy to write 
+#     The eager mode in tensorflow 2.0 makes is extremely easy to write
 #     functions like these. It feels a lot more pythonic to me.
 #     """
 #     out = calc_pdf(y_true, mu, var)
@@ -260,11 +255,10 @@
 #     return tf.reduce_mean(out)
 
 
-
 # def approx_conditional_mode(pi, var, mu,l):
 #     """Approx conditional mode
 #     Because the conditional mode for MDN does not have simple analytical
-#     solution, an alternative is to take mean of most probable component 
+#     solution, an alternative is to take mean of most probable component
 #     at each value of x (PRML, page 277)
 #     """
 #     n, k = pi.shape
@@ -326,6 +320,7 @@
 """A module for a mixture density network layer
 For more info on MDNs, see _Mixture Desity Networks_ by Bishop, 1994.
 """
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -339,6 +334,7 @@ import numpy as np
 
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2*math.pi)
+
 
 class MDN(nn.Module):
     """A mixture density network layer
@@ -358,6 +354,7 @@ class MDN(nn.Module):
             is the standard deviation of each Gaussian. Mu is the mean of each
             Gaussian.
     """
+
     def __init__(self, in_features, out_features, num_gaussians):
         super(MDN, self).__init__()
         self.in_features = in_features
@@ -381,7 +378,7 @@ class MDN(nn.Module):
 
 def gaussian_probability(sigma, mu, data):
     """Returns the probability of `data` given MoG parameters `sigma` and `mu`.
-    
+
     Arguments:
         sigma (BxGxO): The standard deviation of the Gaussians. B is the batch
             size, G is the number of Gaussians, and O is the number of
@@ -405,6 +402,7 @@ def mdn_loss(pi, sigma, mu, target):
     parameters.
     """
     prob = pi * gaussian_probability(sigma, mu, target)
+
     nll = -torch.log(torch.sum(prob, dim=1))
     return torch.mean(nll)
 
@@ -416,16 +414,186 @@ def sample(pi, sigma, mu):
     pis = list(categorical.sample().data)
     sample = Variable(sigma.data.new(sigma.size(0), sigma.size(2)).normal_())
     for i, idx in enumerate(pis):
-        sample[i] = sample[i].mul(sigma[i,idx]).add(mu[i,idx])
+        sample[i] = sample[i].mul(sigma[i, idx]).add(mu[i, idx])
     return sample
 
 
-if __name__=="__main__":
+class RegMdn():
+    def __init__(self, b_store_training_data=True):
+        if b_store_training_data:
+            self.xs = None   # query range
+            self.ys = None   # aggregate value
+            self.zs = None   # group by balue
+        self.b_store_training_data = b_store_training_data
+        self.meanx = None
+        self.widthx = None
+        self.meany = None
+        self.widthy = None
+        self.meanz = None
+        self.widthz = None
+        self.model = None
+        self.is_normalized=False
+
+    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True):
+        """ fit a regression y = R(x,z)
+
+        Args:
+            xs ([float]): query range attribute
+            zs ([float]): group by attribute
+            ys ([float]): aggregate attribute
+            b_show_plot (bool, optional): whether to show the plot. Defaults to True.
+        """
+        if b_normalize:
+            self.meanx = np.mean(xs)
+            self.widthx = np.max(xs)-np.min(xs)
+            self.meany = np.mean(ys)
+            self.widthy = np.max(ys)-np.min(ys)
+            self.meanz = np.mean(zs)
+            self.widthz = np.max(zs)-np.min(zs)
+
+            # s= [(i-meanx)/1 for i in x]
+            xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                           for i in xs])
+            ys = np.array([self.normalize(i, self.meany, self.widthy)
+                           for i in ys])
+            zs = np.array([self.normalize(i, self.meanz, self.widthz)
+                           for i in zs])
+            self.is_normalized = True
+        self.xs = xs
+        self.ys = ys
+        self.zs = zs
+        
+
+        if b_show_plot:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(xs, zs, ys)
+            ax.set_xlabel('query range attribute')
+            ax.set_ylabel('group by attribute')
+            ax.set_zlabel('aggregate attribute')
+            plt.show()
+
+        xzs = [[xs[i], zs[i]] for i in range(len(xs))]
+        # xy =x[:,np.newaxis]
+        ys = ys[:, np.newaxis]
+        tensor_xzs = torch.stack([torch.Tensor(i)
+                                  for i in xzs])  # transform to torch tensors
+
+        # tensor_x.flatten(-1)
+        tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
+
+        my_dataset = torch.utils.data.TensorDataset(
+            tensor_xzs, tensor_ys)  # create your datset
+        # , num_workers=8) # create your dataloader
+        my_dataloader = torch.utils.data.DataLoader(
+            my_dataset, batch_size=1000, shuffle=False)
+
+        # initialize the model
+        self.model = nn.Sequential(
+            # nn.Linear(1, 2),
+            # nn.Tanh(),
+            MDN(2, 1, 7)
+        )
+
+        optimizer = optim.Adam(self.model.parameters())
+        for epoch in range(1000):
+            if epoch % 100 == 0:
+                print("< Epoch {}".format(epoch))
+            # train the model
+            for minibatch, labels in my_dataloader:
+                # print(minibatch.size(), minibatch)
+                self.model.zero_grad()
+                # model.train()
+                pi, sigma, mu = self.model(minibatch)
+                loss = mdn_loss(pi, sigma, mu, labels)
+                loss.backward()
+                optimizer.step()
+
+    def fit2d(self):
+        pass
+
+    def predict(self, xs, zs, b_show_plot=True):
+        if self.is_normalized:
+            xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                           for i in xs])
+            zs = np.array([self.normalize(i, self.meanz, self.widthz)
+                           for i in zs])
+        xzs= np.array([[xs[i], zs[i]] for i in range(len(xs))])
+        tensor_xzs = torch.stack([torch.Tensor(i)
+                                  for i in xzs]) 
+        # xzs_data = torch.from_numpy(xzs)
+
+        pi, sigma, mu = self.model(tensor_xzs)
+        # print("mu,", mu)
+        # print("sigma", sigma)
+        samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+        
+        # print(samples.data.numpy().reshape(-1))
+        
+        # print(x_test)
+        if b_show_plot:
+            #de-normalize the data
+            samples = [self.denormalize(i, self.meany, self.widthy) for i in samples]
+            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                           for i in xs])
+            zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+                           for i in zs])
+            self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                           for i in self.xs])
+            self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
+                           for i in self.ys])
+            self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+                           for i in self.zs])               
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(self.xs, self.zs, self.ys)
+            ax.scatter(xs, zs, samples)
+            ax.set_xlabel('query range attribute')
+            ax.set_ylabel('group by attribute')
+            ax.set_zlabel('aggregate attribute')
+            plt.show()
+
+    def normalize(self, x, mean, width):
+        return (x-mean)/width*2
+
+    def denormalize(self, x, mean, width):
+        return 2*width*x + mean
+
+
+if __name__ == "__main__":
     from torch.utils.data import Dataset
-    x = np.random.uniform(low=-1, high=1, size=(1000,))
+    x = np.random.uniform(low=1, high=10, size=(1000,))
     # y = np.random.uniform(low=-1, high=1, size=(1000,))
-    y = np.random.randint(0,7, size=(1000,))
-    z = x**2 - y**2
+    z = np.random.randint(0, 7, size=(1000,))
+    noise = np.random.normal(1, 5, 1000)
+    y = x**2 - z**2 + noise
+
+    regMdn = RegMdn()
+    regMdn.fit3d(x, z, y)
+
+    x_test = np.random.uniform(low=1, high=10, size=(1000,))
+    z_test = np.random.randint(0, 7, size=(1000,))
+    regMdn.predict(x_test, z_test)
+
+    sys.exit()
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(x, y, z)
+    plt.show()
+
+    meanx = np.mean(x)
+    widthx = np.max(x)-np.min(x)
+    meany = np.mean(y)
+    widthy = np.max(y)-np.min(y)
+    meanz = np.mean(z)
+    widthz = np.max(z)-np.min(z)
+
+    # s= [(i-meanx)/1 for i in x]
+    x = np.array([(i-meanx)/widthx*2 for i in x])
+    y = np.array([(i-meany)/widthy*2 for i in y])
+    z = np.array([(i-meanz)/widthz*2 for i in z])
+
     # z = x**2 + x
 
     # fig = plt.figure()
@@ -433,16 +601,20 @@ if __name__=="__main__":
     # ax.scatter(x,y,z)
     # plt.show()
 
-    xy=[[x[i],y[i]] for i in range(len(x))]
+    xy = [[x[i], y[i]] for i in range(len(x))]
     # xy =x[:,np.newaxis]
-    z = z[:,np.newaxis]
-    tensor_xy = torch.stack([torch.Tensor(i) for i in xy]) # transform to torch tensors
-    
+    z = z[:, np.newaxis]
+    tensor_xy = torch.stack([torch.Tensor(i)
+                             for i in xy])  # transform to torch tensors
+
     # tensor_x.flatten(-1)
     tensor_z = torch.stack([torch.Tensor(i) for i in z])
-    
-    my_dataset = torch.utils.data.TensorDataset(tensor_xy,tensor_z) # create your datset
-    my_dataloader = torch.utils.data.DataLoader(my_dataset, batch_size=1000, shuffle=False)#, num_workers=8) # create your dataloader
+
+    my_dataset = torch.utils.data.TensorDataset(
+        tensor_xy, tensor_z)  # create your datset
+    # , num_workers=8) # create your dataloader
+    my_dataloader = torch.utils.data.DataLoader(
+        my_dataset, batch_size=1000, shuffle=False)
 
     # initialize the model
     model = nn.Sequential(
@@ -452,8 +624,8 @@ if __name__=="__main__":
     )
 
     optimizer = optim.Adam(model.parameters())
-    for epoch in range(1000):
-        if epoch%100==0:
+    for epoch in range(100):
+        if epoch % 100 == 0:
             print("< Epoch {}".format(epoch))
         # train the model
         for minibatch, labels in my_dataloader:
@@ -465,15 +637,23 @@ if __name__=="__main__":
             loss.backward()
             optimizer.step()
 
-    pi, sigma, mu = model(minibatch)
+    print(minibatch)
+    mytest =torch.autograd.Variable(torch.from_numpy(np.array(xy)), requires_grad=False )
+    print(mytest)
+    pi, sigma, mu = model(xy)
+    # print("mu,", mu)
+    # print("sigma", sigma)
     samples = sample(pi, sigma, mu)
-    print(samples.data.numpy().reshape(-1))
+    # print(samples.data.numpy().reshape(-1))
     xy_test = minibatch.data.numpy()
-    x_test = xy_test[:,0]
-    y_test = xy_test[:,1]
-    print(x_test)
+    x_test = xy_test[:, 0]
+    y_test = xy_test[:, 1]
+    # print(x_test)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(x,y,z)
-    ax.scatter(x_test ,y_test,samples.data.numpy().reshape(-1))
+    ax.scatter(x, y, z)
+    ax.scatter(x_test, y_test, samples.data.numpy().reshape(-1))
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     plt.show()
