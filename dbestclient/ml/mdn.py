@@ -360,6 +360,7 @@ class MDN(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.num_gaussians = num_gaussians
+        # self.layer0= nn.Linear(in_features, 50)
         self.pi = nn.Sequential(
             nn.Linear(in_features, num_gaussians),
             nn.Softmax(dim=1)
@@ -374,6 +375,27 @@ class MDN(nn.Module):
         mu = self.mu(minibatch)
         mu = mu.view(-1, self.num_gaussians, self.out_features)
         return pi, sigma, mu
+
+    # backup of the initial network
+    # def __init__(self, in_features, out_features, num_gaussians):
+    #     super(MDN, self).__init__()
+    #     self.in_features = in_features
+    #     self.out_features = out_features
+    #     self.num_gaussians = num_gaussians
+    #     self.pi = nn.Sequential(
+    #         nn.Linear(in_features, num_gaussians),
+    #         nn.Softmax(dim=1)
+    #     )
+    #     self.sigma = nn.Linear(in_features, out_features*num_gaussians)
+    #     self.mu = nn.Linear(in_features, out_features*num_gaussians)
+
+    # def forward(self, minibatch):
+    #     pi = self.pi(minibatch)
+    #     sigma = torch.exp(self.sigma(minibatch))
+    #     sigma = sigma.view(-1, self.num_gaussians, self.out_features)
+    #     mu = self.mu(minibatch)
+    #     mu = mu.view(-1, self.num_gaussians, self.out_features)
+    #     return pi, sigma, mu
 
 
 def gaussian_probability(sigma, mu, data):
@@ -490,9 +512,9 @@ class RegMdn():
 
         # initialize the model
         self.model = nn.Sequential(
-            # nn.Linear(1, 2),
-            # nn.Tanh(),
-            MDN(2, 1, 7)
+            nn.Linear(2,50),# nn.Linear(1, 2),
+            nn.Tanh(),# nn.Tanh(),
+            MDN(50, 1, 7)
         )
 
         optimizer = optim.Adam(self.model.parameters())
@@ -563,7 +585,7 @@ class RegMdn():
 if __name__ == "__main__":
     from torch.utils.data import Dataset
     x = np.random.uniform(low=1, high=10, size=(1000,))
-    # y = np.random.uniform(low=-1, high=1, size=(1000,))
+    # z = np.random.uniform(low=1, high=10, size=(1000,))
     z = np.random.randint(0, 7, size=(1000,))
     noise = np.random.normal(1, 5, 1000)
     y = x**2 - z**2 + noise
@@ -571,8 +593,8 @@ if __name__ == "__main__":
     regMdn = RegMdn()
     regMdn.fit3d(x, z, y)
 
-    x_test = np.random.uniform(low=1, high=10, size=(1000,))
-    z_test = np.random.randint(0, 7, size=(1000,))
+    x_test = np.random.uniform(low=1, high=10, size=(10,))
+    z_test = np.random.randint(0, 7, size=(10,))
     regMdn.predict(x_test, z_test)
 
     sys.exit()
