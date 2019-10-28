@@ -20,7 +20,7 @@ class SimpleModelTrainer:
 
     def fit(self, x, y):
         print(x,y)
-        reg = DBEstReg().fit(x, y, type='tf')
+        reg = DBEstReg().fit(x, y, type='torch')
         density = DBEstDensity().fit(x)
         self.simpe_model_wrapper.load_model(density, reg)
         return self.simpe_model_wrapper

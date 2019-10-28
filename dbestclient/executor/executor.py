@@ -19,6 +19,7 @@ import numpy as np
 from datetime import datetime
 import os
 
+
 class SqlExecutor:
     """
     This is the executor for the SQL query.
@@ -43,20 +44,21 @@ class SqlExecutor:
                 if n_model == 0:
                     print("start loading pre-existing models.")
 
-                with open(self.config['warehousedir'] + "/"+ file_name, 'rb') as f:
+                with open(self.config['warehousedir'] + "/" + file_name, 'rb') as f:
                     model = pickle.load(f)
-                self.model_catalog.model_catalog[model.init_pickle_file_name()]=model
+                self.model_catalog.model_catalog[model.init_pickle_file_name(
+                )] = model
                 n_model += 1
 
             # load group by models
-            if os.path.isdir(self.config['warehousedir'] + "/"+ file_name):
+            if os.path.isdir(self.config['warehousedir'] + "/" + file_name):
                 n_models_in_groupby = 0
                 if n_model == 0:
                     print("start loading pre-existing models.")
 
-                for model_name in os.listdir(self.config['warehousedir'] + "/"+ file_name):
+                for model_name in os.listdir(self.config['warehousedir'] + "/" + file_name):
                     if model_name.endswith(".pkl"):
-                        with open(self.config['warehousedir'] + "/"+ file_name +"/"+model_name, 'rb') as f:
+                        with open(self.config['warehousedir'] + "/" + file_name + "/"+model_name, 'rb') as f:
                             model = pickle.load(f)
                             n_models_in_groupby += 1
 
@@ -70,9 +72,8 @@ class SqlExecutor:
                 self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
                 n_model += 1
 
-
-        if n_model >0:
-            print("Loaded " + str(n_model) + " models." )
+        if n_model > 0:
+            print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
     def execute(self, sql):
@@ -102,25 +103,28 @@ class SqlExecutor:
 
                 sampler = DBEstSampling()
                 # print(self.config)
-                sampler.make_sample(original_data_file, ratio, method, split_char=self.config['csv_split_char'])
+                sampler.make_sample(
+                    original_data_file, ratio, method, split_char=self.config['csv_split_char'])
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     # check whether this model exists, if so, skip training
-                    if os.path.exists(self.config['warehousedir'] + "/" +mdl + '.pkl'):
-                        print("Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                    if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
+                        print(
+                            "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
                         return
 
                     n_total_point = sampler.n_total_point
                     xys = sampler.getyx(yheader, xheader)
-                    simple_model_wrapper = SimpleModelTrainer(mdl,tbl, xheader, yheader,
-                                                              n_total_point,ratio).fit_from_df(xys)
+                    simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
+                                                              n_total_point, ratio).fit_from_df(xys)
                     # reg = DBEstReg().fit(x, y)
                     # density = DBEstDensity().fit(x)
                     # simpleWrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader,n_total_point=n_total_point,
                     #                                    n_sample_point=ratio)
                     # simpleWrapper.load_model(density, reg)
 
-                    simple_model_wrapper.serialize2warehouse(self.config['warehousedir'])
+                    simple_model_wrapper.serialize2warehouse(
+                        self.config['warehousedir'])
                     self.model_catalog.add_model_wrapper(simple_model_wrapper)
 
                 else:  # if group by is involved in the query
@@ -131,14 +135,16 @@ class SqlExecutor:
                             "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
                         return
 
-
-                    xys = sampler.getyx(yheader,xheader)
+                    xys = sampler.getyx(yheader, xheader)
                     # print(xys[groupby_attribute])
-                    n_total_point = get_group_count_from_file(original_data_file,groupby_attribute,sep=self.config['csv_split_char'])
-                    n_sample_point = get_group_count_from_df(xys,groupby_attribute)
+                    n_total_point = get_group_count_from_file(
+                        original_data_file, groupby_attribute, sep=self.config['csv_split_char'])
+                    n_sample_point = get_group_count_from_df(
+                        xys, groupby_attribute)
                     groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute, n_total_point, n_sample_point,
                                                                 x_min_value=-np.inf, x_max_value=np.inf).fit_from_df(xys)
-                    groupby_model_wrapper.serialize2warehouse(self.config['warehousedir']+"/"+groupby_model_wrapper.dir)
+                    groupby_model_wrapper.serialize2warehouse(
+                        self.config['warehousedir']+"/"+groupby_model_wrapper.dir)
                     self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
 
             else:
@@ -151,10 +157,12 @@ class SqlExecutor:
                     x_ub = float(x_ub)
 
                 else:
-                    print("support for query without where clause is not implemented yet! abort!")
+                    print(
+                        "support for query without where clause is not implemented yet! abort!")
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved in the query
-                    simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(mdl)]
+                    simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
+                        mdl)]
                     reg = simple_model_wrapper.reg
                     density = simple_model_wrapper.density
                     n_sample_point = int(simple_model_wrapper.n_sample_point)
@@ -162,23 +170,23 @@ class SqlExecutor:
                     x_min_value = float(simple_model_wrapper.x_min_value)
                     x_max_value = float(simple_model_wrapper.x_max_value)
                     query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value, x_max_value,
-                                              self.config)
-                    p,t = query_engine.predict(func,x_lb=x_lb,x_ub=x_ub)
+                                               self.config)
+                    p, t = query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)
                     print("OK")
                     print(p)
                     if self.config['verbose']:
-                        print("time cost: "+ str(t))
+                        print("time cost: " + str(t))
                     print("------------------------")
 
                 else:  # if group by is involved in the query
-                    start=datetime.now()
-                    predictions={}
-                    groupby_attribute =self.parser.get_groupby_value()
+                    start = datetime.now()
+                    predictions = {}
+                    groupby_attribute = self.parser.get_groupby_value()
                     groupby_key = mdl + "_groupby_"+groupby_attribute
 
                     for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
                         reg = model_wrapper.reg
-                        density =model_wrapper.density
+                        density = model_wrapper.density
                         n_sample_point = int(model_wrapper.n_sample_point)
                         n_total_point = int(model_wrapper.n_total_point)
                         x_min_value = float(model_wrapper.x_min_value)
@@ -186,7 +194,8 @@ class SqlExecutor:
                         query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
                                                    x_max_value,
                                                    self.config)
-                        predictions[model_wrapper.groupby_value]=query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)[0]
+                        predictions[model_wrapper.groupby_value] = query_engine.predict(
+                            func, x_lb=x_lb, x_ub=x_ub)[0]
 
                     print("OK")
                     for key, item in predictions.items():
@@ -199,12 +208,6 @@ class SqlExecutor:
                     print("------------------------")
 
 
-
-
-
-
-
-
 if __name__ == "__main__":
     config = {
         'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
@@ -212,8 +215,16 @@ if __name__ == "__main__":
         'b_show_latency': 'True',
         'backend_server': 'None',
         'csv_split_char': ',',
+        "epsabs": 10.0,
+        "epsrel": 0.1,
+        "mesh_grid_num": 20,
+        "limit": 30,
     }
     sqlExecutor = SqlExecutor(config)
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
-    sqlExecutor.execute("create table mdl1(pm25 real, PRES real) from pm25.csv method uniform size 1000")
+    sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv method uniform size 1000")
+    sqlExecutor.execute(
+        "select avg(pm25)  from mdl where PRES between 1000 and 1010")
+    sqlExecutor.execute(
+        "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
     print(sqlExecutor.parser.parsed)

@@ -4,7 +4,7 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 from dbestclient.cli.prompt import DBEstPrompt
-from dbestclient.ml import regtf,regtf2,mdn,regtorch
+from dbestclient.ml import mdn
 import argparse
 
 def main():
@@ -21,7 +21,7 @@ def cmd():
 
     if args.pm25:
         print("run pm25")
-        regtorch.tutorial()
+        
 
 if __name__=="__main__":
     main()

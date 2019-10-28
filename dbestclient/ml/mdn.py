@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.distributions import Categorical
-from torch.utils.data import Dataset
+# from torch.utils.data import Dataset
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 import matplotlib.pyplot as plt
@@ -128,25 +128,26 @@ class RegMdn():
         self.model = None
         self.is_normalized = False
         self.dim_input = dim_input
+        self.is_training_data_denormalized = False
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=200):
+    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400):
         """ fit a regression y= R(x)"""
         if self.dim_input == 1:
-            self.fit2d(xs, ys, b_show_plot=b_show_plot,
-                       b_normalize=b_normalize, num_epoch=num_epoch)
+            return self.fit2d(xs, ys, b_show_plot=b_show_plot,
+                              b_normalize=b_normalize, num_epoch=num_epoch)
         elif self.dim_input == 2:
-            self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
-                       b_normalize=b_normalize, num_epoch=num_epoch)
+            return self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
+                              b_normalize=b_normalize, num_epoch=num_epoch)
         else:
             print("dimension mismatch")
             sys.exit(0)
-    
+
     def predict(self, xs, b_show_plot=True):
         """ make predictions"""
         if self.dim_input == 1:
-            self.predict2d(xs, b_show_plot=b_show_plot)
+            return self.predict2d(xs, b_show_plot=b_show_plot)
         elif self.dim_input == 2:
-            self.predict3d(xs[:,0],xs[:,1], b_show_plot=b_show_plot)
+            return self.predict3d(xs[:, 0], xs[:, 1], b_show_plot=b_show_plot)
         else:
             print("dimension mismatch")
             sys.exit(0)
@@ -222,6 +223,7 @@ class RegMdn():
                 loss = mdn_loss(pi, sigma, mu, labels)
                 loss.backward()
                 optimizer.step()
+        return self
 
     def fit2d(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=200):
         """ fit a regression y = R(x)
@@ -231,6 +233,7 @@ class RegMdn():
             ys ([float]): aggregate attribute
             b_show_plot (bool, optional): whether to show the plot. Defaults to True.
         """
+
         if b_normalize:
             self.meanx = np.mean(xs)
             self.widthx = np.max(xs)-np.min(xs)
@@ -290,6 +293,7 @@ class RegMdn():
                 loss = mdn_loss(pi, sigma, mu, labels)
                 loss.backward()
                 optimizer.step()
+        return self
 
     def predict3d(self, xs, zs, b_show_plot=True):
         if self.is_normalized:
@@ -311,19 +315,22 @@ class RegMdn():
 
         # print(x_test)
         if b_show_plot:
-            # de-normalize the data
-            samples = [self.denormalize(
-                i, self.meany, self.widthy) for i in samples]
-            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                           for i in zs])
-            self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                                for i in self.xs])
-            self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
-                                for i in self.ys])
-            self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                                for i in self.zs])
+            if self.is_normalized:
+                # de-normalize the data
+                samples = [self.denormalize(
+                    i, self.meany, self.widthy) for i in samples]
+                xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                            for i in xs])
+                zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+                            for i in zs])
+            if not self.is_training_data_denormalized:
+                self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                                    for i in self.xs])
+                self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
+                                    for i in self.ys])
+                self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+                                    for i in self.zs])
+                self.is_training_data_denormalized = True
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
             ax.scatter(self.xs, self.zs, self.ys)
@@ -332,6 +339,7 @@ class RegMdn():
             ax.set_ylabel('group by attribute')
             ax.set_zlabel('aggregate attribute')
             plt.show()
+        return samples
 
     def predict2d(self, xs, b_show_plot=True):
         if self.is_normalized:
@@ -349,15 +357,18 @@ class RegMdn():
         samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
 
         if b_show_plot:
-            # de-normalize the data
-            samples = [self.denormalize(
-                i, self.meany, self.widthy) for i in samples]
-            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                                for i in self.xs])
-            self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
-                                for i in self.ys])
+            if self.is_normalized:
+                # de-normalize the data
+                samples = [self.denormalize(
+                    i, self.meany, self.widthy) for i in samples]
+                xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                            for i in xs])
+            if not self.is_training_data_denormalized:
+                self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                                    for i in self.xs])
+                self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
+                                    for i in self.ys])
+                self.is_training_data_denormalized=True
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.scatter(self.xs,  self.ys)
@@ -365,31 +376,57 @@ class RegMdn():
             ax.set_xlabel('query range attribute')
             ax.set_ylabel('aggregate attribute')
             plt.show()
+        return samples
 
     def normalize(self, x, mean, width):
         return (x-mean)/width*2
 
     def denormalize(self, x, mean, width):
-        return 2*width*x + mean
+        return 0.5*width*x + mean
 
 
-if __name__ == "__main__":
-    
+def test1():
     x = np.random.uniform(low=1, high=10, size=(1000,))
     # z = np.random.uniform(low=1, high=10, size=(1000,))
     z = np.random.randint(0, 7, size=(1000,))
     noise = np.random.normal(1, 5, 1000)
     y = x**2 - z**2 + noise
+    print(min(x), max(x))
+    print(min(y), max(y))
 
-    
-    xz=np.concatenate((x[:,np.newaxis],z[:,np.newaxis]),axis=1)
+    xz = np.concatenate((x[:, np.newaxis], z[:, np.newaxis]), axis=1)
 
     regMdn = RegMdn(dim_input=1)
-    # regMdn.fit(xz, y, num_epoch=400, b_show_plot=False)
-    regMdn.fit(x,  y, num_epoch=400)
+    # regMdn.fit(xz, y, num_epoch=200, b_show_plot=False)
+    regMdn.fit(x,  y, num_epoch=400, b_show_plot=False)
 
     x_test = np.random.uniform(low=1, high=10, size=(500,))
     z_test = np.random.randint(0, 7, size=(500,))
-    xz_test=np.concatenate((x_test[:,np.newaxis],z_test[:,np.newaxis]),axis=1)
+    xz_test = np.concatenate(
+        (x_test[:, np.newaxis], z_test[:, np.newaxis]), axis=1)
     # regMdn.predict(xz_test)
-    regMdn.predict(x_test)
+    regMdn.predict([1,2],b_show_plot=True)
+    regMdn.predict([3,4], b_show_plot=True)
+    regMdn.predict([5,6],b_show_plot=True)
+    regMdn.predict([7,8],b_show_plot=True)
+
+
+def test_pm25():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    df = pd.read_csv(file)
+    df = df.dropna(subset=['pm25', 'PRES'])
+    df_train = df.head(10000)
+    df_test = df.tail(10000)
+    pres_train = df_train.PRES.values
+    pm25_train = df_train.pm25.values
+    pres_test = df_test.PRES.values
+    pm25_test = df_test.pm25.values
+
+    regMdn = RegMdn(dim_input=1)
+    regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
+    regMdn.predict(pres_test, b_show_plot=True)
+
+
+if __name__ == "__main__":
+    test1()
