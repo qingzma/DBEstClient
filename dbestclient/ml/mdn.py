@@ -142,7 +142,7 @@ class RegMdn():
             print("dimension mismatch")
             sys.exit(0)
 
-    def predict(self, xs, b_show_plot=True):
+    def predict(self, xs, b_show_plot=False):
         """ make predictions"""
         if self.dim_input == 1:
             return self.predict2d(xs, b_show_plot=b_show_plot)
@@ -295,7 +295,7 @@ class RegMdn():
                 optimizer.step()
         return self
 
-    def predict3d(self, xs, zs, b_show_plot=True):
+    def predict3d(self, xs, zs, b_show_plot=True, num_points=10):
         if self.is_normalized:
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
@@ -310,19 +310,23 @@ class RegMdn():
         # print("mu,", mu)
         # print("sigma", sigma)
         samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+        for i in range(num_points-1):
+            samples = np.vstack((samples,sample(pi, sigma, mu).data.numpy().reshape(-1)))
+        samples = np.mean(samples,axis=0)
 
         # print(samples.data.numpy().reshape(-1))
 
+        if self.is_normalized:
+            # de-normalize the data
+            samples = [self.denormalize(
+                i, self.meany, self.widthy) for i in samples]
+            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                        for i in xs])
+            zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+                        for i in zs])
         # print(x_test)
         if b_show_plot:
-            if self.is_normalized:
-                # de-normalize the data
-                samples = [self.denormalize(
-                    i, self.meany, self.widthy) for i in samples]
-                xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                            for i in xs])
-                zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                            for i in zs])
+            
             if not self.is_training_data_denormalized:
                 self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
                                     for i in self.xs])
@@ -341,7 +345,7 @@ class RegMdn():
             plt.show()
         return samples
 
-    def predict2d(self, xs, b_show_plot=True):
+    def predict2d(self, xs, b_show_plot=True, num_points=10):
         if self.is_normalized:
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
@@ -355,14 +359,20 @@ class RegMdn():
         # print("mu,", mu)
         # print("sigma", sigma)
         samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+        for i in range(num_points-1):
+            samples = np.vstack((samples,sample(pi, sigma, mu).data.numpy().reshape(-1)))
+        samples = np.mean(samples,axis=0)
+        # print("small",samples)
+            
+        if self.is_normalized:
+            # de-normalize the data
+            samples = [self.denormalize(
+                i, self.meany, self.widthy) for i in samples]
+            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+                        for i in xs])
+            # print("large",samples)
 
         if b_show_plot:
-            if self.is_normalized:
-                # de-normalize the data
-                samples = [self.denormalize(
-                    i, self.meany, self.widthy) for i in samples]
-                xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                            for i in xs])
             if not self.is_training_data_denormalized:
                 self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
                                     for i in self.xs])
@@ -396,28 +406,28 @@ def test1():
 
     xz = np.concatenate((x[:, np.newaxis], z[:, np.newaxis]), axis=1)
 
-    regMdn = RegMdn(dim_input=1)
+    regMdn = RegMdn(dim_input=2)
     # regMdn.fit(xz, y, num_epoch=200, b_show_plot=False)
-    regMdn.fit(x,  y, num_epoch=400, b_show_plot=False)
+    regMdn.fit(xz,  y, num_epoch=400, b_show_plot=False)
 
     x_test = np.random.uniform(low=1, high=10, size=(500,))
     z_test = np.random.randint(0, 7, size=(500,))
     xz_test = np.concatenate(
         (x_test[:, np.newaxis], z_test[:, np.newaxis]), axis=1)
-    # regMdn.predict(xz_test)
-    regMdn.predict([1,2],b_show_plot=True)
-    regMdn.predict([3,4], b_show_plot=True)
-    regMdn.predict([5,6],b_show_plot=True)
-    regMdn.predict([7,8],b_show_plot=True)
+    regMdn.predict(xz_test,b_show_plot=True)
+    # regMdn.predict([1,2],b_show_plot=True)
+    # regMdn.predict([3,4], b_show_plot=True)
+    # regMdn.predict([5,6],b_show_plot=True)
+    # regMdn.predict([7,8],b_show_plot=True)
 
 
-def test_pm25():
+def test_pm25_2d():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     df = pd.read_csv(file)
     df = df.dropna(subset=['pm25', 'PRES'])
-    df_train = df.head(10000)
-    df_test = df.tail(10000)
+    df_train = df.head(1000)
+    df_test = df.tail(1000)
     pres_train = df_train.PRES.values
     pm25_train = df_train.pm25.values
     pres_test = df_test.PRES.values
@@ -425,8 +435,27 @@ def test_pm25():
 
     regMdn = RegMdn(dim_input=1)
     regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
-    regMdn.predict(pres_test, b_show_plot=True)
+    regMdn.predict([1020,1021], b_show_plot=False)
 
+def test_pm25_3d():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    df = pd.read_csv(file)
+    df = df.dropna(subset=['pm25', 'PRES','TEMP'])
+    df_train = df.head(1000)
+    df_test = df.tail(1000)
+    pres_train = df_train.PRES.values
+    temp_train = df_train.TEMP.values
+    pm25_train = df_train.pm25.values
+    pres_test = df_test.PRES.values
+    pm25_test = df_test.pm25.values
+    temp_test = df_test.TEMP.values
+    xzs_train = np.concatenate((temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
+    xzs_test = np.concatenate((temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
+    regMdn = RegMdn(dim_input=2)
+    regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=False)
+    regMdn.predict(xzs_test, b_show_plot=True)
+    regMdn.predict(xzs_train, b_show_plot=True)
 
 if __name__ == "__main__":
-    test1()
+    test_pm25_3d()

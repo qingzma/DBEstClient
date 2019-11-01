@@ -19,7 +19,7 @@ class SimpleModelTrainer:
                                                       n_sample_point=n_sample_point, groupby_attribute=groupby_attribute, groupby_value=groupby_value)
 
     def fit(self, x, y):
-        print(x,y)
+        # print(x,y)
         reg = DBEstReg().fit(x, y, type='torch')
         density = DBEstDensity().fit(x)
         self.simpe_model_wrapper.load_model(density, reg)

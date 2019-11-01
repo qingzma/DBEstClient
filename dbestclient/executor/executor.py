@@ -115,6 +115,7 @@ class SqlExecutor:
 
                     n_total_point = sampler.n_total_point
                     xys = sampler.getyx(yheader, xheader)
+                    # print(xys)
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
                                                               n_total_point, ratio).fit_from_df(xys)
                     # reg = DBEstReg().fit(x, y)
@@ -222,7 +223,7 @@ if __name__ == "__main__":
     }
     sqlExecutor = SqlExecutor(config)
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
-    sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv method uniform size 1000")
+    sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv method uniform size 2000")
     sqlExecutor.execute(
         "select avg(pm25)  from mdl where PRES between 1000 and 1010")
     sqlExecutor.execute(
