@@ -4,8 +4,9 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 import pickle
-import numpy as np
 import os
+import numpy as np
+
 
 def deserialize_model_wrapper(file):
     return pickle.load(file)

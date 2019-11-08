@@ -22,6 +22,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats as stats
 
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2*math.pi)
@@ -130,14 +131,14 @@ class RegMdn():
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400):
+    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=5):
         """ fit a regression y= R(x)"""
         if self.dim_input == 1:
             return self.fit2d(xs, ys, b_show_plot=b_show_plot,
-                              b_normalize=b_normalize, num_epoch=num_epoch)
+                              b_normalize=b_normalize, num_epoch=num_epoch,num_gaussians=num_gaussians)
         elif self.dim_input == 2:
             return self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
-                              b_normalize=b_normalize, num_epoch=num_epoch)
+                              b_normalize=b_normalize, num_epoch=num_epoch,num_gaussians=num_gaussians)
         else:
             print("dimension mismatch")
             sys.exit(0)
@@ -152,7 +153,7 @@ class RegMdn():
             print("dimension mismatch")
             sys.exit(0)
 
-    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200):
+    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5):
         """ fit a regression y = R(x,z)
 
         Args:
@@ -206,10 +207,10 @@ class RegMdn():
 
         # initialize the model
         self.model = nn.Sequential(
-            nn.Linear(self.dim_input, 20),
+            nn.Linear(self.dim_input ,20),
             nn.Tanh(),
             nn.Dropout(0.01),
-            MDN(20, 1, 10)
+            MDN(20, 1, num_gaussians)
         )
 
         optimizer = optim.Adam(self.model.parameters())
@@ -225,7 +226,7 @@ class RegMdn():
                 optimizer.step()
         return self
 
-    def fit2d(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=200):
+    def fit2d(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5):
         """ fit a regression y = R(x)
 
         Args:
@@ -279,7 +280,7 @@ class RegMdn():
             nn.Linear(self.dim_input, 20),
             nn.Tanh(),
             nn.Dropout(0.01),
-            MDN(20, 1, 10)
+            MDN(20, 1, num_gaussians)
         )
 
         optimizer = optim.Adam(self.model.parameters())
@@ -311,8 +312,9 @@ class RegMdn():
         # print("sigma", sigma)
         samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
         for i in range(num_points-1):
-            samples = np.vstack((samples,sample(pi, sigma, mu).data.numpy().reshape(-1)))
-        samples = np.mean(samples,axis=0)
+            samples = np.vstack(
+                (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
+        samples = np.mean(samples, axis=0)
 
         # print(samples.data.numpy().reshape(-1))
 
@@ -321,12 +323,12 @@ class RegMdn():
             samples = [self.denormalize(
                 i, self.meany, self.widthy) for i in samples]
             xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                        for i in xs])
+                           for i in xs])
             zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                        for i in zs])
+                           for i in zs])
         # print(x_test)
         if b_show_plot:
-            
+
             if not self.is_training_data_denormalized:
                 self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
                                     for i in self.xs])
@@ -356,20 +358,22 @@ class RegMdn():
         # xzs_data = torch.from_numpy(xzs)
 
         pi, sigma, mu = self.model(tensor_xs)
-        # print("mu,", mu)
-        # print("sigma", sigma)
+        print("mu,", mu)
+        print("sigma", sigma)
+        print("pi", pi)
         samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
         for i in range(num_points-1):
-            samples = np.vstack((samples,sample(pi, sigma, mu).data.numpy().reshape(-1)))
-        samples = np.mean(samples,axis=0)
+            samples = np.vstack(
+                (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
+        samples = np.mean(samples, axis=0)
         # print("small",samples)
-            
+
         if self.is_normalized:
             # de-normalize the data
             samples = [self.denormalize(
                 i, self.meany, self.widthy) for i in samples]
             xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                        for i in xs])
+                           for i in xs])
             # print("large",samples)
 
         if b_show_plot:
@@ -378,13 +382,35 @@ class RegMdn():
                                     for i in self.xs])
                 self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
                                     for i in self.ys])
-                self.is_training_data_denormalized=True
+                self.is_training_data_denormalized = True
             fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.scatter(self.xs,  self.ys)
-            ax.scatter(xs, samples)
-            ax.set_xlabel('query range attribute')
-            ax.set_ylabel('aggregate attribute')
+            ax1 = fig.add_subplot(121)
+            ax1.scatter(self.xs,  self.ys)
+            ax1.scatter(xs, samples)
+            ax1.set_xlabel('query range attribute')
+            ax1.set_ylabel('aggregate attribute')
+
+            # prepare mog data for the prediction
+            pis = pi.detach().numpy()[0]
+            mus = mu.detach().numpy()[0]
+            sigmas = sigma.detach().numpy()[0]
+            xx= np.linspace(-1,1, 100)
+            yy=np.zeros(len(xx))
+            print("xx",xx)
+            print(stats.norm.pdf(xx, 0.5, 2))
+            for i in range(5):
+                # print(pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i]))
+                yy+=pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i])
+            xx = np.array([self.denormalize(i, self.meanx, self.widthx)
+                           for i in xx])
+            yy=np.array([self.denormalize(i, self.meany, self.widthy)
+                                    for i in yy])
+            ax2 = fig.add_subplot(122)
+            # ax2.scatter(self.xs,  self.ys)
+            print(yy)
+            ax2.plot(xx,yy)
+            ax2.set_xlabel('query range attribute')
+            ax2.set_ylabel('aggregate attribute')
             plt.show()
         return samples
 
@@ -414,7 +440,7 @@ def test1():
     z_test = np.random.randint(0, 7, size=(500,))
     xz_test = np.concatenate(
         (x_test[:, np.newaxis], z_test[:, np.newaxis]), axis=1)
-    regMdn.predict(xz_test,b_show_plot=True)
+    regMdn.predict(xz_test, b_show_plot=True)
     # regMdn.predict([1,2],b_show_plot=True)
     # regMdn.predict([3,4], b_show_plot=True)
     # regMdn.predict([5,6],b_show_plot=True)
@@ -435,13 +461,14 @@ def test_pm25_2d():
 
     regMdn = RegMdn(dim_input=1)
     regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
-    regMdn.predict([1020,1021], b_show_plot=False)
+    regMdn.predict([1020, 1021], b_show_plot=True)
+
 
 def test_pm25_3d():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     df = pd.read_csv(file)
-    df = df.dropna(subset=['pm25', 'PRES','TEMP'])
+    df = df.dropna(subset=['pm25', 'PRES', 'TEMP'])
     df_train = df.head(1000)
     df_test = df.tail(1000)
     pres_train = df_train.PRES.values
@@ -450,12 +477,58 @@ def test_pm25_3d():
     pres_test = df_test.PRES.values
     pm25_test = df_test.pm25.values
     temp_test = df_test.TEMP.values
-    xzs_train = np.concatenate((temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
-    xzs_test = np.concatenate((temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
+    xzs_train = np.concatenate(
+        (temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
+    xzs_test = np.concatenate(
+        (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
     regMdn = RegMdn(dim_input=2)
     regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=False)
     regMdn.predict(xzs_test, b_show_plot=True)
     regMdn.predict(xzs_train, b_show_plot=True)
 
+
+def test_pm25_2d_density():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    df = pd.read_csv(file)
+    df = df.dropna(subset=['pm25', 'PRES'])
+    df_train = df.head(1000)
+    df_test = df.tail(1000)
+    pres_train = df_train.PRES.values
+    pm25_train = df_train.PRES.values #df_train.pm25.values
+    pres_test = df_test.PRES.values
+    pm25_test = df_test.PRES.values  #df_test.pm25.values
+
+    regMdn = RegMdn(dim_input=1)
+    regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
+    # regMdn.predict(pres_train, b_show_plot=True)
+    # regMdn.predict(pres_test, b_show_plot=True)
+    regMdn.predict([1020], b_show_plot=True)
+    print("finished")
+
+
+def test_pm25_3d_density():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    df = pd.read_csv(file)
+    df = df.dropna(subset=['pm25', 'PRES', 'TEMP'])
+    df_train = df.head(1000)
+    df_test = df.tail(1000)
+    pres_train = df_train.PRES.values
+    temp_train = df_train.TEMP.values
+    pm25_train = df_train.PRES.values  # df_train.pm25.values
+    pres_test = df_test.PRES.values
+    pm25_test = df_test.pm25.values
+    temp_test = df_test.PRES.values  # df_test.TEMP.values
+    xzs_train = np.concatenate(
+        (temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
+    xzs_test = np.concatenate(
+        (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
+    regMdn = RegMdn(dim_input=2)
+    regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=True)
+    regMdn.predict(xzs_test, b_show_plot=True)
+    regMdn.predict(xzs_train, b_show_plot=True)
+
+
 if __name__ == "__main__":
-    test_pm25_3d()
+    test_pm25_2d_density()
