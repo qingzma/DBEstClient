@@ -4,30 +4,40 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 from dbestclient.io.reservoir import ReservoirSampling
+import  pandas as pd
+
 
 class DBEstSampling:
     def __init__(self):
         self.n_sample_point = None
         self.n_total_point = None
         self.sample = None
+        self.sample_mean = None
 
-    def make_sample(self, file, ratio,  method='uniform', split_char=','):
+    def make_sample(self, file, ratio,  method='uniform', split_char=',', file2save=None):
         if method == 'uniform':
+            # # if  ratio is provided, then make samples using the ratio (or size)
+            # if ratio is not None:
             if float(ratio) > 1: # here the ratio is the number of tuples in the sample
                 ratio = int(ratio)
                 self.n_sample_point = ratio
                 self.sample = ReservoirSampling()
-                self.sample.build_reservoir(file,ratio,split_char=split_char)
+                self.sample.build_reservoir(file,ratio,split_char=split_char, save2file=file2save)
                 self.n_total_point =  self.sample.n_total_point
 
                 return self.sample
             else:
                 print("sampling with probability is not implemented yet, abort")
+            # # if ratio is not provided, then the whole dataset is used to train the model.
+            # else:
+            #     self.sample = pd.read_csv(file)
+            #     self.n_sample_point = len(self.sample)
+            #     self.n_total_point = self.n_sample_point
         else:
             print("other sampling methods are not implemented, abort.")
 
-    def getyx(self, y, x, dropna=True):
-        return self.sample.getyx(y,x, dropna=dropna)
+    def getyx(self, y, x, dropna=True, b_return_mean=True):
+        return self.sample.getyx(y,x, dropna=dropna, b_return_mean=b_return_mean)
 
 
 if __name__ == '__main__':

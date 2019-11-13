@@ -31,6 +31,7 @@ class SqlExecutor:
 
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
+        self.save_sample=False
         # exit()
 
     def init_model_catalog(self):
@@ -101,10 +102,15 @@ class SqlExecutor:
                 ratio = self.parser.get_sampling_ratio()
                 method = self.parser.get_sampling_method()
 
+
                 sampler = DBEstSampling()
                 # print(self.config)
-                sampler.make_sample(
-                    original_data_file, ratio, method, split_char=self.config['csv_split_char'])
+                if self.save_sample:
+                    sampler.make_sample(
+                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],file2save=self.config['warehousedir'] + "/"+mdl+'.csv')
+                else:
+                    sampler.make_sample(
+                        original_data_file, ratio, method, split_char=self.config['csv_split_char'])
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     # check whether this model exists, if so, skip training
@@ -114,10 +120,13 @@ class SqlExecutor:
                         return
 
                     n_total_point = sampler.n_total_point
-                    xys = sampler.getyx(yheader, xheader)
+                    xys_reg, xys_kde = sampler.getyx(yheader, xheader)
                     # print(xys)
+
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
-                                                              n_total_point, ratio).fit_from_df(xys)
+                                                              n_total_point, ratio).fit_from_df(xys_reg, xys_kde)
+
+
                     # reg = DBEstReg().fit(x, y)
                     # density = DBEstDensity().fit(x)
                     # simpleWrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader,n_total_point=n_total_point,
@@ -220,12 +229,17 @@ if __name__ == "__main__":
         "epsrel": 0.1,
         "mesh_grid_num": 20,
         "limit": 30,
+        # "b_reg_mean":'True',
     }
     sqlExecutor = SqlExecutor(config)
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
-    sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv method uniform size 2000")
+    sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
     sqlExecutor.execute(
-        "select avg(pm25)  from mdl where PRES between 1000 and 1010")
+        "select avg(pm25)  from pm25_qreg_2k where PRES between 1010 and 1020")
+
+    sqlExecutor.execute("create table pm25_torch_43k_using_mean(pm25 real, PRES real) from pm25.csv method uniform size 43824")
     sqlExecutor.execute(
-        "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
+        "select avg(pm25)  from pm25_torch_43k_using_mean where PRES between 1010 and 1020")
+    # sqlExecutor.execute(
+    #     "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
     print(sqlExecutor.parser.parsed)

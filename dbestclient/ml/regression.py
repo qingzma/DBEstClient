@@ -10,7 +10,7 @@ class DBEstReg:
     def __init__(self):
         self.reg = None
 
-    def fit(self, x, y, type='torch'):
+    def fit(self, x, y, type='qreg'):
         if type == 'qreg':
             self.reg = qreg.QReg(base_models=["linear", "polynomial"], verbose=False).fit(x, y)
         if type == 'torch':

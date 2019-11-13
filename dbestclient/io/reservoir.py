@@ -19,6 +19,7 @@ from sys import stderr, stdin
 from random import random
 from math import log
 import pandas as pd
+import numpy as np
 
 
 class ReservoirSampling:
@@ -26,8 +27,9 @@ class ReservoirSampling:
         self.header = None
         self.n_total_point = None
         self.sampledf = None
+        self.sampledfmean=None
 
-    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=","):
+    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=",", save2file=None):
 
         self.n_total_point = sum(1 for _ in open(file)) - 1
 
@@ -81,15 +83,29 @@ class ReservoirSampling:
 
             self.sampledf =  pd.DataFrame(res, columns=self.header)
 
+            if save2file is not None:
+                self.sampledf.to_csv(save2file, index=False)
 
-    def getyx(self, y, x, dropna=True):
+
+    def getyx(self, y, x, dropna=True, b_return_mean=True):
         # drop non-numerical values.
         if dropna:
             self.sampledf = self.sampledf.dropna(subset=[y, x])
         self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
         self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
 
-        return self.sampledf
+        if b_return_mean:
+            gb = self.sampledf.groupby(x)
+            means = gb.mean()
+
+            keys = np.array(list(gb.groups.keys()))
+            means = means.values.reshape(-1)
+            # print("keys",keys)
+            # print("means",means)
+            self.sampledfmean = pd.DataFrame({x:keys,y:means})
+            return self.sampledfmean, self.sampledf
+        else:
+            return None, self.sampledf
         # return self.sampledf[y].values, self.sampledf[x].values.reshape(-1,1)
         # else:
         #     xyvalues={} #  {'groupby': groupby_attribute}
@@ -98,12 +114,42 @@ class ReservoirSampling:
         #         xyvalues[name]=group
         #     return xyvalues
 
+    def get_frequency(self,y, x, dropna=True):
+        # drop non-numerical values.
+        if dropna:
+            self.sampledf = self.sampledf.dropna(subset=[y, x])
+        self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
+        self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
+
+        gb = self.sampledf.groupby(x)
+        counts = gb.count()[y]
+        # print(counts)
+
+        keys = np.array(list(gb.groups.keys()))
+        counts = counts.values.reshape(-1)
+        # print("keys",keys)
+        # print("counts",counts)
+        ft = {}
+        for key, count in zip(keys,counts):
+            ft[key]=count
+        return ft
+
+
+
+
+
 
 if __name__ == '__main__':
-    file = '../../resources/pm25.csv'
-    with open(file, 'r') as f:
-        sample = ReservoirSampling().build_reservoir(f,10000, verbose=False)
-    print(sample)
+    file = '/home/u1796377/Programs/dbestwarehouse/pm25.csv'
+    # with open(file, 'r') as f:
+    sampler = ReservoirSampling()
+    sampler.build_reservoir(file,10000, verbose=False)
+    xy = sampler.getyx('pm25','PRES')
+    ft = sampler.get_frequency('pm25','PRES')
+    print(ft)
+    # print(xy)
+    #
+    # print(xy.values)
 
 
     #

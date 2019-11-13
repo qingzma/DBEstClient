@@ -131,7 +131,7 @@ class RegMdn():
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=5):
+    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=8):
         """ fit a regression y= R(x)"""
         if self.dim_input == 1:
             return self.fit2d(xs, ys, b_show_plot=b_show_plot,
@@ -294,6 +294,11 @@ class RegMdn():
                 loss = mdn_loss(pi, sigma, mu, labels)
                 loss.backward()
                 optimizer.step()
+
+
+
+        # xxs = np.linspace(np.min(xs), np.max(xs),100)
+        # yys = self.predict2d(xxs,b_show_plot=True)
         return self
 
     def predict3d(self, xs, zs, b_show_plot=True, num_points=10):
@@ -358,9 +363,6 @@ class RegMdn():
         # xzs_data = torch.from_numpy(xzs)
 
         pi, sigma, mu = self.model(tensor_xs)
-        print("mu,", mu)
-        print("sigma", sigma)
-        print("pi", pi)
         samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
         for i in range(num_points-1):
             samples = np.vstack(
@@ -384,33 +386,33 @@ class RegMdn():
                                     for i in self.ys])
                 self.is_training_data_denormalized = True
             fig = plt.figure()
-            ax1 = fig.add_subplot(121)
+            ax1 = fig.add_subplot(111)
             ax1.scatter(self.xs,  self.ys)
             ax1.scatter(xs, samples)
             ax1.set_xlabel('query range attribute')
             ax1.set_ylabel('aggregate attribute')
 
-            # prepare mog data for the prediction
-            pis = pi.detach().numpy()[0]
-            mus = mu.detach().numpy()[0]
-            sigmas = sigma.detach().numpy()[0]
-            xx= np.linspace(-1,1, 100)
-            yy=np.zeros(len(xx))
-            print("xx",xx)
-            print(stats.norm.pdf(xx, 0.5, 2))
-            for i in range(5):
-                # print(pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i]))
-                yy+=pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i])
-            xx = np.array([self.denormalize(i, self.meanx, self.widthx)
-                           for i in xx])
-            yy=np.array([self.denormalize(i, self.meany, self.widthy)
-                                    for i in yy])
-            ax2 = fig.add_subplot(122)
-            # ax2.scatter(self.xs,  self.ys)
-            print(yy)
-            ax2.plot(xx,yy)
-            ax2.set_xlabel('query range attribute')
-            ax2.set_ylabel('aggregate attribute')
+            # # prepare mog data for the prediction
+            # pis = pi.detach().numpy()[0]
+            # mus = mu.detach().numpy()[0]
+            # sigmas = sigma.detach().numpy()[0]
+            # xx= np.linspace(-1,1, 100)
+            # yy=np.zeros(len(xx))
+            # print("xx",xx)
+            # print(stats.norm.pdf(xx, 0.5, 2))
+            # for i in range(5):
+            #     # print(pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i]))
+            #     yy+=pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i])
+            # xx = np.array([self.denormalize(i, self.meanx, self.widthx)
+            #                for i in xx])
+            # yy=np.array([self.denormalize(i, self.meany, self.widthy)
+            #                         for i in yy])
+            # ax2 = fig.add_subplot(122)
+            # # ax2.scatter(self.xs,  self.ys)
+            # print(yy)
+            # ax2.plot(xx,yy)
+            # ax2.set_xlabel('query range attribute')
+            # ax2.set_ylabel('aggregate attribute')
             plt.show()
         return samples
 
@@ -450,10 +452,11 @@ def test1():
 def test_pm25_2d():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25_torch_2k.csv"
     df = pd.read_csv(file)
     df = df.dropna(subset=['pm25', 'PRES'])
-    df_train = df.head(1000)
-    df_test = df.tail(1000)
+    df_train = df#.head(1000)
+    df_test = df#.tail(1000)
     pres_train = df_train.PRES.values
     pm25_train = df_train.pm25.values
     pres_test = df_test.PRES.values
@@ -462,6 +465,9 @@ def test_pm25_2d():
     regMdn = RegMdn(dim_input=1)
     regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
     regMdn.predict([1020, 1021], b_show_plot=True)
+    xxs = np.linspace(np.min(pres_train),np.max(pres_train),100)
+    print(regMdn.predict(xxs,b_show_plot=True))
+
 
 
 def test_pm25_3d():
@@ -483,7 +489,7 @@ def test_pm25_3d():
         (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
     regMdn = RegMdn(dim_input=2)
     regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=False)
-    regMdn.predict(xzs_test, b_show_plot=True)
+    print(regMdn.predict(xzs_test, b_show_plot=True))
     regMdn.predict(xzs_train, b_show_plot=True)
 
 
@@ -531,4 +537,4 @@ def test_pm25_3d_density():
 
 
 if __name__ == "__main__":
-    test_pm25_2d_density()
+    test_pm25_2d()

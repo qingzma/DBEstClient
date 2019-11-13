@@ -18,16 +18,24 @@ class SimpleModelTrainer:
         self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
                                                       n_sample_point=n_sample_point, groupby_attribute=groupby_attribute, groupby_value=groupby_value)
 
-    def fit(self, x, y):
+    def fit(self, x_kde, y_kde, x_reg=None, y_reg=None):
         # print(x,y)
-        reg = DBEstReg().fit(x, y, type='torch')
-        density = DBEstDensity().fit(x)
+        if x_reg is None:
+            reg = DBEstReg().fit(x_kde, y_kde, type='torch')
+        else:
+            reg = DBEstReg().fit(x_reg, y_reg, type='torch')
+        density = DBEstDensity().fit(x_kde)
         self.simpe_model_wrapper.load_model(density, reg)
         return self.simpe_model_wrapper
 
-    def fit_from_df(self, df):
-        y, x = convert_df_to_yx(df, self.xheader, self.yheader)
-        return self.fit(x, y)
+    def fit_from_df(self, df_reg, df_kde):
+        if df_reg is None:
+            y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
+            return self.fit(x_kde, y_kde)
+        else:
+            y_reg, x_reg = convert_df_to_yx(df_reg, self.xheader, self.yheader)
+            y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
+            return self.fit(x_kde, y_kde, x_reg=x_reg, y_reg=y_reg)
 
 
 class GroupByModelTrainer:

@@ -126,7 +126,7 @@ class DBEstParser:
             if item.ttype is Keyword and item.value.lower() == "size":
                 idx = self.parsed.token_index(item,0) + 2
                 return self.parsed.tokens[idx].value
-        return 0.01
+        return 0.01  # if sampling ratio is not passed, the whole dataset will be used to train the model
 
     def get_sampling_method(self):
         for item in self.parsed.tokens:
