@@ -1,5 +1,5 @@
-# Welcome to DBEst
-This repository implements the paper  [DBEst: Revisiting Approximate Query Processing Engines with Machine Learning Models](https://dl.acm.org/citation.cfm?id=3324958). Proceedings of the 2019 International Conference on Management of Data. ACM, 2019.
+# Welcome to DBEst++
+This repository extends the work of  [DBEst: Revisiting Approximate Query Processing Engines with Machine Learning Models . Proceedings of the 2019 International Conference on Management of Data. ACM, 2019](https://dl.acm.org/citation.cfm?id=3324958) by applying MDN. This solves the problem of model updating.
 
 ## How to install
 ```pip install dbestclient```
