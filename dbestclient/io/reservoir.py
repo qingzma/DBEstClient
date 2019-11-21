@@ -87,7 +87,7 @@ class ReservoirSampling:
                 self.sampledf.to_csv(save2file, index=False)
 
 
-    def getyx(self, y, x, dropna=True, b_return_mean=True):
+    def getyx(self, y, x, dropna=True, b_return_mean=False):
         # drop non-numerical values.
         if dropna:
             self.sampledf = self.sampledf.dropna(subset=[y, x])

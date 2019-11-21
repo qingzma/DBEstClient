@@ -14,5 +14,5 @@ class DBEstReg:
         if type == 'qreg':
             self.reg = qreg.QReg(base_models=["linear", "polynomial"], verbose=False).fit(x, y)
         if type == 'torch':
-            self.reg = mdn.RegMdn(dim_input=1).fit(x,y)
+            self.reg = mdn.RegMdn(dim_input=1).fit(x,y,num_epoch=100)
         return self.reg

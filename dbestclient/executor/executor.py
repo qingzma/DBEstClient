@@ -107,7 +107,7 @@ class SqlExecutor:
                 # print(self.config)
                 if self.save_sample:
                     sampler.make_sample(
-                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],file2save=self.config['warehousedir'] + "/"+mdl+'.csv')
+                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],file2save=self.config['warehousedir'] + "/"+mdl+'111111.csv')
                 else:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config['csv_split_char'])
@@ -122,6 +122,7 @@ class SqlExecutor:
                     n_total_point = sampler.n_total_point
                     xys_reg, xys_kde = sampler.getyx(yheader, xheader)
                     # print(xys)
+                    # print(len(xys_kde))
 
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
                                                               n_total_point, ratio).fit_from_df(xys_reg, xys_kde)
@@ -174,6 +175,8 @@ class SqlExecutor:
                     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
                         mdl)]
                     reg = simple_model_wrapper.reg
+                    # print("in executor",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
+                    # print("in executor", reg.predict([1000, 1005, 1010, 1015, 1020, 1025, 1030, 1035]))
                     density = simple_model_wrapper.density
                     n_sample_point = int(simple_model_wrapper.n_sample_point)
                     n_total_point = int(simple_model_wrapper.n_total_point)
@@ -233,13 +236,13 @@ if __name__ == "__main__":
     }
     sqlExecutor = SqlExecutor(config)
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
-    sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
+    # sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
     sqlExecutor.execute(
         "select avg(pm25)  from pm25_qreg_2k where PRES between 1010 and 1020")
 
-    sqlExecutor.execute("create table pm25_torch_43k_using_mean(pm25 real, PRES real) from pm25.csv method uniform size 43824")
+    sqlExecutor.execute("create table pm25_torch_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
     sqlExecutor.execute(
-        "select avg(pm25)  from pm25_torch_43k_using_mean where PRES between 1010 and 1020")
+        "select avg(pm25)  from pm25_torch_2k where PRES between 1010 and 1020")
     # sqlExecutor.execute(
     #     "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
     print(sqlExecutor.parser.parsed)

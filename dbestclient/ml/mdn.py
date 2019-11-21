@@ -25,6 +25,7 @@ import numpy as np
 import scipy.stats as stats
 
 
+
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2*math.pi)
 
 
@@ -131,8 +132,10 @@ class RegMdn():
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=8):
+    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=2):
         """ fit a regression y= R(x)"""
+        if len(xs.shape) !=2:
+            raise Exception("xs should be 2-d, but got unexpected shape.")
         if self.dim_input == 1:
             return self.fit2d(xs, ys, b_show_plot=b_show_plot,
                               b_normalize=b_normalize, num_epoch=num_epoch,num_gaussians=num_gaussians)
@@ -146,6 +149,7 @@ class RegMdn():
     def predict(self, xs, b_show_plot=False):
         """ make predictions"""
         if self.dim_input == 1:
+            # print(self.predict2d(xs, b_show_plot=b_show_plot))
             return self.predict2d(xs, b_show_plot=b_show_plot)
         elif self.dim_input == 2:
             return self.predict3d(xs[:, 0], xs[:, 1], b_show_plot=b_show_plot)
@@ -261,7 +265,7 @@ class RegMdn():
             plt.show()
 
         # xzs = [[xs[i], zs[i]] for i in range(len(xs))]
-        xs = xs[:, np.newaxis]
+        # xs = xs[:, np.newaxis]
         ys = ys[:, np.newaxis]
         tensor_xs = torch.stack([torch.Tensor(i)
                                  for i in xs])  # transform to torch tensors
@@ -352,22 +356,38 @@ class RegMdn():
             plt.show()
         return samples
 
-    def predict2d(self, xs, b_show_plot=True, num_points=10):
+    def predict2d(self, xs, b_show_plot=False, num_points=10, b_generate_samples=False):
         if self.is_normalized:
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
 
-        xs = xs[:, np.newaxis]
+        # xs = xs[:, np.newaxis]
         tensor_xs = torch.stack([torch.Tensor(i)
                                  for i in xs])
         # xzs_data = torch.from_numpy(xzs)
 
         pi, sigma, mu = self.model(tensor_xs)
-        samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
-        for i in range(num_points-1):
-            samples = np.vstack(
-                (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
-        samples = np.mean(samples, axis=0)
+        if b_generate_samples:
+            samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+            for i in range(num_points-1):
+                samples = np.vstack(
+                    (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
+            samples = np.mean(samples, axis=0)
+        else:
+            # print("len",len(xs))
+            # mu1 = mu.detach().numpy()
+            # pi1 = pi.detach().numpy()
+            # print("mu", mu1)
+            # print("weight", pi1)
+
+            mu = mu.detach().numpy().reshape(len(xs),-1)
+            pi = pi.detach().numpy()#.reshape(-1,2)
+            # print("mu",mu)
+            # print("weight",pi)
+            # xymul=
+            # print(xymul)
+            samples = np.sum(np.multiply(pi,mu),axis=1)
+
         # print("small",samples)
 
         if self.is_normalized:
@@ -391,29 +411,11 @@ class RegMdn():
             ax1.scatter(xs, samples)
             ax1.set_xlabel('query range attribute')
             ax1.set_ylabel('aggregate attribute')
-
-            # # prepare mog data for the prediction
-            # pis = pi.detach().numpy()[0]
-            # mus = mu.detach().numpy()[0]
-            # sigmas = sigma.detach().numpy()[0]
-            # xx= np.linspace(-1,1, 100)
-            # yy=np.zeros(len(xx))
-            # print("xx",xx)
-            # print(stats.norm.pdf(xx, 0.5, 2))
-            # for i in range(5):
-            #     # print(pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i]))
-            #     yy+=pis[i]*stats.norm.pdf(xx, mus[i], sigmas[i])
-            # xx = np.array([self.denormalize(i, self.meanx, self.widthx)
-            #                for i in xx])
-            # yy=np.array([self.denormalize(i, self.meany, self.widthy)
-            #                         for i in yy])
-            # ax2 = fig.add_subplot(122)
-            # # ax2.scatter(self.xs,  self.ys)
-            # print(yy)
-            # ax2.plot(xx,yy)
-            # ax2.set_xlabel('query range attribute')
-            # ax2.set_ylabel('aggregate attribute')
             plt.show()
+
+        samples = list(samples)
+
+
         return samples
 
     def normalize(self, x, mean, width):
@@ -457,16 +459,17 @@ def test_pm25_2d():
     df = df.dropna(subset=['pm25', 'PRES'])
     df_train = df#.head(1000)
     df_test = df#.tail(1000)
-    pres_train = df_train.PRES.values
+    pres_train = df_train.PRES.values[:,np.newaxis]
     pm25_train = df_train.pm25.values
     pres_test = df_test.PRES.values
     pm25_test = df_test.pm25.values
 
     regMdn = RegMdn(dim_input=1)
-    regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
-    regMdn.predict([1020, 1021], b_show_plot=True)
+    regMdn.fit(pres_train, pm25_train, num_epoch=100, b_show_plot=False)
+    print(regMdn.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]], b_show_plot=True))
+    print(regMdn.predict([[1000.5], [1005.5], [1010.5], [1015.5], [1020.5], [1025.5], [1030.5], [1035.5]], b_show_plot=True))
     xxs = np.linspace(np.min(pres_train),np.max(pres_train),100)
-    print(regMdn.predict(xxs,b_show_plot=True))
+    # print(regMdn.predict(xxs,b_show_plot=True))
 
 
 

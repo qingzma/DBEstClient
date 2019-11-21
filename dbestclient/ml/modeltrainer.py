@@ -8,6 +8,8 @@ from dbestclient.ml.modelwraper import SimpleModelWrapper, GroupByModelWrapper
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.tools.dftools import convert_df_to_yx
 import numpy as np
+from dbestclient.ml.mdn import RegMdn
+import pandas as pd
 
 
 class SimpleModelTrainer:
@@ -25,6 +27,7 @@ class SimpleModelTrainer:
         else:
             reg = DBEstReg().fit(x_reg, y_reg, type='torch')
         density = DBEstDensity().fit(x_kde)
+        # print("in modeltrainer",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
         self.simpe_model_wrapper.load_model(density, reg)
         return self.simpe_model_wrapper
 
