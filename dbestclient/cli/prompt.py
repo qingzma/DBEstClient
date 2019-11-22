@@ -13,7 +13,9 @@ config = {
     'epsrel': 0.1,
     'mesh_grid_num': 20,
     'limit': 30,
-    'csv_split_char': ','
+    'csv_split_char': ',',
+    "num_epoch":400,
+    "reg_type":"mdn",
 }
 
 

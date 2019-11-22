@@ -23,8 +23,8 @@ import numpy as np
 
 
 class ReservoirSampling:
-    def __init__(self):
-        self.header = None
+    def __init__(self, headers):
+        self.header = headers
         self.n_total_point = None
         self.sampledf = None
         self.sampledfmean=None
@@ -46,9 +46,10 @@ class ReservoirSampling:
             res = []
 
             iterator = iter(data)
-            # skip the first header row
-            first_row = next(iterator)
-            self.header = first_row.replace("\n",'').split(split_char)
+            if self.header is None:
+                # skip the first header row
+                first_row = next(iterator)
+                self.header = first_row.replace("\n",'').split(split_char)
             try:
                 j = 0
                 # iterator = iter(data)

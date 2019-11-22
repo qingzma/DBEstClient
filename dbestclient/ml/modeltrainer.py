@@ -14,18 +14,19 @@ import pandas as pd
 
 class SimpleModelTrainer:
 
-    def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point,groupby_attribute=None, groupby_value=None):
+    def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point,groupby_attribute=None, groupby_value=None,config=None):
         self.xheader = xheader
         self.yheader = yheader
         self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
                                                       n_sample_point=n_sample_point, groupby_attribute=groupby_attribute, groupby_value=groupby_value)
+        self.config=config
 
     def fit(self, x_kde, y_kde, x_reg=None, y_reg=None):
         # print(x,y)
         if x_reg is None:
-            reg = DBEstReg().fit(x_kde, y_kde, type='torch')
+            reg = DBEstReg(config=self.config).fit(x_kde, y_kde)
         else:
-            reg = DBEstReg().fit(x_reg, y_reg, type='torch')
+            reg = DBEstReg(config=self.config).fit(x_reg, y_reg)
         density = DBEstDensity().fit(x_kde)
         # print("in modeltrainer",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
         self.simpe_model_wrapper.load_model(density, reg)

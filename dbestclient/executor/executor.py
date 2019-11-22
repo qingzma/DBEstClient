@@ -31,7 +31,8 @@ class SqlExecutor:
 
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
-        self.save_sample=False
+        self.save_sample = False
+        self.table_header = None
         # exit()
 
     def init_model_catalog(self):
@@ -59,7 +60,7 @@ class SqlExecutor:
 
                 for model_name in os.listdir(self.config['warehousedir'] + "/" + file_name):
                     if model_name.endswith(".pkl"):
-                        with open(self.config['warehousedir'] + "/" + file_name + "/"+model_name, 'rb') as f:
+                        with open(self.config['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
                             model = pickle.load(f)
                             n_models_in_groupby += 1
 
@@ -96,18 +97,24 @@ class SqlExecutor:
                 # DDL, create the model as requested
                 mdl = self.parser.get_ddl_model_name()
                 tbl = self.parser.get_from_name()
-                original_data_file = self.config['warehousedir'] + "/" + tbl
+
+                # remove unnecessary charactor '
+                tbl=tbl.replace("'","")
+                if os.path.isfile(tbl): # the absolute path is provided
+                    original_data_file = tbl
+                else: # the file is in the warehouse direcotry
+                    original_data_file = self.config['warehousedir'] + "/" + tbl
                 yheader = self.parser.get_y()[0]
                 xheader = self.parser.get_x()[0]
                 ratio = self.parser.get_sampling_ratio()
                 method = self.parser.get_sampling_method()
 
-
-                sampler = DBEstSampling()
+                sampler = DBEstSampling(headers=self.table_header)
                 # print(self.config)
                 if self.save_sample:
                     sampler.make_sample(
-                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],file2save=self.config['warehousedir'] + "/"+mdl+'111111.csv')
+                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],
+                        file2save=self.config['warehousedir'] + "/" + mdl + '.csv')
                 else:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config['csv_split_char'])
@@ -125,8 +132,8 @@ class SqlExecutor:
                     # print(len(xys_kde))
 
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
-                                                              n_total_point, ratio).fit_from_df(xys_reg, xys_kde)
-
+                                                              n_total_point, ratio, config=self.config).fit_from_df(
+                        xys_reg, xys_kde)
 
                     # reg = DBEstReg().fit(x, y)
                     # density = DBEstDensity().fit(x)
@@ -141,7 +148,7 @@ class SqlExecutor:
                 else:  # if group by is involved in the query
                     groupby_attribute = self.parser.get_groupby_value()
                     # check whether this model exists, if so, skip training
-                    if os.path.exists(self.config['warehousedir'] + "/" + mdl+"_groupby_" + groupby_attribute):
+                    if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
                         print(
                             "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
                         return
@@ -152,10 +159,12 @@ class SqlExecutor:
                         original_data_file, groupby_attribute, sep=self.config['csv_split_char'])
                     n_sample_point = get_group_count_from_df(
                         xys, groupby_attribute)
-                    groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute, n_total_point, n_sample_point,
-                                                                x_min_value=-np.inf, x_max_value=np.inf).fit_from_df(xys)
+                    groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
+                                                                n_total_point, n_sample_point,
+                                                                x_min_value=-np.inf, x_max_value=np.inf).fit_from_df(
+                        xys)
                     groupby_model_wrapper.serialize2warehouse(
-                        self.config['warehousedir']+"/"+groupby_model_wrapper.dir)
+                        self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
                     self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
 
             else:
@@ -195,7 +204,7 @@ class SqlExecutor:
                     start = datetime.now()
                     predictions = {}
                     groupby_attribute = self.parser.get_groupby_value()
-                    groupby_key = mdl + "_groupby_"+groupby_attribute
+                    groupby_key = mdl + "_groupby_" + groupby_attribute
 
                     for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
                         reg = model_wrapper.reg
@@ -220,6 +229,12 @@ class SqlExecutor:
                         print("Time cost: %.4fs." % time_cost)
                     print("------------------------")
 
+    def set_table_headers(self, str, split_char=","):
+        if str is None:
+            self.table_header = None
+        else:
+            self.table_header = str.split(split_char)
+
 
 if __name__ == "__main__":
     config = {
@@ -233,16 +248,19 @@ if __name__ == "__main__":
         "mesh_grid_num": 20,
         "limit": 30,
         # "b_reg_mean":'True',
+        "num_epoch": 400,
+        "reg_type": "mdn",
+        "num_gaussians":4,
     }
     sqlExecutor = SqlExecutor(config)
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
     # sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
-    sqlExecutor.execute(
-        "select avg(pm25)  from pm25_qreg_2k where PRES between 1010 and 1020")
+    # sqlExecutor.execute(
+    #     "select avg(pm25)  from pm25_qreg_2k where PRES between 1010 and 1020")
 
-    sqlExecutor.execute("create table pm25_torch_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
+    sqlExecutor.execute("create table pm25_torch_2k(pm25 real, PRES real) from pm25.csv method uniform size 2000")
     sqlExecutor.execute(
-        "select avg(pm25)  from pm25_torch_2k where PRES between 1010 and 1020")
+        "select sum(pm25)  from pm25_torch_2k where PRES between 1000 and 1040")
     # sqlExecutor.execute(
     #     "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
-    print(sqlExecutor.parser.parsed)
+    # print(sqlExecutor.parser.parsed)
