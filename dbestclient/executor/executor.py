@@ -199,6 +199,7 @@ class SqlExecutor:
                     if self.config['verbose']:
                         print("time cost: " + str(t))
                     print("------------------------")
+                    return p, t
 
                 else:  # if group by is involved in the query
                     start = datetime.now()
