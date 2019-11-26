@@ -540,4 +540,4 @@ def test_pm25_3d_density():
 
 
 if __name__ == "__main__":
-    test_pm25_2d()
+    test_pm25_3d()

@@ -106,7 +106,7 @@ class ReservoirSampling:
             self.sampledfmean = pd.DataFrame({x:keys,y:means})
             return self.sampledfmean, self.sampledf
         else:
-            return None, self.sampledf
+            return self.sampledf
         # return self.sampledf[y].values, self.sampledf[x].values.reshape(-1,1)
         # else:
         #     xyvalues={} #  {'groupby': groupby_attribute}

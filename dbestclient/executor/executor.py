@@ -111,6 +111,18 @@ class SqlExecutor:
 
                 sampler = DBEstSampling(headers=self.table_header)
                 # print(self.config)
+                if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
+                    print(
+                        "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                    return
+                if self.parser.if_contain_groupby():
+                    groupby_attribute = self.parser.get_groupby_value()
+                    if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
+                        print(
+                            "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                        return
+                print("Start creating model "+mdl)
+
                 if self.save_sample:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config['csv_split_char'],
@@ -121,19 +133,19 @@ class SqlExecutor:
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     # check whether this model exists, if so, skip training
-                    if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
-                        print(
-                            "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
-                        return
+                    # if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
+                    #     print(
+                    #         "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                    #     return
 
                     n_total_point = sampler.n_total_point
-                    xys_reg, xys_kde = sampler.getyx(yheader, xheader)
+                    xys = sampler.getyx(yheader, xheader)
                     # print(xys)
                     # print(len(xys_kde))
 
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
                                                               n_total_point, ratio, config=self.config).fit_from_df(
-                        xys_reg, xys_kde)
+                        xys)
 
                     # reg = DBEstReg().fit(x, y)
                     # density = DBEstDensity().fit(x)
@@ -146,22 +158,23 @@ class SqlExecutor:
                     self.model_catalog.add_model_wrapper(simple_model_wrapper)
 
                 else:  # if group by is involved in the query
-                    groupby_attribute = self.parser.get_groupby_value()
-                    # check whether this model exists, if so, skip training
-                    if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
-                        print(
-                            "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
-                        return
+                    # groupby_attribute = self.parser.get_groupby_value()
+                    # # check whether this model exists, if so, skip training
+                    # if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
+                    #     print(
+                    #         "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                    #     return
 
                     xys = sampler.getyx(yheader, xheader)
                     # print(xys[groupby_attribute])
                     n_total_point = get_group_count_from_file(
-                        original_data_file, groupby_attribute, sep=self.config['csv_split_char'])
+                        original_data_file, groupby_attribute, sep=self.config['csv_split_char'],headers=self.table_header)
+                    # print(xys)
                     n_sample_point = get_group_count_from_df(
                         xys, groupby_attribute)
                     groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
                                                                 n_total_point, n_sample_point,
-                                                                x_min_value=-np.inf, x_max_value=np.inf).fit_from_df(
+                                                                x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
                         xys)
                     groupby_model_wrapper.serialize2warehouse(
                         self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
@@ -243,7 +256,7 @@ if __name__ == "__main__":
         'verbose': 'True',
         'b_show_latency': 'True',
         'backend_server': 'None',
-        'csv_split_char': ',',
+        'csv_split_char': '|',
         "epsabs": 10.0,
         "epsrel": 0.1,
         "mesh_grid_num": 20,
@@ -259,9 +272,18 @@ if __name__ == "__main__":
     # sqlExecutor.execute(
     #     "select avg(pm25)  from pm25_qreg_2k where PRES between 1010 and 1020")
 
-    sqlExecutor.execute("create table pm25_torch_2k(pm25 real, PRES real) from pm25.csv method uniform size 2000")
-    sqlExecutor.execute(
-        "select sum(pm25)  from pm25_torch_2k where PRES between 1000 and 1040")
+    # sqlExecutor.execute("create table pm25_torch_2k(pm25 real, PRES real) from pm25.csv method uniform size 2000")
+    # sqlExecutor.execute(
+    #     "select sum(pm25)  from pm25_torch_2k where PRES between 1000 and 1040")
     # sqlExecutor.execute(
     #     "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
     # print(sqlExecutor.parser.parsed)
+
+    sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
+                                  "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
+                                  "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
+                                  "ss_ext_wholesale_cost,ss_ext_list_price,ss_ext_tax,ss_coupon_amt,ss_net_paid," +
+                                  "ss_net_paid_inc_tax,ss_net_profit,none")
+    sqlExecutor.execute("create table ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' group by ss_store_sk method uniform size 2000")
+    sqlExecutor.execute("select avg(ss_list_price) from ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk where ss_wholesale_cost between 1 and 10 group by ss_store_sk")
+
