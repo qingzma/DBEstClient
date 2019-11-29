@@ -33,6 +33,7 @@ class SqlExecutor:
         self.init_model_catalog()
         self.save_sample = False
         self.table_header = None
+        self.n_total_records = None  # a dictionary. {total:num, group_1:count_i}
         # exit()
 
     def init_model_catalog(self):
@@ -126,10 +127,10 @@ class SqlExecutor:
                 if self.save_sample:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config['csv_split_char'],
-                        file2save=self.config['warehousedir'] + "/" + mdl + '.csv')
+                        file2save=self.config['warehousedir'] + "/" + mdl + '.csv',num_total_records=self.n_total_records)
                 else:
                     sampler.make_sample(
-                        original_data_file, ratio, method, split_char=self.config['csv_split_char'])
+                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],num_total_records=self.n_total_records)
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     # check whether this model exists, if so, skip training
@@ -249,6 +250,9 @@ class SqlExecutor:
         else:
             self.table_header = str.split(split_char)
 
+    def set_table_counts(self, dic):
+        self.n_total_records = dic
+
 
 if __name__ == "__main__":
     config = {
@@ -256,7 +260,7 @@ if __name__ == "__main__":
         'verbose': 'True',
         'b_show_latency': 'True',
         'backend_server': 'None',
-        'csv_split_char': '|',
+        'csv_split_char': ',',
         "epsabs": 10.0,
         "epsrel": 0.1,
         "mesh_grid_num": 20,
@@ -284,6 +288,24 @@ if __name__ == "__main__":
                                   "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
                                   "ss_ext_wholesale_cost,ss_ext_list_price,ss_ext_tax,ss_coupon_amt,ss_net_paid," +
                                   "ss_net_paid_inc_tax,ss_net_profit,none")
-    sqlExecutor.execute("create table ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' group by ss_store_sk method uniform size 2000")
-    sqlExecutor.execute("select avg(ss_list_price) from ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk where ss_wholesale_cost between 1 and 10 group by ss_store_sk")
+    # sqlExecutor.set_table_counts({"total":10000})
+    sqlExecutor.execute("create table ss_9k_ss_list_price_ss_wholesale_cost(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' method uniform size 9000")
+    sqlExecutor.execute("select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost where ss_wholesale_cost between 1 and 10")
+
+    sqlExecutor.execute(
+        "create table ss_9k_ss_list_price_ss_wholesale_cost1(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
+    sqlExecutor.execute(
+        "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost1 where ss_wholesale_cost between 1 and 10")
+
+    sqlExecutor.set_table_counts({'total':2880404})
+    sqlExecutor.execute(
+        "create table ss_9k_ss_list_price_ss_wholesale_cost2(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
+    sqlExecutor.execute(
+        "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost2 where ss_wholesale_cost between 1 and 10")
+
+
+    # sqlExecutor.execute(
+    #     "create table ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' group by ss_store_sk method uniform size 2000")
+    # sqlExecutor.execute(
+    #     "select avg(ss_list_price) from ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk where ss_wholesale_cost between 1 and 10 group by ss_store_sk")
 

@@ -29,9 +29,9 @@ class ReservoirSampling:
         self.sampledf = None
         self.sampledfmean=None
 
-    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=",", save2file=None):
+    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=",", save2file=None, n_total_point=None):
 
-        self.n_total_point = sum(1 for _ in open(file)) - 1
+        self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(1 for _ in open(file)) - 1
 
         with open(file,'r') as data:
             if verbose:

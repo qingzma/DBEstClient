@@ -15,7 +15,7 @@ class DBEstSampling:
         self.sample_mean = None
         self.headers=headers
 
-    def make_sample(self, file, ratio,  method='uniform', split_char=',', file2save=None):
+    def make_sample(self, file, ratio,  method='uniform', split_char=',', file2save=None, num_total_records=None):
         if method == 'uniform':
             # # if  ratio is provided, then make samples using the ratio (or size)
             # if ratio is not None:
@@ -23,7 +23,7 @@ class DBEstSampling:
                 ratio = int(ratio)
                 self.n_sample_point = ratio
                 self.sample = ReservoirSampling(headers=self.headers)
-                self.sample.build_reservoir(file,ratio,split_char=split_char, save2file=file2save)
+                self.sample.build_reservoir(file,ratio,split_char=split_char, save2file=file2save,n_total_point=num_total_records)
                 self.n_total_point =  self.sample.n_total_point
                 # print("total point", self.n_total_point)
                 # print("sample point",self.n_sample_point)
