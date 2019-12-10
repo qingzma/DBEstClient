@@ -31,6 +31,7 @@ def run():
                                   "ss_net_paid_inc_tax,ss_net_profit,none")
     # build_models(sqlExecutor)
     run_10k(sqlExecutor)
+    run_100k(sqlExecutor)
     # sqlExecutor.execute(
     #     "create table tpcds40g_storesales_10k_ss_quantity_ss_sales_price(ss_quantity real, ss_sales_price real) from '/data/tpcds/40G/store_sales.dat' method uniform size 10000")
     # sqlExecutor.execute("select sum(ss_quantity) from tpcds40g_storesales_10k_ss_quantity_ss_sales_price_ where ss_sales_price between 50.00   and 100.00")

@@ -288,18 +288,24 @@ if __name__ == "__main__":
                                   "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
                                   "ss_ext_wholesale_cost,ss_ext_list_price,ss_ext_tax,ss_coupon_amt,ss_net_paid," +
                                   "ss_net_paid_inc_tax,ss_net_profit,none")
-    # sqlExecutor.set_table_counts({"total":10000})
-    sqlExecutor.execute("create table ss_9k_ss_list_price_ss_wholesale_cost(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' method uniform size 9000")
-    sqlExecutor.execute("select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost where ss_wholesale_cost between 1 and 10")
+    # # sqlExecutor.set_table_counts({"total":10000})
+    # sqlExecutor.execute("create table ss_9k_ss_list_price_ss_wholesale_cost(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' method uniform size 9000")
+    # sqlExecutor.execute("select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost where ss_wholesale_cost between 1 and 10")
+    #
+    # sqlExecutor.execute(
+    #     "create table ss_9k_ss_list_price_ss_wholesale_cost1(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
+    # sqlExecutor.execute(
+    #     "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost1 where ss_wholesale_cost between 1 and 10")
 
-    sqlExecutor.execute(
-        "create table ss_9k_ss_list_price_ss_wholesale_cost1(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
-    sqlExecutor.execute(
-        "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost1 where ss_wholesale_cost between 1 and 10")
+    # sqlExecutor.set_table_counts({'total':2880404})
+    # sqlExecutor.execute(
+    #     "create table ss_9k_ss_list_price_ss_wholesale_cost2(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
+    # sqlExecutor.execute(
+    #     "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost2 where ss_wholesale_cost between 1 and 10")
 
-    sqlExecutor.set_table_counts({'total':2880404})
+    sqlExecutor.set_table_counts({'total': 2879987999})
     sqlExecutor.execute(
-        "create table ss_9k_ss_list_price_ss_wholesale_cost2(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
+        "create table ss_40g_ss_list_price_ss_wholesale_cost(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/40G/ss_9k_ss_list_price_ss_wholesale_cost.csv' method uniform size 115203420")
     sqlExecutor.execute(
         "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost2 where ss_wholesale_cost between 1 and 10")
 
