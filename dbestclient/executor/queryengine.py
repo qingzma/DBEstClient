@@ -70,11 +70,14 @@ class QueryEngine:
         def f_pRx(*args):
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1))) \
                    * self.reg.predict([[args[0]]])[0]
-                   # * self.reg.predict(np.array(args))
+            # * self.reg.predict(np.array(args))
 
         # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
-        result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0] * float(self.n_training_point)
+        result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
+                     0] * float(self.n_total_point)
         # return result
+
+        # result = result / float(self.n_training_point) * float(self.n_total_point)
 
         # print("Approximate SUM: %.4f." % result)
 
@@ -91,7 +94,7 @@ class QueryEngine:
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
         result = integrate.quad(f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
-        result = result * float(self.n_training_point)
+        result = result * float(self.n_total_point)
 
         # print("Approximate COUNT: %.4f." % result)
         if self.config['verbose'] and result != None:
