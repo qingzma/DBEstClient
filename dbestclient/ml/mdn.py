@@ -132,7 +132,7 @@ class RegMdn():
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=2):
+    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=5):
         """ fit a regression y= R(x)"""
         if len(xs.shape) !=2:
             raise Exception("xs should be 2-d, but got unexpected shape.")
@@ -423,10 +423,11 @@ class RegMdn():
         samples = list(samples)
         return samples
 
-    def kde_predict(self, z, xs):
+    def kde_predict(self, xs, y, b_plot=False):
         if self.is_normalized:
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
+            y = self.normalize(y,self.meany,self.widthy)
 
         # xs = xs[:, np.newaxis]
         tensor_xs = torch.stack([torch.Tensor(i)
@@ -437,7 +438,8 @@ class RegMdn():
         mu = mu.detach().numpy().reshape(len(xs), -1)[0]
         pi = pi.detach().numpy()[0]  # .reshape(-1,2)
         sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
-        return gm(pi,mu,sigma,)
+        # sigmas = [sig**0.5 for sig in sigma]
+        return gm(pi,mu,sigma,y, b_plot=b_plot)
 
     def normalize(self, x, mean, width):
         return (x-mean)/width*2
@@ -520,21 +522,27 @@ def test_pm25_3d():
 def test_pm25_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    file = "/Users/scott/projects/pm25.csv"
     df = pd.read_csv(file)
-    df = df.dropna(subset=['TEMP', 'PRES'])
-    df_train = df.head(1000)
-    df_test = df.tail(1000)
+    df = df.dropna(subset=['PRES','pm25'])
+    df_train = df.head(3000)
+    df_test = df.tail(3000)
     pres_train = df_train.PRES.values[:,np.newaxis]
-    temp_train = df_train.PRES.values #df_train.pm25.values
+    pm25_train = df_train.pm25.values #df_train.pm25.values
     pres_test = df_test.PRES.values
     temp_test = df_test.PRES.values  #df_test.pm25.values
 
     regMdn = RegMdn(dim_input=1)
-    regMdn.fit(pres_train, temp_train, num_epoch=400, b_show_plot=False)
+    regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False,num_gaussians=5)
     # regMdn.predict(pres_train, b_show_plot=True)
     # regMdn.predict(pres_test, b_show_plot=True)
-    regMdn.kde_predict(1020,[[10]])
-    print("finished")
+    print(regMdn.kde_predict([[1030]], 200, b_plot=False))
+    xxs, yys = regMdn.kde_predict([[1030]],200,b_plot=True)
+    xxs = [regMdn.denormalize(xi, regMdn.meany,regMdn.widthy) for xi in xxs]
+    # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
+    plt.plot(xxs, yys)
+    plt.show()
+
 
 
 def test_pm25_3d_density():
@@ -581,11 +589,18 @@ def test_gm():
     plt.plot(x,y)
     plt.show()
 
-def gm(weights, mus, vars, x):
-    result = 0
-    for index in range(len(weights)):
-        result +=stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
-    return result
+def gm(weights, mus, vars, x, b_plot=False):
+    if not b_plot:
+        result = 0
+        for index in range(len(weights)):
+            result +=stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
+        return result
+    else:
+        xs = np.linspace(-1,1,1000)
+        ys = [gm(weights,mus,vars, xi, b_plot=False) for xi in xs]
+        return xs, ys
+        # plt.plot(xs, ys)
+        # plt.show()
 
 def test_gmm():
     weights = [0.5, 0.5]
