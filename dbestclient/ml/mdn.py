@@ -305,7 +305,7 @@ class RegMdn():
         # yys = self.predict2d(xxs,b_show_plot=True)
         return self
 
-    def predict3d(self, xs, zs, b_show_plot=True, num_points=10):
+    def predict3d(self, xs, zs, b_show_plot=True, num_points=10, b_generate_samples=False):
         if self.is_normalized:
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
@@ -319,11 +319,18 @@ class RegMdn():
         pi, sigma, mu = self.model(tensor_xzs)
         # print("mu,", mu)
         # print("sigma", sigma)
-        samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
-        for i in range(num_points-1):
-            samples = np.vstack(
-                (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
-        samples = np.mean(samples, axis=0)
+
+
+        if b_generate_samples:
+            samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+            for i in range(num_points-1):
+                samples = np.vstack(
+                    (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
+            samples = np.mean(samples, axis=0)
+        else:
+            mu = mu.detach().numpy().reshape(len(xs), -1)
+            pi = pi.detach().numpy()  # .reshape(-1,2)
+            samples = np.sum(np.multiply(pi, mu), axis=1)
 
         # print(samples.data.numpy().reshape(-1))
 
@@ -414,9 +421,23 @@ class RegMdn():
             plt.show()
 
         samples = list(samples)
-
-
         return samples
+
+    def kde_predict(self, z, xs):
+        if self.is_normalized:
+            xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                           for i in xs])
+
+        # xs = xs[:, np.newaxis]
+        tensor_xs = torch.stack([torch.Tensor(i)
+                                 for i in xs])
+        # xzs_data = torch.from_numpy(xzs)
+
+        pi, sigma, mu = self.model(tensor_xs)
+        mu = mu.detach().numpy().reshape(len(xs), -1)[0]
+        pi = pi.detach().numpy()[0]  # .reshape(-1,2)
+        sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
+        return gm(pi,mu,sigma,)
 
     def normalize(self, x, mean, width):
         return (x-mean)/width*2
@@ -454,11 +475,11 @@ def test1():
 def test_pm25_2d():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
-    file = "/home/u1796377/Programs/dbestwarehouse/pm25_torch_2k.csv"
+    # file = "/home/u1796377/Programs/dbestwarehouse/pm25_torch_2k.csv"
     df = pd.read_csv(file)
     df = df.dropna(subset=['pm25', 'PRES'])
-    df_train = df#.head(1000)
-    df_test = df#.tail(1000)
+    df_train = df.head(1000)
+    df_test = df.tail(1000)
     pres_train = df_train.PRES.values[:,np.newaxis]
     pm25_train = df_train.pm25.values
     pres_test = df_test.PRES.values
@@ -491,7 +512,7 @@ def test_pm25_3d():
     xzs_test = np.concatenate(
         (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
     regMdn = RegMdn(dim_input=2)
-    regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=False)
+    regMdn.fit(xzs_train, pm25_train, num_epoch=400, b_show_plot=False)
     print(regMdn.predict(xzs_test, b_show_plot=True))
     regMdn.predict(xzs_train, b_show_plot=True)
 
@@ -500,19 +521,19 @@ def test_pm25_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     df = pd.read_csv(file)
-    df = df.dropna(subset=['pm25', 'PRES'])
+    df = df.dropna(subset=['TEMP', 'PRES'])
     df_train = df.head(1000)
     df_test = df.tail(1000)
-    pres_train = df_train.PRES.values
-    pm25_train = df_train.PRES.values #df_train.pm25.values
+    pres_train = df_train.PRES.values[:,np.newaxis]
+    temp_train = df_train.PRES.values #df_train.pm25.values
     pres_test = df_test.PRES.values
-    pm25_test = df_test.PRES.values  #df_test.pm25.values
+    temp_test = df_test.PRES.values  #df_test.pm25.values
 
     regMdn = RegMdn(dim_input=1)
-    regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False)
+    regMdn.fit(pres_train, temp_train, num_epoch=400, b_show_plot=False)
     # regMdn.predict(pres_train, b_show_plot=True)
     # regMdn.predict(pres_test, b_show_plot=True)
-    regMdn.predict([1020], b_show_plot=True)
+    regMdn.kde_predict(1020,[[10]])
     print("finished")
 
 
@@ -538,6 +559,44 @@ def test_pm25_3d_density():
     regMdn.predict(xzs_test, b_show_plot=True)
     regMdn.predict(xzs_train, b_show_plot=True)
 
+def test_gm():
+    from sklearn import mixture
+    import random
+    kde = mixture.GaussianMixture(n_components=2, covariance_type='spherical')
+    kde.fit(np.random.rand(100, 1))
+    # x = np.array(np.linspace(-5, 15, 100)).reshape(-1, 1)
+    # print(x)
+    # y = kde.predict(x)
+
+    kde.weights_=np.array([0.5,0.5])
+    kde.means_ = np.array([[1] ,[3]])
+    kde.covariances_= np.array([10,20])
+
+    x = np.array(np.linspace(-5,15,1000)).reshape(-1, 1)
+    print(x)
+    y = kde.score_samples(x)
+    y=np.exp(y)
+    print(y)
+
+    plt.plot(x,y)
+    plt.show()
+
+def gm(weights, mus, vars, x):
+    result = 0
+    for index in range(len(weights)):
+        result +=stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
+    return result
+
+def test_gmm():
+    weights = [0.5, 0.5]
+    mus = [0,10]
+    vars = [4, 4]
+    xs = np.array(np.linspace(-5, 15, 1000))
+    results = [gm(weights,mus,vars,x) for x in xs]
+    plt.plot(xs,results)
+    plt.show()
+
 
 if __name__ == "__main__":
-    test_pm25_3d()
+    # test_pm25_2d_density()
+    test_pm25_2d_density()
