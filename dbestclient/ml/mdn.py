@@ -522,11 +522,11 @@ def test_pm25_3d():
 def test_pm25_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
-    file = "/Users/scott/projects/pm25.csv"
+    # file = "/Users/scott/projects/pm25.csv"
     df = pd.read_csv(file)
     df = df.dropna(subset=['PRES','pm25'])
-    df_train = df.head(3000)
-    df_test = df.tail(3000)
+    df_train = df.head(1000)
+    df_test = df.tail(1000)
     pres_train = df_train.PRES.values[:,np.newaxis]
     pm25_train = df_train.pm25.values #df_train.pm25.values
     pres_test = df_test.PRES.values
@@ -538,6 +538,7 @@ def test_pm25_2d_density():
     # regMdn.predict(pres_test, b_show_plot=True)
     print(regMdn.kde_predict([[1030]], 200, b_plot=False))
     xxs, yys = regMdn.kde_predict([[1030]],200,b_plot=True)
+    xxs, yys = regMdn.kde_predict([[1030]], 200, b_plot=True)
     xxs = [regMdn.denormalize(xi, regMdn.meany,regMdn.widthy) for xi in xxs]
     # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
     plt.plot(xxs, yys)
@@ -545,27 +546,27 @@ def test_pm25_2d_density():
 
 
 
-def test_pm25_3d_density():
-    import pandas as pd
-    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
-    df = pd.read_csv(file)
-    df = df.dropna(subset=['pm25', 'PRES', 'TEMP'])
-    df_train = df.head(1000)
-    df_test = df.tail(1000)
-    pres_train = df_train.PRES.values
-    temp_train = df_train.TEMP.values
-    pm25_train = df_train.PRES.values  # df_train.pm25.values
-    pres_test = df_test.PRES.values
-    pm25_test = df_test.pm25.values
-    temp_test = df_test.PRES.values  # df_test.TEMP.values
-    xzs_train = np.concatenate(
-        (temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
-    xzs_test = np.concatenate(
-        (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
-    regMdn = RegMdn(dim_input=2)
-    regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=True)
-    regMdn.predict(xzs_test, b_show_plot=True)
-    regMdn.predict(xzs_train, b_show_plot=True)
+# def test_pm25_3d_density():
+#     import pandas as pd
+#     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+#     df = pd.read_csv(file)
+#     df = df.dropna(subset=['pm25', 'PRES', 'TEMP'])
+#     df_train = df.head(1000)
+#     df_test = df.tail(1000)
+#     pres_train = df_train.PRES.values
+#     temp_train = df_train.TEMP.values
+#     pm25_train = df_train.PRES.values  # df_train.pm25.values
+#     pres_test = df_test.PRES.values
+#     pm25_test = df_test.pm25.values
+#     temp_test = df_test.PRES.values  # df_test.TEMP.values
+#     xzs_train = np.concatenate(
+#         (temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
+#     xzs_test = np.concatenate(
+#         (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
+#     regMdn = RegMdn(dim_input=2)
+#     regMdn.fit(xzs_train, pm25_train, num_epoch=1000, b_show_plot=True)
+#     regMdn.predict(xzs_test, b_show_plot=True)
+#     regMdn.predict(xzs_train, b_show_plot=True)
 
 def test_gm():
     from sklearn import mixture
@@ -614,4 +615,5 @@ def test_gmm():
 
 if __name__ == "__main__":
     # test_pm25_2d_density()
-    test_pm25_2d_density()
+    # test_pm25_2d_density()
+    test_pm25_3d()
