@@ -20,5 +20,5 @@ class DBEstReg:
         if reg_type == 'qreg':
             self.reg = qreg.QReg(base_models=["linear", "polynomial"], verbose=False).fit(x, y)
         if reg_type == 'mdn':
-            self.reg = mdn.RegMdn(dim_input=1).fit(x,y,num_epoch=self.config["num_epoch"],num_gaussians=self.config["num_gaussians"])
+            self.reg = mdn.RegMdn(dim_input=2).fit(x,y,num_epoch=self.config["num_epoch"],num_gaussians=self.config["num_gaussians"])
         return self.reg

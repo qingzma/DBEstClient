@@ -88,12 +88,16 @@ class ReservoirSampling:
                 self.sampledf.to_csv(save2file, index=False)
 
 
-    def getyx(self, y, x, dropna=True, b_return_mean=False):
+    def getyx(self, y, x, dropna=True, b_return_mean=False,groupby=None):
         # drop non-numerical values.
         if dropna:
             self.sampledf = self.sampledf.dropna(subset=[y, x])
+        if groupby is not None:
+            self.sampledf = self.sampledf.dropna(subset=[groupby])
+            self.sampledf[groupby] = pd.to_numeric(self.sampledf[groupby], errors='coerce').fillna(0)
         self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
         self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
+
 
         if b_return_mean:
             gb = self.sampledf.groupby(x)

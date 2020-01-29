@@ -112,11 +112,56 @@ class GroupByModelWrapper:
                 model_wrapper.serialize2warehouse(warehouse)
 
 
+class KdeModelWrapper:
+    def __init__(self, mdl, tbl, x, y=None, n_total_point={},
+                 n_sample_point={}, x_min_value=-np.inf, x_max_value=np.inf, groupby_attribute=None, groupby_values={}):
+        self.mdl = mdl
+        self.tbl = tbl
+        self.x = x
+        self.y = y
+        self.n_total_point = n_total_point
+        self.n_sample_point = n_sample_point
+        self.x_min_value = x_min_value
+        self.x_max_value = x_max_value
+        self.groupby_attribute=groupby_attribute
+        self.groupby_values = groupby_values
 
+        self.reg = None
+        self.density = None
+
+        # generate the pickle file name
+        self.pickle_file_name = None
+        self.init_pickle_file_name()
+        # self.pickle_string = None
+
+    def load_model(self, density, reg=None):
+        self.reg = reg
+        self.density = density
+
+    def init_pickle_file_name(self):
+        self.pickle_file_name = self.mdl
+        if self.groupby_attribute is not None:
+            self.pickle_file_name += "_groupby_" + self.groupby_attribute
+        self.pickle_file_name += ".pkl"
+        return self.pickle_file_name
+
+    def serialize(self):
+        return pickle.dumps(self)
+
+    def serialize2warehouse(self, warehouse):
+        if self.pickle_file_name is None:
+            self.init_pickle_file_name()
+        with open(warehouse + '/' + self.pickle_file_name, 'wb') as f:
+            pickle.dump(self, f)
 
 
 if __name__ == "__main__":
-    simpleWraper = SimpleModelWrapper("mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_value="10")
-    print(simpleWraper.init_pickle_file_name())
-    print(simpleWraper.get_groupby_catalog_prefix())
+    # simpleWraper = SimpleModelWrapper("mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_value="10")
+    # print(simpleWraper.init_pickle_file_name())
+    # print(simpleWraper.get_groupby_catalog_prefix())
+    # print(get_pickle_file_name("mdl"))
+
+    kdeModelWraper = KdeModelWrapper("mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_value={"1":10,"2":20})
+    print(kdeModelWraper.init_pickle_file_name())
+    # print(kdeModelWraper.get_groupby_catalog_prefix())
     print(get_pickle_file_name("mdl"))

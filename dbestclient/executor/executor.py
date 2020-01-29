@@ -6,18 +6,19 @@
 import sys
 import pickle
 from dbestclient.io.sampling import DBEstSampling
-from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer
+from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer, KdeModelTrainer
 from dbestclient.parser.parser import DBEstParser
 from dbestclient.io import getxy
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.ml.density import DBEstDensity
 from dbestclient.executor.queryengine import QueryEngine
-from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name, GroupByModelWrapper
+from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name, GroupByModelWrapper, KdeModelWrapper
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.tools.dftools import convert_df_to_yx, get_group_count_from_df, get_group_count_from_file
 import numpy as np
 from datetime import datetime
 import os
+import pandas as pd
 
 
 class SqlExecutor:
@@ -34,6 +35,7 @@ class SqlExecutor:
         self.save_sample = False
         self.table_header = None
         self.n_total_records = None  # a dictionary. {total:num, group_1:count_i}
+        self.use_kde = True
         # exit()
 
     def init_model_catalog(self):
@@ -159,27 +161,43 @@ class SqlExecutor:
                     self.model_catalog.add_model_wrapper(simple_model_wrapper)
 
                 else:  # if group by is involved in the query
-                    # groupby_attribute = self.parser.get_groupby_value()
-                    # # check whether this model exists, if so, skip training
-                    # if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
-                    #     print(
-                    #         "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
-                    #     return
+                    if self.config['reg_type'] == "qreg":
+                        xys = sampler.getyx(yheader, xheader)
+                        # print(xys[groupby_attribute])
+                        n_total_point = get_group_count_from_file(
+                            original_data_file, groupby_attribute, sep=self.config['csv_split_char'],headers=self.table_header)
+                        # print(xys)
+                        n_sample_point = get_group_count_from_df(
+                            xys, groupby_attribute)
+                        groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
+                                                                    n_total_point, n_sample_point,
+                                                                    x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                            xys)
+                        groupby_model_wrapper.serialize2warehouse(
+                            self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
+                        self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
+                    else: # "mdn"
+                        xys = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
+                        xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
+                        xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
 
-                    xys = sampler.getyx(yheader, xheader)
-                    # print(xys[groupby_attribute])
-                    n_total_point = get_group_count_from_file(
-                        original_data_file, groupby_attribute, sep=self.config['csv_split_char'],headers=self.table_header)
-                    # print(xys)
-                    n_sample_point = get_group_count_from_df(
-                        xys, groupby_attribute)
-                    groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
-                                                                n_total_point, n_sample_point,
-                                                                x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                        # sys.exit(0)
+
+                        # print(xys[groupby_attribute])
+                        n_total_point = get_group_count_from_file(
+                            original_data_file, groupby_attribute, sep=self.config['csv_split_char'],
+                            headers=self.table_header)
+                        # print(xys)
+                        n_sample_point = {} #get_group_count_from_df(
+                            #xys, groupby_attribute)
+                        kdeModelWrapper = KdeModelTrainer(mdl,tbl,xheader,yheader,groupby_attribute=groupby_attribute,
+                                                          groupby_values=list(n_total_point.keys()),
+                                                          n_total_point=n_total_point, n_sample_point=n_sample_point,
+                                                          x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
                         xys)
-                    groupby_model_wrapper.serialize2warehouse(
-                        self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
-                    self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
+                        kdeModelWrapper.serialize2warehouse(
+                            self.config['warehousedir'])
+                        self.model_catalog.add_model_wrapper(kdeModelWrapper)
 
             else:
                 # DML, provide the prediction using models
@@ -216,33 +234,39 @@ class SqlExecutor:
                     return p, t
 
                 else:  # if group by is involved in the query
-                    start = datetime.now()
-                    predictions = {}
-                    groupby_attribute = self.parser.get_groupby_value()
-                    groupby_key = mdl + "_groupby_" + groupby_attribute
+                    if self.config['reg_type'] == "qreg":
+                        start = datetime.now()
+                        predictions = {}
+                        groupby_attribute = self.parser.get_groupby_value()
+                        groupby_key = mdl + "_groupby_" + groupby_attribute
 
-                    for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
-                        reg = model_wrapper.reg
-                        density = model_wrapper.density
-                        n_sample_point = int(model_wrapper.n_sample_point)
-                        n_total_point = int(model_wrapper.n_total_point)
-                        x_min_value = float(model_wrapper.x_min_value)
-                        x_max_value = float(model_wrapper.x_max_value)
-                        query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
-                                                   x_max_value,
-                                                   self.config)
-                        predictions[model_wrapper.groupby_value] = query_engine.predict(
-                            func, x_lb=x_lb, x_ub=x_ub)[0]
+                        for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
+                            reg = model_wrapper.reg
+                            density = model_wrapper.density
+                            n_sample_point = int(model_wrapper.n_sample_point)
+                            n_total_point = int(model_wrapper.n_total_point)
+                            x_min_value = float(model_wrapper.x_min_value)
+                            x_max_value = float(model_wrapper.x_max_value)
+                            query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
+                                                       x_max_value,
+                                                       self.config)
+                            predictions[model_wrapper.groupby_value] = query_engine.predict(
+                                func, x_lb=x_lb, x_ub=x_ub)[0]
 
-                    print("OK")
-                    for key, item in predictions.items():
-                        print(key, item)
+                        print("OK")
+                        for key, item in predictions.items():
+                            print(key, item)
 
-                    if self.config['verbose']:
-                        end = datetime.now()
-                        time_cost = (end - start).total_seconds()
-                        print("Time cost: %.4fs." % time_cost)
-                    print("------------------------")
+                        if self.config['verbose']:
+                            end = datetime.now()
+                            time_cost = (end - start).total_seconds()
+                            print("Time cost: %.4fs." % time_cost)
+                        print("------------------------")
+                    else:   # use mdn models to give the predictions.
+                        start = datetime.now()
+                        predictions = {}
+                        groupby_attribute = self.parser.get_groupby_value()
+
 
     def set_table_headers(self, str, split_char=","):
         if str is None:
@@ -268,6 +292,7 @@ if __name__ == "__main__":
         # "b_reg_mean":'True',
         "num_epoch": 400,
         "reg_type": "mdn",
+        "density_type":"density_type",
         "num_gaussians":4,
     }
     sqlExecutor = SqlExecutor(config)

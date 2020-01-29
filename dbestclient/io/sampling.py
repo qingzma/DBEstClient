@@ -39,8 +39,8 @@ class DBEstSampling:
         else:
             print("other sampling methods are not implemented, abort.")
 
-    def getyx(self, y, x, dropna=True, b_return_mean=False):
-        return self.sample.getyx(y,x, dropna=dropna, b_return_mean=b_return_mean)
+    def getyx(self, y, x, dropna=True, b_return_mean=False,groupby=None):
+        return self.sample.getyx(y,x, dropna=dropna, b_return_mean=b_return_mean,groupby=groupby)
 
 
 if __name__ == '__main__':
