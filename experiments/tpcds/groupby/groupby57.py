@@ -39,7 +39,7 @@ def build_models(sqlExecutor):
         "create table test(ss_quantity real, ss_sales_price real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
 
 def query(sqlExecutor):
-    sqlExecutor.execute("select count(ss_quantity)  from test where ss_sales_price between 1     and 100   group by   ss_store_sk ")
+    sqlExecutor.execute("select count(ss_quantity)  from test where ss_sales_price between 1  and 100   group by ss_store_sk")
 
 if __name__=="__main__":
     run()

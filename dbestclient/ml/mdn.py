@@ -132,6 +132,11 @@ class RegMdn():
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
 
+        self.last_xs = None
+        self.last_pi = None
+        self.last_mu = None
+        self.last_sigma = None
+
     def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=5):
         """ fit a regression y= R(x)"""
         if len(xs.shape) !=2:
@@ -424,22 +429,24 @@ class RegMdn():
         return samples
 
     def kde_predict(self, xs, y, b_plot=False):
-        if self.is_normalized:
-            xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            y = self.normalize(y,self.meany,self.widthy)
+        if xs != self.last_xs:
+            self.last_xs = xs
+            if self.is_normalized:
+                xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                               for i in xs])
+                y = self.normalize(y,self.meany,self.widthy)
 
-        # xs = xs[:, np.newaxis]
-        tensor_xs = torch.stack([torch.Tensor(i)
-                                 for i in xs])
-        # xzs_data = torch.from_numpy(xzs)
+            # xs = xs[:, np.newaxis]
+            tensor_xs = torch.stack([torch.Tensor(i)
+                                     for i in xs])
+            # xzs_data = torch.from_numpy(xzs)
 
-        pi, sigma, mu = self.model(tensor_xs)
-        mu = mu.detach().numpy().reshape(len(xs), -1)[0]
-        pi = pi.detach().numpy()[0]  # .reshape(-1,2)
-        sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
+            pi, sigma, mu = self.model(tensor_xs)
+            self.last_mu = mu.detach().numpy().reshape(len(xs), -1)[0]
+            self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
+            self.last_sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
         # sigmas = [sig**0.5 for sig in sigma]
-        return gm(pi,mu,sigma,y, b_plot=b_plot)
+        return gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
 
     def normalize(self, x, mean, width):
         return (x-mean)/width*2

@@ -5,6 +5,8 @@
 # Q.Ma.2@warwick.ac.uk
 import sys
 import pickle
+
+from dbestclient.executor.mdnqueryengine import MdnQueryEngine
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer, KdeModelTrainer
 from dbestclient.parser.parser import DBEstParser
@@ -257,15 +259,19 @@ class SqlExecutor:
                         for key, item in predictions.items():
                             print(key, item)
 
-                        if self.config['verbose']:
-                            end = datetime.now()
-                            time_cost = (end - start).total_seconds()
-                            print("Time cost: %.4fs." % time_cost)
-                        print("------------------------")
                     else:   # use mdn models to give the predictions.
                         start = datetime.now()
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
+                        qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl+".pkl"],self.config)   #mdl+"_groupby_"+groupby_attribute+".pkl"
+                        print("OK")
+                        qe.predicts(func, x_lb=x_lb, x_ub=x_ub)[0]
+
+                    if self.config['verbose']:
+                        end = datetime.now()
+                        time_cost = (end - start).total_seconds()
+                        print("Time cost: %.4fs." % time_cost)
+                    print("------------------------")
 
 
     def set_table_headers(self, str, split_char=","):
