@@ -131,7 +131,6 @@ class RegMdn():
         self.is_normalized = False
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
-
         self.last_xs = None
         self.last_pi = None
         self.last_mu = None

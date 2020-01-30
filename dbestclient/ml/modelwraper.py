@@ -3,13 +3,14 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
-import pickle
+# import pickle
 import os
 import numpy as np
+import dill
 
 
 def deserialize_model_wrapper(file):
-    return pickle.load(file)
+    return dill.load(file)
 
 
 def get_pickle_file_name(mdl):
@@ -73,13 +74,13 @@ class SimpleModelWrapper:
     #     return self.mdl + "_groupby_" + self.groupby_attribute
 
     def serialize(self):
-        return pickle.dumps(self)
+        return dill.dumps(self)
 
     def serialize2warehouse(self, warehouse):
         if self.pickle_file_name is None:
             self.init_pickle_file_name()
         with open(warehouse + '/' + self.pickle_file_name, 'wb') as f:
-            pickle.dump(self, f)
+            dill.dump(self, f)
 
 
 class GroupByModelWrapper:
@@ -146,13 +147,13 @@ class KdeModelWrapper:
         return self.pickle_file_name
 
     def serialize(self):
-        return pickle.dumps(self)
+        return dill.dumps(self)
 
     def serialize2warehouse(self, warehouse):
         if self.pickle_file_name is None:
             self.init_pickle_file_name()
         with open(warehouse + '/' + self.pickle_file_name, 'wb') as f:
-            pickle.dump(self, f)
+            dill.dump(self, f)
 
 
 if __name__ == "__main__":

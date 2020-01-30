@@ -21,6 +21,7 @@ import numpy as np
 from datetime import datetime
 import os
 import pandas as pd
+import dill
 
 
 class SqlExecutor:
@@ -52,7 +53,7 @@ class SqlExecutor:
                     print("start loading pre-existing models.")
 
                 with open(self.config['warehousedir'] + "/" + file_name, 'rb') as f:
-                    model = pickle.load(f)
+                    model = dill.load(f)
                 self.model_catalog.model_catalog[model.init_pickle_file_name(
                 )] = model
                 n_model += 1
@@ -66,7 +67,7 @@ class SqlExecutor:
                 for model_name in os.listdir(self.config['warehousedir'] + "/" + file_name):
                     if model_name.endswith(".pkl"):
                         with open(self.config['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
-                            model = pickle.load(f)
+                            model = dill.load(f)
                             n_models_in_groupby += 1
 
                         if n_models_in_groupby == 1:
