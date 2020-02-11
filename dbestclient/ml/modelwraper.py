@@ -152,6 +152,8 @@ class KdeModelWrapper:
     def serialize2warehouse(self, warehouse):
         if self.pickle_file_name is None:
             self.init_pickle_file_name()
+        self.x = None
+        self.y = None
         with open(warehouse + '/' + self.pickle_file_name, 'wb') as f:
             dill.dump(self, f)
 

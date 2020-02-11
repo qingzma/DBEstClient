@@ -115,7 +115,7 @@ class RegMdn():
     """ This class implements the regression using mixture density network.
     """
 
-    def __init__(self, dim_input, b_store_training_data=True):
+    def __init__(self, dim_input, b_store_training_data=True, n_mdn_layer_node=20):
         if b_store_training_data:
             self.xs = None   # query range
             self.ys = None   # aggregate value
@@ -131,6 +131,7 @@ class RegMdn():
         self.is_normalized = False
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
+        self.n_mdn_layer_node=n_mdn_layer_node
         self.last_xs = None
         self.last_pi = None
         self.last_mu = None
@@ -141,7 +142,7 @@ class RegMdn():
         if len(xs.shape) !=2:
             raise Exception("xs should be 2-d, but got unexpected shape.")
         if self.dim_input == 1:
-            return self.fit2d(xs, ys, b_show_plot=b_show_plot,
+            return self.fit2d(xs, ys, b_show_reg_plot=b_show_plot,
                               b_normalize=b_normalize, num_epoch=num_epoch,num_gaussians=num_gaussians)
         elif self.dim_input == 2:
             return self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
@@ -149,6 +150,7 @@ class RegMdn():
         else:
             print("dimension mismatch")
             sys.exit(0)
+
 
     def predict(self, xs, b_show_plot=False):
         """ make predictions"""
@@ -186,9 +188,11 @@ class RegMdn():
             zs = np.array([self.normalize(i, self.meanz, self.widthz)
                            for i in zs])
             self.is_normalized = True
-        self.xs = xs
-        self.ys = ys
-        self.zs = zs
+
+        if self.b_store_training_data:
+            self.xs = xs
+            self.ys = ys
+            self.zs = zs
 
         if b_show_plot:
             fig = plt.figure()
@@ -215,10 +219,10 @@ class RegMdn():
 
         # initialize the model
         self.model = nn.Sequential(
-            nn.Linear(self.dim_input ,20),
+            nn.Linear(self.dim_input ,self.n_mdn_layer_node),
             nn.Tanh(),
             nn.Dropout(0.01),
-            MDN(20, 1, num_gaussians)
+            MDN(self.n_mdn_layer_node, 1, num_gaussians)
         )
 
         optimizer = optim.Adam(self.model.parameters())
@@ -234,7 +238,7 @@ class RegMdn():
                 optimizer.step()
         return self
 
-    def fit2d(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5):
+    def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5, b_show_density_plot=True):
         """ fit a regression y = R(x)
 
         Args:
@@ -256,10 +260,12 @@ class RegMdn():
                            for i in ys])
 
             self.is_normalized = True
-        self.xs = xs
-        self.ys = ys
 
-        if b_show_plot:
+        if self.b_store_training_data:
+            self.xs = xs
+            self.ys = ys
+
+        if b_show_reg_plot:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.scatter(xs, ys)
@@ -267,6 +273,7 @@ class RegMdn():
 
             ax.set_ylabel('aggregate attribute')
             plt.show()
+
 
         # xzs = [[xs[i], zs[i]] for i in range(len(xs))]
         # xs = xs[:, np.newaxis]
@@ -285,15 +292,15 @@ class RegMdn():
 
         # initialize the model
         self.model = nn.Sequential(
-            nn.Linear(self.dim_input, 20),
+            nn.Linear(self.dim_input, self.n_mdn_layer_node),
             nn.Tanh(),
             nn.Dropout(0.01),
-            MDN(20, 1, num_gaussians)
+            MDN(self.n_mdn_layer_node, 1, num_gaussians)
         )
 
         optimizer = optim.Adam(self.model.parameters())
         for epoch in range(num_epoch):
-            if epoch % 100 == 0:
+            if epoch % 5 == 0:
                 print("< Epoch {}".format(epoch))
             # train the model
             for minibatch, labels in my_dataloader:
@@ -303,7 +310,28 @@ class RegMdn():
                 loss.backward()
                 optimizer.step()
 
+        if b_show_density_plot:
+            xxs, yys = self.kde_predict([[112]], 2451119, b_plot=True)
 
+            # xxs, yys = regMdn.kde_predict([[1]], 2451119, b_plot=True)
+            xxs = [self.denormalize(xi, self.meany, self.widthy) for xi in xxs]
+            print(xxs, yys)
+            # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
+            plt.plot(xxs, yys)
+            plt.show()
+
+            # tensor_xs = torch.stack([torch.Tensor(i)
+            #                          for i in xs])
+            # tensor_xs = torch.stack([torch.Tensor(1)])
+            # self.kde_predict()
+            # pi, sigma, mu = self.model(tensor_xs)
+            #
+            # xxs = np.linspace(-1, 1, 1000)
+            # yys = [gm(pi, mu, sigma, xxi, b_plot=False) for xxi in xxs]
+            # if b_normalize:
+            #     xxs =[self.denormalize(xxi, self.meany, self.widthy) for xxi in xxs]
+            # plt.plot(xxs,yys)
+            # plt.show()
 
         # xxs = np.linspace(np.min(xs), np.max(xs),100)
         # yys = self.predict2d(xxs,b_show_plot=True)
@@ -349,7 +377,7 @@ class RegMdn():
         # print(x_test)
         if b_show_plot:
 
-            if not self.is_training_data_denormalized:
+            if not self.is_training_data_denormalized and self.b_store_training_data:
                 self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
                                     for i in self.xs])
                 self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
@@ -428,12 +456,17 @@ class RegMdn():
         return samples
 
     def kde_predict(self, xs, y, b_plot=False):
+
+        if self.is_normalized:
+            xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                           for i in xs])
+            y = self.normalize(y, self.meany, self.widthy)
+            # print(", normalized to " + str(y))
+
         if xs != self.last_xs:
             self.last_xs = xs
-            if self.is_normalized:
-                xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                               for i in xs])
-                y = self.normalize(y,self.meany,self.widthy)
+            # print("y is " + str(y)  )
+
 
             # xs = xs[:, np.newaxis]
             tensor_xs = torch.stack([torch.Tensor(i)
@@ -445,7 +478,16 @@ class RegMdn():
             self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
             self.last_sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
         # sigmas = [sig**0.5 for sig in sigma]
-        return gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
+        # if b_plot:
+        #     xs,ys= gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
+        #     print("printing the mdn density estimation...")
+        #     plt.plot(xs, ys)
+        #     plt.show()
+        #     sys.exit(0)
+        result = gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
+        result = result / self.widthy *2
+        # print("kde predict for "+str(y)+": "+ str(result))
+        return result
 
     def normalize(self, x, mean, width):
         return (x-mean)/width*2
@@ -525,6 +567,8 @@ def test_pm25_3d():
     regMdn.predict(xzs_train, b_show_plot=True)
 
 
+
+
 def test_pm25_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
@@ -550,7 +594,32 @@ def test_pm25_2d_density():
     plt.plot(xxs, yys)
     plt.show()
 
+def test_ss_2d_density():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    file = "/data/tpcds/40G/ss_600k_headers.csv"
+    df = pd.read_csv(file,sep='|')
+    df = df.dropna(subset=['ss_sold_date_sk','ss_store_sk','ss_sales_price'])
+    df_train = df.head(1000)
+    df_test = df.head(1000)
+    g_train = df_train.ss_store_sk.values[:,np.newaxis]
+    x_train = df_train.ss_sold_date_sk.values #df_train.pm25.values
+    g_test = df_test.ss_store_sk.values
+    # temp_test = df_test.PRES.values  #df_test.pm25.values
 
+    regMdn = RegMdn(dim_input=1,b_store_training_data=True)
+    regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False,num_gaussians=5)
+    # regMdn.predict(pres_train, b_show_plot=True)
+    # regMdn.predict(pres_test, b_show_plot=True)
+    print(regMdn.kde_predict([[1]], 2451119, b_plot=False))
+    xxs, yys = regMdn.kde_predict([[4]],2451119,b_plot=True)
+
+    # xxs, yys = regMdn.kde_predict([[1]], 2451119, b_plot=True)
+    xxs = [regMdn.denormalize(xi, regMdn.meany,regMdn.widthy) for xi in xxs]
+    print(xxs, yys)
+    # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
+    plt.plot(xxs, yys)
+    plt.show()
 
 # def test_pm25_3d_density():
 #     import pandas as pd
@@ -618,8 +687,33 @@ def test_gmm():
     plt.plot(xs,results)
     plt.show()
 
+def test_ss_3d():
+    import pandas as pd
+    file = "/data/tpcds/1G/ss_10k.csv"
+    file = "/data/tpcds/1t/ss_1m.csv"
+    df = pd.read_csv(file,sep="|")
+    # df = df.dropna(subset=['ss_list_price', 'ss_sales_price', 'ss_store_sk'])
+    df = df.dropna(subset=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
+    df_train = df.head(5000)
+    df_test = df.head(5000)
+    x_train = df_train.ss_sold_date_sk.values
+    z_train = df_train.ss_store_sk.values
+    y_train = df_train.ss_sales_price.values
+    x_test = df_test.ss_sold_date_sk.values
+    y_test = df_test.ss_sales_price.values
+    z_test = df_test.ss_store_sk.values
+    xzs_train = np.concatenate(
+        (x_train[:, np.newaxis], z_train[:, np.newaxis]), axis=1)
+    xzs_test = np.concatenate(
+        (x_test[:, np.newaxis], z_test[:, np.newaxis]), axis=1)
+    regMdn = RegMdn(dim_input=2,n_mdn_layer_node=20)
+    regMdn.fit(xzs_train, y_train, num_epoch=100, b_show_plot=False)
+    print(regMdn.predict(xzs_test, b_show_plot=True))
+    # regMdn.predict(xzs_train, b_show_plot=True)
 
 if __name__ == "__main__":
     # test_pm25_2d_density()
     # test_pm25_2d_density()
-    test_pm25_3d()
+    # test_pm25_3d()
+    # test_ss_3d()
+    test_ss_2d_density()

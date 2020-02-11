@@ -103,10 +103,10 @@ class KdeModelTrainer:
         xzs_train = np.concatenate(
             (x[:, np.newaxis], groupby[:, np.newaxis]), axis=1)
         print("training regression...")
-        reg = RegMdn(dim_input=2).fit(xzs_train, y,num_epoch=5)
+        reg = RegMdn(dim_input=2,n_mdn_layer_node=20).fit(xzs_train, y,num_epoch=5)
 
         print("training density...")
-        density = RegMdn(dim_input=1)
+        density = RegMdn(dim_input=1,n_mdn_layer_node=20)
         density.fit(groupby[:,np.newaxis], x, num_epoch=5, b_show_plot=False, num_gaussians=5)
 
         # density = DBEstDensity(config=self.config).fit(x)
@@ -114,13 +114,3 @@ class KdeModelTrainer:
 
         return self.kde_model_wrapper
 
-        # sample_grouped = df.groupby(by=self.groupby_attribute)
-        # for name, group in sample_grouped:
-        #     print("training " + name)
-        #     simple_model_wrapper = SimpleModelTrainer(self.mdl, self.tbl, self.xheader, self.yheader,
-        #                                               self.n_total_point[name], self.n_sample_point[name],
-        #                                               groupby_attribute=self.groupby_attribute, groupby_value=name,
-        #                                               config=self.config).fit_from_df(group)
-        #     self.groupby_model_wrapper.add_simple_model(simple_model_wrapper)
-        # # print(self.groupby_model_wrapper)
-        # return self.groupby_model_wrapper

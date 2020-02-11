@@ -3,6 +3,7 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
+
 import sys
 import pickle
 
@@ -16,7 +17,8 @@ from dbestclient.ml.density import DBEstDensity
 from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name, GroupByModelWrapper, KdeModelWrapper
 from dbestclient.catalog.catalog import DBEstModelCatalog
-from dbestclient.tools.dftools import convert_df_to_yx, get_group_count_from_df, get_group_count_from_file
+from dbestclient.tools.dftools import convert_df_to_yx, get_group_count_from_df, get_group_count_from_table, \
+    get_group_count_from_summary_file
 import numpy as np
 from datetime import datetime
 import os
@@ -167,7 +169,7 @@ class SqlExecutor:
                     if self.config['reg_type'] == "qreg":
                         xys = sampler.getyx(yheader, xheader)
                         # print(xys[groupby_attribute])
-                        n_total_point = get_group_count_from_file(
+                        n_total_point = get_group_count_from_table(
                             original_data_file, groupby_attribute, sep=self.config['csv_split_char'],headers=self.table_header)
                         # print(xys)
                         n_sample_point = get_group_count_from_df(
@@ -184,12 +186,10 @@ class SqlExecutor:
                         xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
                         xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
 
-                        # sys.exit(0)
-
-                        # print(xys[groupby_attribute])
-                        n_total_point = get_group_count_from_file(
-                            original_data_file, groupby_attribute, sep=self.config['csv_split_char'],
-                            headers=self.table_header)
+                        # n_total_point = get_group_count_from_table(
+                        #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
+                        #     headers=self.table_header)
+                        n_total_point = get_group_count_from_summary_file(self.config['warehousedir'] + "/num_of_points.txt",sep=',')
                         # print(xys)
                         n_sample_point = {} #get_group_count_from_df(
                             #xys, groupby_attribute)

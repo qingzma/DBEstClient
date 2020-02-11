@@ -22,6 +22,15 @@ def get_group_count_from_df(df, group_attr,convert_to_str=True):
 
     return counts
 
-def get_group_count_from_file(file, group_attr,sep=',', headers=None):
+def get_group_count_from_table(file, group_attr,sep=',', headers=None):
     df = pd.read_csv(file,sep=sep, dtype={group_attr: object}, keep_default_na=False,header=None, names=headers)
     return get_group_count_from_df(df,group_attr,convert_to_str=False)
+
+def get_group_count_from_summary_file(file, sep=','):
+    counts={}
+    with open(file, 'r') as f:
+        for line in f:
+            splits = line.split(sep)
+            counts[str(int(splits[0]))]=int(splits[1])
+    return counts
+

@@ -73,7 +73,7 @@ class MdnQueryEngine:
         start = datetime.now()
 
         def f_pRx(*args):
-            return self.kde.kde_predict([[groupby_value]], args[0], b_plot=False) \
+            return self.kde.kde_predict([[groupby_value]], args[0], b_plot=True) \
                    * self.reg.predict(np.array([[args[0],groupby_value]]))[0]
                    # * self.reg.predict(np.array(args))
 
