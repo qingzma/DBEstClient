@@ -141,8 +141,8 @@ class KdeModelWrapper:
 
     def init_pickle_file_name(self):
         self.pickle_file_name = self.mdl
-        if self.groupby_attribute is not None:
-            self.pickle_file_name += "_groupby_" + self.groupby_attribute
+        # if self.groupby_attribute is not None:
+        #     self.pickle_file_name += "_groupby_" + self.groupby_attribute
         self.pickle_file_name += ".pkl"
         return self.pickle_file_name
 

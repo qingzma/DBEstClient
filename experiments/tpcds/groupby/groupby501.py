@@ -40,10 +40,10 @@ def run():
 def build_models(sqlExecutor):
     # 10k
     sqlExecutor.execute(
-        "create table ss1t_1m(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000")
+        "create table ss1t_1m_40node(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000")
 
 def query(sqlExecutor):
-    sqlExecutor.execute("select count(ss_sales_price)  from ss1t_1m where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk")
+    sqlExecutor.execute("select count(ss_sales_price)  from ss1t_1m_40node where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk")
 
 if __name__=="__main__":
     run()

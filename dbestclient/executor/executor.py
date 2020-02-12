@@ -130,6 +130,7 @@ class SqlExecutor:
                             "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
                         return
                 print("Start creating model "+mdl)
+                time1= datetime.now()
 
                 if self.save_sample:
                     sampler.make_sample(
@@ -201,6 +202,11 @@ class SqlExecutor:
                         kdeModelWrapper.serialize2warehouse(
                             self.config['warehousedir'])
                         self.model_catalog.add_model_wrapper(kdeModelWrapper)
+                time2 = datetime.now()
+                t = (time2-time1).seconds
+                if self.config['verbose']:
+                    print("time cost: " + str(t))
+                print("------------------------")
 
             else:
                 # DML, provide the prediction using models

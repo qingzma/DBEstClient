@@ -115,7 +115,7 @@ class RegMdn():
     """ This class implements the regression using mixture density network.
     """
 
-    def __init__(self, dim_input, b_store_training_data=True, n_mdn_layer_node=20):
+    def __init__(self, dim_input, b_store_training_data=False, n_mdn_layer_node=20):
         if b_store_training_data:
             self.xs = None   # query range
             self.ys = None   # aggregate value
@@ -238,7 +238,7 @@ class RegMdn():
                 optimizer.step()
         return self
 
-    def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5, b_show_density_plot=True):
+    def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5, b_show_density_plot=False):
         """ fit a regression y = R(x)
 
         Args:
@@ -315,7 +315,7 @@ class RegMdn():
 
             # xxs, yys = regMdn.kde_predict([[1]], 2451119, b_plot=True)
             xxs = [self.denormalize(xi, self.meany, self.widthy) for xi in xxs]
-            print(xxs, yys)
+            # print(xxs, yys)
             # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
             plt.plot(xxs, yys)
             plt.show()
@@ -474,6 +474,8 @@ class RegMdn():
             # xzs_data = torch.from_numpy(xzs)
 
             pi, sigma, mu = self.model(tensor_xs)
+            # print(tensor_xs)
+            # print(pi, sigma, mu)
             self.last_mu = mu.detach().numpy().reshape(len(xs), -1)[0]
             self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
             self.last_sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
@@ -484,6 +486,7 @@ class RegMdn():
         #     plt.plot(xs, ys)
         #     plt.show()
         #     sys.exit(0)
+
         result = gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
         result = result / self.widthy *2
         # print("kde predict for "+str(y)+": "+ str(result))
