@@ -23,6 +23,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
+from sklearn.preprocessing import OneHotEncoder
 
 
 
@@ -115,7 +116,7 @@ class RegMdn():
     """ This class implements the regression using mixture density network.
     """
 
-    def __init__(self, dim_input, b_store_training_data=False, n_mdn_layer_node=20):
+    def __init__(self, dim_input, b_store_training_data=True, n_mdn_layer_node=20):
         if b_store_training_data:
             self.xs = None   # query range
             self.ys = None   # aggregate value
@@ -136,6 +137,7 @@ class RegMdn():
         self.last_pi = None
         self.last_mu = None
         self.last_sigma = None
+        self.enc = None
 
     def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=5):
         """ fit a regression y= R(x)"""
@@ -172,21 +174,28 @@ class RegMdn():
             ys ([float]): aggregate attribute
             b_show_plot (bool, optional): whether to show the plot. Defaults to True.
         """
+        self.enc = OneHotEncoder(handle_unknown='ignore')
+        zs = zs[:,np.newaxis]
+        print(zs)
+        zs = self.enc.fit_transform(zs).toarray()
+        print(zs)
+        raise Exception()
+
         if b_normalize:
             self.meanx = np.mean(xs)
             self.widthx = np.max(xs)-np.min(xs)
             self.meany = np.mean(ys)
             self.widthy = np.max(ys)-np.min(ys)
-            self.meanz = np.mean(zs)
-            self.widthz = np.max(zs)-np.min(zs)
+            # self.meanz = np.mean(zs)
+            # self.widthz = np.max(zs)-np.min(zs)
 
             # s= [(i-meanx)/1 for i in x]
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
             ys = np.array([self.normalize(i, self.meany, self.widthy)
                            for i in ys])
-            zs = np.array([self.normalize(i, self.meanz, self.widthz)
-                           for i in zs])
+            # zs = np.array([self.normalize(i, self.meanz, self.widthz)
+            #                for i in zs])
             self.is_normalized = True
 
         if self.b_store_training_data:
@@ -693,30 +702,61 @@ def test_gmm():
 def test_ss_3d():
     import pandas as pd
     file = "/data/tpcds/1G/ss_10k.csv"
-    file = "/data/tpcds/1t/ss_1m.csv"
-    df = pd.read_csv(file,sep="|")
+    # file = "/data/tpcds/1t/ss_1m.csv"
+    df = pd.read_csv(file,sep="|",usecols=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
     # df = df.dropna(subset=['ss_list_price', 'ss_sales_price', 'ss_store_sk'])
     df = df.dropna(subset=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
-    df_train = df.head(5000)
-    df_test = df.head(5000)
+    # one_hot = pd.get_dummies(df["ss_store_sk"])
+    # df = df.drop("ss_store_sk",axis=1)
+    # df = df.join(one_hot)
+    # print(df)
+    # row_one_hot = pd.DataFrame({'ss_store_sk':"1.0"})#
+    # row_one_hot['ss_store_sk']=row_one_hot['ss_store_sk'].astype('category',categories=["1.0","2.0","4.0","7.0","8.0","10.0"])
+    # print(pd.get_dummies(row_one_hot))
+    # row = pd.DataFrame({'ss_sales_price':99.9})
+    # raise Exception()
+
+
+
+    df_train = df#.head(5000)
+    df_test = df#.head(5000)
     x_train = df_train.ss_sold_date_sk.values
     z_train = df_train.ss_store_sk.values
+    # print(x_train)
+    # print(z_train)
+    # z_train=z_train[:,np.newaxis]
+    # print(z_train)
+    # enc = OneHotEncoder(handle_unknown='ignore')
+    # z_train = enc.fit_transform(z_train).toarray()
+    # print(z_train)
+
+
+
+    # raise Exception()
     y_train = df_train.ss_sales_price.values
     x_test = df_test.ss_sold_date_sk.values
     y_test = df_test.ss_sales_price.values
     z_test = df_test.ss_store_sk.values
+    # z_test = z_test[:, np.newaxis]
+    # z_test = enc.transform(z_test).toarray()
+
     xzs_train = np.concatenate(
         (x_train[:, np.newaxis], z_train[:, np.newaxis]), axis=1)
     xzs_test = np.concatenate(
         (x_test[:, np.newaxis], z_test[:, np.newaxis]), axis=1)
     regMdn = RegMdn(dim_input=2,n_mdn_layer_node=20)
-    regMdn.fit(xzs_train, y_train, num_epoch=100, b_show_plot=False)
+    regMdn.fit(xzs_train, y_train, num_epoch=10, b_show_plot=False)
     print(regMdn.predict(xzs_test, b_show_plot=True))
-    # regMdn.predict(xzs_train, b_show_plot=True)
+
+
+def test_onehot():
+    enc = OneHotEncoder(handle_unknown='ignore')
+    X = [['Male', 1], ['Female', 3], ['Female', 2]]
+    enc.fit(X)
 
 if __name__ == "__main__":
     # test_pm25_2d_density()
     # test_pm25_2d_density()
     # test_pm25_3d()
     # test_ss_3d()
-    test_ss_2d_density()
+    test_ss_3d()
