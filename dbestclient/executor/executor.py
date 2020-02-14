@@ -7,7 +7,7 @@
 import sys
 import pickle
 
-from dbestclient.executor.mdnqueryengine import MdnQueryEngine
+from dbestclient.executor.queryenginemdn import MdnQueryEngine
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer, KdeModelTrainer
 from dbestclient.parser.parser import DBEstParser
