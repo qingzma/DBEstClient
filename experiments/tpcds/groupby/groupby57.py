@@ -5,7 +5,7 @@
 # Q.Ma.2@warwick.ac.uk
 #
 #
-# hive -e "select ss_store_sk, count(*) from store_sales_40g group by ss_store_sk;" > ~/group57counts.csv
+# hive -e "select ss_store_sk, count(*) from store_sales_40g where ss_sold_date_sk between 2451119  and 2451483 group by ss_store_sk;" > ~/group57counts.csv
 #
 #
 from dbestclient.executor.executor import SqlExecutor

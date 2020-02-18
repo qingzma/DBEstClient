@@ -43,11 +43,11 @@ class MdnQueryEngine:
 
         def f_pRx(*args):
             # print(self.cregression.predict(x))
-            return self.kde.kde_predict([[groupby_value]], args[0], b_plot=False) \
+            return self.kde.predict([[groupby_value]], args[0], b_plot=False) \
                    * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
 
         def f_p(*args):
-            return self.kde.kde_predict([[groupby_value]], args[0], b_plot=False)
+            return self.kde.predict([[groupby_value]], args[0], b_plot=False)
 
         a = integrate.quad(f_pRx, x_min, x_max,
                            epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
@@ -73,7 +73,7 @@ class MdnQueryEngine:
         start = datetime.now()
 
         def f_pRx(*args):
-            return self.kde.kde_predict([[groupby_value]], args[0], b_plot=True) \
+            return self.kde.predict([[groupby_value]], args[0], b_plot=True) \
                    * self.reg.predict(np.array([[args[0],groupby_value]]))[0]
                    # * self.reg.predict(np.array(args))
 
@@ -95,7 +95,7 @@ class MdnQueryEngine:
         start = datetime.now()
 
         def f_p(*args):
-            return self.kde.kde_predict([[groupby_value]], args[0], b_plot=False)
+            return self.kde.predict([[groupby_value]], args[0], b_plot=False)
             # return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
         result = integrate.quad(f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]

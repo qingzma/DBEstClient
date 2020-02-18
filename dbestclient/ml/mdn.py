@@ -25,9 +25,7 @@ import numpy as np
 import scipy.stats as stats
 from sklearn.preprocessing import OneHotEncoder
 
-
-
-ONEOVERSQRT2PI = 1.0 / math.sqrt(2*math.pi)
+ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
 
 class MDN(nn.Module):
@@ -58,8 +56,8 @@ class MDN(nn.Module):
             nn.Linear(in_features, num_gaussians),
             nn.Softmax(dim=1)
         )
-        self.sigma = nn.Linear(in_features, out_features*num_gaussians)
-        self.mu = nn.Linear(in_features, out_features*num_gaussians)
+        self.sigma = nn.Linear(in_features, out_features * num_gaussians)
+        self.mu = nn.Linear(in_features, out_features * num_gaussians)
 
     def forward(self, minibatch):
         pi = self.pi(minibatch)
@@ -86,7 +84,7 @@ def gaussian_probability(sigma, mu, data):
             of the distribution in the corresponding sigma/mu index.
     """
     data = data.unsqueeze(1).expand_as(sigma)
-    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((data - mu) / sigma)**2) / sigma
+    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((data - mu) / sigma) ** 2) / sigma
     return torch.prod(ret, 2)
 
 
@@ -116,11 +114,11 @@ class RegMdn():
     """ This class implements the regression using mixture density network.
     """
 
-    def __init__(self, dim_input, b_store_training_data=True, n_mdn_layer_node=20):
+    def __init__(self, dim_input, b_store_training_data=True, n_mdn_layer_node=20, b_one_hot=True):
         if b_store_training_data:
-            self.xs = None   # query range
-            self.ys = None   # aggregate value
-            self.zs = None   # group by balue
+            self.xs = None  # query range
+            self.ys = None  # aggregate value
+            self.zs = None  # group by balue
         self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
@@ -132,27 +130,27 @@ class RegMdn():
         self.is_normalized = False
         self.dim_input = dim_input
         self.is_training_data_denormalized = False
-        self.n_mdn_layer_node=n_mdn_layer_node
+        self.n_mdn_layer_node = n_mdn_layer_node
         self.last_xs = None
         self.last_pi = None
         self.last_mu = None
         self.last_sigma = None
         self.enc = None
+        self.b_one_hot = b_one_hot
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400,num_gaussians=5):
+    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400, num_gaussians=5):
         """ fit a regression y= R(x)"""
-        if len(xs.shape) !=2:
+        if len(xs.shape) != 2:
             raise Exception("xs should be 2-d, but got unexpected shape.")
         if self.dim_input == 1:
             return self.fit2d(xs, ys, b_show_reg_plot=b_show_plot,
-                              b_normalize=b_normalize, num_epoch=num_epoch,num_gaussians=num_gaussians)
+                              b_normalize=b_normalize, num_epoch=num_epoch, num_gaussians=num_gaussians)
         elif self.dim_input == 2:
             return self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
-                              b_normalize=b_normalize, num_epoch=num_epoch,num_gaussians=num_gaussians)
+                              b_normalize=b_normalize, num_epoch=num_epoch, num_gaussians=num_gaussians)
         else:
             print("dimension mismatch")
             sys.exit(0)
-
 
     def predict(self, xs, b_show_plot=False):
         """ make predictions"""
@@ -165,7 +163,7 @@ class RegMdn():
             print("dimension mismatch")
             sys.exit(0)
 
-    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5):
+    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5):
         """ fit a regression y = R(x,z)
 
         Args:
@@ -174,18 +172,18 @@ class RegMdn():
             ys ([float]): aggregate attribute
             b_show_plot (bool, optional): whether to show the plot. Defaults to True.
         """
-        self.enc = OneHotEncoder(handle_unknown='ignore')
-        zs = zs[:,np.newaxis]
-        print(zs)
-        zs = self.enc.fit_transform(zs).toarray()
-        print(zs)
-        raise Exception()
+        if self.b_one_hot:
+            self.enc = OneHotEncoder(handle_unknown='ignore')
+            zs_onehot = zs[:, np.newaxis]
+            # print(zs_onehot)
+            zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
+            # print(zs_onehot)
 
         if b_normalize:
-            self.meanx = np.mean(xs)
-            self.widthx = np.max(xs)-np.min(xs)
-            self.meany = np.mean(ys)
-            self.widthy = np.max(ys)-np.min(ys)
+            self.meanx = (np.max(xs) + np.min(xs)) / 2
+            self.widthx = np.max(xs) - np.min(xs)
+            self.meany = (np.max(ys) + np.min(ys)) / 2
+            self.widthy = np.max(ys) - np.min(ys)
             # self.meanz = np.mean(zs)
             # self.widthz = np.max(zs)-np.min(zs)
 
@@ -211,13 +209,19 @@ class RegMdn():
             ax.set_ylabel('group by attribute')
             ax.set_zlabel('aggregate attribute')
             plt.show()
-
-        xzs = [[xs[i], zs[i]] for i in range(len(xs))]
-        # xy =x[:,np.newaxis]
+        # print(xs)
+        # print(zs_onehot)
+        if self.b_one_hot:
+            xs_onehot = xs[:, np.newaxis]
+            xzs_onehot = np.concatenate([xs_onehot, zs_onehot], axis=1).tolist()
+            tensor_xzs = torch.stack([torch.Tensor(i)
+                                      for i in xzs_onehot])  # transform to torch tensors
+            # print(tensor_xzs)
+        else:
+            xzs = [[xs[i], zs[i]] for i in range(len(xs))]
+            tensor_xzs = torch.stack([torch.Tensor(i)
+                                      for i in xzs])  # transform to torch tensors
         ys = ys[:, np.newaxis]
-        tensor_xzs = torch.stack([torch.Tensor(i)
-                                  for i in xzs])  # transform to torch tensors
-
         tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
 
         my_dataset = torch.utils.data.TensorDataset(
@@ -226,9 +230,10 @@ class RegMdn():
         my_dataloader = torch.utils.data.DataLoader(
             my_dataset, batch_size=1000, shuffle=False)
 
+        input_dim = len(self.enc.categories_[0]) + 1
         # initialize the model
         self.model = nn.Sequential(
-            nn.Linear(self.dim_input ,self.n_mdn_layer_node),
+            nn.Linear(input_dim, self.n_mdn_layer_node),  # self.dim_input
             nn.Tanh(),
             nn.Dropout(0.01),
             MDN(self.n_mdn_layer_node, 1, num_gaussians)
@@ -247,7 +252,8 @@ class RegMdn():
                 optimizer.step()
         return self
 
-    def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200,num_gaussians=5, b_show_density_plot=False):
+    def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5,
+              b_show_density_plot=False):
         """ fit a regression y = R(x)
 
         Args:
@@ -257,10 +263,10 @@ class RegMdn():
         """
 
         if b_normalize:
-            self.meanx = np.mean(xs)
-            self.widthx = np.max(xs)-np.min(xs)
-            self.meany = np.mean(ys)
-            self.widthy = np.max(ys)-np.min(ys)
+            self.meanx = (np.max(xs) + np.min(xs)) / 2
+            self.widthx = np.max(xs) - np.min(xs)
+            self.meany = (np.max(ys) + np.min(ys)) / 2
+            self.widthy = np.max(ys) - np.min(ys)
 
             # s= [(i-meanx)/1 for i in x]
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
@@ -282,7 +288,6 @@ class RegMdn():
 
             ax.set_ylabel('aggregate attribute')
             plt.show()
-
 
         # xzs = [[xs[i], zs[i]] for i in range(len(xs))]
         # xs = xs[:, np.newaxis]
@@ -350,21 +355,29 @@ class RegMdn():
         if self.is_normalized:
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
-            zs = np.array([self.normalize(i, self.meanz, self.widthz)
-                           for i in zs])
-        xzs = np.array([[xs[i], zs[i]] for i in range(len(xs))])
+            # zs = np.array([self.normalize(i, self.meanz, self.widthz)
+            #                for i in zs])
+
+        zs_onehot = zs[:, np.newaxis]
+        # print(zs_onehot)
+        zs_onehot = self.enc.transform(zs_onehot).toarray()
+        # print(zs_onehot)
+
+        xs_onehot = xs[:, np.newaxis]
+        xzs_onehot = np.concatenate([xs_onehot, zs_onehot], axis=1).tolist()
+        # xzs = np.array([[xs[i], zs[i]] for i in range(len(xs))])
+        # print(xzs_onehot)
         tensor_xzs = torch.stack([torch.Tensor(i)
-                                  for i in xzs])
+                                  for i in xzs_onehot])
         # xzs_data = torch.from_numpy(xzs)
 
         pi, sigma, mu = self.model(tensor_xzs)
         # print("mu,", mu)
         # print("sigma", sigma)
 
-
         if b_generate_samples:
             samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
-            for i in range(num_points-1):
+            for i in range(num_points - 1):
                 samples = np.vstack(
                     (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
             samples = np.mean(samples, axis=0)
@@ -381,8 +394,8 @@ class RegMdn():
                 i, self.meany, self.widthy) for i in samples]
             xs = np.array([self.denormalize(i, self.meanx, self.widthx)
                            for i in xs])
-            zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                           for i in zs])
+            # zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+            #                for i in zs])
         # print(x_test)
         if b_show_plot:
 
@@ -391,8 +404,8 @@ class RegMdn():
                                     for i in self.xs])
                 self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
                                     for i in self.ys])
-                self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                                    for i in self.zs])
+                # self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+                #                     for i in self.zs])
                 self.is_training_data_denormalized = True
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
@@ -417,7 +430,7 @@ class RegMdn():
         pi, sigma, mu = self.model(tensor_xs)
         if b_generate_samples:
             samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
-            for i in range(num_points-1):
+            for i in range(num_points - 1):
                 samples = np.vstack(
                     (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
             samples = np.mean(samples, axis=0)
@@ -428,13 +441,13 @@ class RegMdn():
             # print("mu", mu1)
             # print("weight", pi1)
 
-            mu = mu.detach().numpy().reshape(len(xs),-1)
-            pi = pi.detach().numpy()#.reshape(-1,2)
+            mu = mu.detach().numpy().reshape(len(xs), -1)
+            pi = pi.detach().numpy()  # .reshape(-1,2)
             # print("mu",mu)
             # print("weight",pi)
             # xymul=
             # print(xymul)
-            samples = np.sum(np.multiply(pi,mu),axis=1)
+            samples = np.sum(np.multiply(pi, mu), axis=1)
 
         # print("small",samples)
 
@@ -455,7 +468,7 @@ class RegMdn():
                 self.is_training_data_denormalized = True
             fig = plt.figure()
             ax1 = fig.add_subplot(111)
-            ax1.scatter(self.xs,  self.ys)
+            ax1.scatter(self.xs, self.ys)
             ax1.scatter(xs, samples)
             ax1.set_xlabel('query range attribute')
             ax1.set_ylabel('aggregate attribute')
@@ -476,7 +489,6 @@ class RegMdn():
             self.last_xs = xs
             # print("y is " + str(y)  )
 
-
             # xs = xs[:, np.newaxis]
             tensor_xs = torch.stack([torch.Tensor(i)
                                      for i in xs])
@@ -487,7 +499,7 @@ class RegMdn():
             # print(pi, sigma, mu)
             self.last_mu = mu.detach().numpy().reshape(len(xs), -1)[0]
             self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
-            self.last_sigma = sigma.detach().numpy().reshape(len(sigma),-1)[0]
+            self.last_sigma = sigma.detach().numpy().reshape(len(sigma), -1)[0]
         # sigmas = [sig**0.5 for sig in sigma]
         # if b_plot:
         #     xs,ys= gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
@@ -496,16 +508,155 @@ class RegMdn():
         #     plt.show()
         #     sys.exit(0)
 
-        result = gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
-        result = result / self.widthy *2
+        result = gm(self.last_pi, self.last_mu, self.last_sigma, y, b_plot=b_plot)
+        result = result / self.widthy * 2
         # print("kde predict for "+str(y)+": "+ str(result))
         return result
 
     def normalize(self, x, mean, width):
-        return (x-mean)/width*2
+        return (x - mean) / width * 2
 
     def denormalize(self, x, mean, width):
-        return 0.5*width*x + mean
+        return 0.5 * width * x + mean
+
+
+class KdeMdn:
+    """This is the implementation of density estimation using MDN"""
+
+    def __init__(self, b_store_training_data=False, b_one_hot=True):
+        if b_store_training_data:
+            self.xs = None  # query range
+            self.zs = None  # group by balue
+        self.b_store_training_data = b_store_training_data
+        self.meanx = None
+        self.widthx = None
+        self.last_zs = None
+        self.last_pi = None
+        self.last_mu = None
+        self.last_sigma = None
+        self.enc = None
+        self.is_normalized = False
+        self.b_one_hot = b_one_hot
+
+    def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, b_show_plot=False):
+        """
+        Fit the density estimation model.
+        :param zs: group by attribute
+        :param xs: range attribute
+        """
+        if b_show_plot:
+            plt.scatter(zs, xs)
+            plt.xlabel('group by attribute')
+            plt.ylabel("range prediate")
+            plt.show()
+
+        if self.b_store_training_data:
+            self.zs = zs
+            self.xs = xs
+
+        if b_normalize:
+            self.meanx = (np.max(xs) + np.min(xs)) / 2
+            self.widthx = np.max(xs) - np.min(xs)
+
+            xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                           for i in xs])
+            self.is_normalized = True
+            if not self.b_one_hot:
+                self.meanz = (np.max(zs) + np.min(zs)) / 2
+                self.widthz = np.max(zs) - np.min(zs)
+
+                zs = np.array([self.normalize(i, self.meanz, self.widthz)
+                               for i in zs])
+
+        if self.b_one_hot:
+            self.enc = OneHotEncoder(handle_unknown='ignore')
+            # zs_onehot = zs#[:, np.newaxis]
+            # print(zs_onehot)
+            zs_onehot = self.enc.fit_transform(zs).toarray()
+
+            input_dim = len(self.enc.categories_[0])
+
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_onehot])  # transform to torch tensors
+        else:
+            input_dim = 1
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs])
+        xs = xs[:, np.newaxis]
+        tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
+
+        my_dataset = torch.utils.data.TensorDataset(
+            tensor_zs, tensor_xs)  # create your datset
+        # , num_workers=8) # create your dataloader
+        my_dataloader = torch.utils.data.DataLoader(
+            my_dataset, batch_size=1000, shuffle=False)
+
+        # initialize the model
+        self.model = nn.Sequential(
+            nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
+            nn.Tanh(),
+            nn.Dropout(0.01),
+            MDN(n_mdn_layer_node, 1, num_gaussians)
+        )
+
+        optimizer = optim.Adam(self.model.parameters())
+        for epoch in range(num_epoch):
+            if epoch % 1 == 0:
+                print("< Epoch {}".format(epoch))
+            # train the model
+            for minibatch, labels in my_dataloader:
+                self.model.zero_grad()
+                pi, sigma, mu = self.model(minibatch)
+                loss = mdn_loss(pi, sigma, mu, labels)
+                loss.backward()
+                optimizer.step()
+        return self
+
+    def predict(self, zs, xs, b_plot=False):
+        if self.is_normalized:
+            xs = self.normalize(xs, self.meanx, self.widthx)
+
+            # y = self.normalize(y, self.meany, self.widthy)
+            # print("x is normalized to " + str(xs))
+
+        if zs != self.last_zs:
+            self.last_zs = zs
+            if self.b_one_hot:
+                zs_onehot = self.enc.transform(zs).toarray()
+                # print(zs_onehot)
+                tensor_zs = torch.stack([torch.Tensor(i)
+                                         for i in zs_onehot])
+            else:
+                tensor_zs = torch.stack([torch.Tensor(i)
+                                         for i in zs])
+
+            pi, sigma, mu = self.model(tensor_zs)
+            # print(tensor_xs)
+            # print(pi, sigma, mu)
+            self.last_mu = mu.detach().numpy().reshape(len(zs), -1)[0]
+            self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
+            self.last_sigma = sigma.detach().numpy().reshape(len(sigma), -1)[0]
+        # sigmas = [sig**0.5 for sig in sigma]
+        # if b_plot:
+        #     xs,ys= gm(self.last_pi,self.last_mu,self.last_sigma,zs, b_plot=b_plot)
+        #     print("printing the mdn density estimation...")
+        #     plt.plot(xs, ys)
+        #     plt.show()
+        #     sys.exit(0)
+
+        if not b_plot:
+            result = gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot)
+            result = result / self.widthx * 2  # scale up the probability, due to normalization of the x axis.
+            # print("kde predict for "+str(y)+": "+ str(result))
+            return result
+        else:
+            return gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot)
+
+    def normalize(self, x, mean, width):
+        return (x - mean) / width * 2
+
+    def denormalize(self, x, mean, width):
+        return 0.5 * width * x + mean
 
 
 def test1():
@@ -513,7 +664,7 @@ def test1():
     # z = np.random.uniform(low=1, high=10, size=(1000,))
     z = np.random.randint(0, 7, size=(1000,))
     noise = np.random.normal(1, 5, 1000)
-    y = x**2 - z**2 + noise
+    y = x ** 2 - z ** 2 + noise
     print(min(x), max(x))
     print(min(y), max(y))
 
@@ -521,7 +672,7 @@ def test1():
 
     regMdn = RegMdn(dim_input=2)
     # regMdn.fit(xz, y, num_epoch=200, b_show_plot=False)
-    regMdn.fit(xz,  y, num_epoch=400, b_show_plot=False)
+    regMdn.fit(xz, y, num_epoch=400, b_show_plot=False)
 
     x_test = np.random.uniform(low=1, high=10, size=(500,))
     z_test = np.random.randint(0, 7, size=(500,))
@@ -542,18 +693,18 @@ def test_pm25_2d():
     df = df.dropna(subset=['pm25', 'PRES'])
     df_train = df.head(1000)
     df_test = df.tail(1000)
-    pres_train = df_train.PRES.values[:,np.newaxis]
+    pres_train = df_train.PRES.values[:, np.newaxis]
     pm25_train = df_train.pm25.values
     pres_test = df_test.PRES.values
     pm25_test = df_test.pm25.values
 
     regMdn = RegMdn(dim_input=1)
     regMdn.fit(pres_train, pm25_train, num_epoch=100, b_show_plot=False)
-    print(regMdn.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]], b_show_plot=True))
-    print(regMdn.predict([[1000.5], [1005.5], [1010.5], [1015.5], [1020.5], [1025.5], [1030.5], [1035.5]], b_show_plot=True))
-    xxs = np.linspace(np.min(pres_train),np.max(pres_train),100)
+    print(regMdn.predict([[1000], [1005], [1010], [1015], [1020], [1025], [1030], [1035]], b_show_plot=True))
+    print(regMdn.predict([[1000.5], [1005.5], [1010.5], [1015.5], [1020.5], [1025.5], [1030.5], [1035.5]],
+                         b_show_plot=True))
+    xxs = np.linspace(np.min(pres_train), np.max(pres_train), 100)
     # print(regMdn.predict(xxs,b_show_plot=True))
-
 
 
 def test_pm25_3d():
@@ -579,59 +730,70 @@ def test_pm25_3d():
     regMdn.predict(xzs_train, b_show_plot=True)
 
 
-
-
 def test_pm25_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     # file = "/Users/scott/projects/pm25.csv"
     df = pd.read_csv(file)
-    df = df.dropna(subset=['PRES','pm25'])
-    df_train = df.head(1000)
-    df_test = df.tail(1000)
-    pres_train = df_train.PRES.values[:,np.newaxis]
-    pm25_train = df_train.pm25.values #df_train.pm25.values
+    df = df.dropna(subset=['PRES', 'pm25'])
+    df_train = df  # .head(2000)
+    df_test = df  # .tail(1000)
+    pres_train = df_train.PRES.values[:, np.newaxis]
+    pm25_train = df_train.pm25.values  # df_train.pm25.values
     pres_test = df_test.PRES.values
-    temp_test = df_test.PRES.values  #df_test.pm25.values
+    temp_test = df_test.PRES.values  # df_test.pm25.values
 
-    regMdn = RegMdn(dim_input=1)
-    regMdn.fit(pres_train, pm25_train, num_epoch=400, b_show_plot=False,num_gaussians=5)
+    # data = df_train.groupby(["PRES"]).get_group(1010.0)["pm25"].values
+    # plt.hist(data,bins=50)
+    # plt.show()
+    # raise Exception()
+
+    regMdn = KdeMdn(b_one_hot=True)
+    regMdn.fit(pres_train, pm25_train, num_epoch=30, num_gaussians=10, b_show_plot=False)
     # regMdn.predict(pres_train, b_show_plot=True)
     # regMdn.predict(pres_test, b_show_plot=True)
-    print(regMdn.kde_predict([[1030]], 200, b_plot=False))
-    xxs, yys = regMdn.kde_predict([[1030]],200,b_plot=True)
-    xxs, yys = regMdn.kde_predict([[1030]], 200, b_plot=True)
-    xxs = [regMdn.denormalize(xi, regMdn.meany,regMdn.widthy) for xi in xxs]
-    # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
+    print(regMdn.predict([[1010]], 200, b_plot=False))
+    # xxs, yys = regMdn.predict([[1030]], 200, b_plot=True)
+    xxs, yys = regMdn.predict([[1010]], 200, b_plot=True)
+    xxs = [regMdn.denormalize(xi, regMdn.meanx, regMdn.widthx) for xi in xxs]
+    yys = [yi / regMdn.widthx * 2 for yi in yys]
+
     plt.plot(xxs, yys)
     plt.show()
+
 
 def test_ss_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     file = "/data/tpcds/40G/ss_600k_headers.csv"
-    df = pd.read_csv(file,sep='|')
-    df = df.dropna(subset=['ss_sold_date_sk','ss_store_sk','ss_sales_price'])
-    df_train = df.head(1000)
-    df_test = df.head(1000)
-    g_train = df_train.ss_store_sk.values[:,np.newaxis]
-    x_train = df_train.ss_sold_date_sk.values #df_train.pm25.values
+    df = pd.read_csv(file, sep='|')
+    df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
+    df_train = df  # .head(1000)
+    df_test = df  # .head(1000)
+    g_train = df_train.ss_store_sk.values[:, np.newaxis]
+    x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
     g_test = df_test.ss_store_sk.values
     # temp_test = df_test.PRES.values  #df_test.pm25.values
 
-    regMdn = RegMdn(dim_input=1,b_store_training_data=True)
-    regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False,num_gaussians=5)
-    # regMdn.predict(pres_train, b_show_plot=True)
-    # regMdn.predict(pres_test, b_show_plot=True)
-    print(regMdn.kde_predict([[1]], 2451119, b_plot=False))
-    xxs, yys = regMdn.kde_predict([[4]],2451119,b_plot=True)
-
-    # xxs, yys = regMdn.kde_predict([[1]], 2451119, b_plot=True)
-    xxs = [regMdn.denormalize(xi, regMdn.meany,regMdn.widthy) for xi in xxs]
-    print(xxs, yys)
-    # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
-    plt.plot(xxs, yys)
+    data = df_train.groupby(["ss_store_sk"]).get_group(1)["ss_sold_date_sk"].values
+    plt.hist(data, bins=100)
     plt.show()
+    raise Exception()
+
+    kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
+    kdeMdn.fit(g_train, x_train, num_epoch=20, num_gaussians=30)
+
+    # regMdn = RegMdn(dim_input=1, b_store_training_data=True)
+    # regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False, num_gaussians=5)
+    #
+    # print(kdeMdn.predict([[1]], 2451119, b_plot=True))
+    xxs, p = kdeMdn.predict([[1]], 2451119, b_plot=True)
+    xxs = [kdeMdn.denormalize(xi, kdeMdn.meanx, kdeMdn.widthx) for xi in xxs]
+    print(xxs, p)
+    # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
+    plt.plot(xxs, p)
+    plt.show()
+
 
 # def test_pm25_3d_density():
 #     import pandas as pd
@@ -664,46 +826,49 @@ def test_gm():
     # print(x)
     # y = kde.predict(x)
 
-    kde.weights_=np.array([0.5,0.5])
-    kde.means_ = np.array([[1] ,[3]])
-    kde.covariances_= np.array([10,20])
+    kde.weights_ = np.array([0.5, 0.5])
+    kde.means_ = np.array([[1], [3]])
+    kde.covariances_ = np.array([10, 20])
 
-    x = np.array(np.linspace(-5,15,1000)).reshape(-1, 1)
+    x = np.array(np.linspace(-5, 15, 1000)).reshape(-1, 1)
     print(x)
     y = kde.score_samples(x)
-    y=np.exp(y)
+    y = np.exp(y)
     print(y)
 
-    plt.plot(x,y)
+    plt.plot(x, y)
     plt.show()
+
 
 def gm(weights, mus, vars, x, b_plot=False):
     if not b_plot:
         result = 0
         for index in range(len(weights)):
-            result +=stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
+            result += stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
         return result
     else:
-        xs = np.linspace(-1,1,1000)
-        ys = [gm(weights,mus,vars, xi, b_plot=False) for xi in xs]
+        xs = np.linspace(-1, 1, 1000)
+        ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
         return xs, ys
         # plt.plot(xs, ys)
         # plt.show()
 
+
 def test_gmm():
     weights = [0.5, 0.5]
-    mus = [0,10]
+    mus = [0, 10]
     vars = [4, 4]
     xs = np.array(np.linspace(-5, 15, 1000))
-    results = [gm(weights,mus,vars,x) for x in xs]
-    plt.plot(xs,results)
+    results = [gm(weights, mus, vars, x) for x in xs]
+    plt.plot(xs, results)
     plt.show()
+
 
 def test_ss_3d():
     import pandas as pd
     file = "/data/tpcds/1G/ss_10k.csv"
     # file = "/data/tpcds/1t/ss_1m.csv"
-    df = pd.read_csv(file,sep="|",usecols=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
+    df = pd.read_csv(file, sep="|", usecols=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
     # df = df.dropna(subset=['ss_list_price', 'ss_sales_price', 'ss_store_sk'])
     df = df.dropna(subset=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
     # one_hot = pd.get_dummies(df["ss_store_sk"])
@@ -716,10 +881,8 @@ def test_ss_3d():
     # row = pd.DataFrame({'ss_sales_price':99.9})
     # raise Exception()
 
-
-
-    df_train = df#.head(5000)
-    df_test = df#.head(5000)
+    df_train = df  # .head(5000)
+    df_test = df  # .head(5000)
     x_train = df_train.ss_sold_date_sk.values
     z_train = df_train.ss_store_sk.values
     # print(x_train)
@@ -729,8 +892,6 @@ def test_ss_3d():
     # enc = OneHotEncoder(handle_unknown='ignore')
     # z_train = enc.fit_transform(z_train).toarray()
     # print(z_train)
-
-
 
     # raise Exception()
     y_train = df_train.ss_sales_price.values
@@ -744,7 +905,7 @@ def test_ss_3d():
         (x_train[:, np.newaxis], z_train[:, np.newaxis]), axis=1)
     xzs_test = np.concatenate(
         (x_test[:, np.newaxis], z_test[:, np.newaxis]), axis=1)
-    regMdn = RegMdn(dim_input=2,n_mdn_layer_node=20)
+    regMdn = RegMdn(dim_input=2, n_mdn_layer_node=20)
     regMdn.fit(xzs_train, y_train, num_epoch=10, b_show_plot=False)
     print(regMdn.predict(xzs_test, b_show_plot=True))
 
@@ -754,9 +915,12 @@ def test_onehot():
     X = [['Male', 1], ['Female', 3], ['Female', 2]]
     enc.fit(X)
 
+
 if __name__ == "__main__":
     # test_pm25_2d_density()
-    # test_pm25_2d_density()
+    test_pm25_2d_density()
     # test_pm25_3d()
     # test_ss_3d()
-    test_ss_3d()
+    # test_ss_3d()
+    # test_ss_2d_density()
+    # test_gmm()

@@ -8,7 +8,7 @@ from dbestclient.ml.modelwraper import SimpleModelWrapper, GroupByModelWrapper, 
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.tools.dftools import convert_df_to_yx
 import numpy as np
-from dbestclient.ml.mdn import RegMdn
+from dbestclient.ml.mdn import RegMdn, KdeMdn
 import pandas as pd
 from datetime import  datetime
 
@@ -104,11 +104,12 @@ class KdeModelTrainer:
         xzs_train = np.concatenate(
             (x[:, np.newaxis], groupby[:, np.newaxis]), axis=1)
         print("training regression...")
-        reg = RegMdn(dim_input=2,n_mdn_layer_node=20).fit(xzs_train, y,num_epoch=3,num_gaussians=3)
+        reg = RegMdn(dim_input=2,n_mdn_layer_node=15).fit(xzs_train, y,num_epoch=3,num_gaussians=3)
 
         print("training density...")
-        density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-        density.fit(groupby[:,np.newaxis], x, num_epoch=5, b_show_plot=False, num_gaussians=10)
+        # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
+        density = KdeMdn(b_one_hot=True)
+        density.fit(groupby[:,np.newaxis], x, num_epoch=20, num_gaussians=20,n_mdn_layer_node=20)
 
         # density = DBEstDensity(config=self.config).fit(x)
         self.kde_model_wrapper.load_model(density, reg)
