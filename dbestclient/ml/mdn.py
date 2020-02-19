@@ -115,6 +115,19 @@ def sample(pi, sigma, mu):
     return sample
 
 
+def gm(weights, mus, vars, x, b_plot=False,n_division=100):
+    if not b_plot:
+        result = 0
+        for index in range(len(weights)):
+            result += stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
+        return result
+    else:
+        xs = np.linspace(-1, 1, n_division)
+        ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
+        return xs, ys
+        # plt.plot(xs, ys)
+        # plt.show()
+
 class RegMdn():
     """ This class implements the regression using mixture density network.
     """
@@ -612,7 +625,7 @@ class KdeMdn:
                 optimizer.step()
         return self
 
-    def predict(self, zs, xs, b_plot=False):
+    def predict(self, zs, xs, b_plot=False,n_division=100):
         if self.is_normalized:
             xs = self.normalize(xs, self.meanx, self.widthx)
 
@@ -650,7 +663,7 @@ class KdeMdn:
             # print("kde predict for "+str(y)+": "+ str(result))
             return result
         else:
-            return gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot)
+            return gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot,n_division=n_division)
 
     def normalize(self, x, mean, width):
         return (x - mean) / width * 2
@@ -658,7 +671,7 @@ class KdeMdn:
     def denormalize(self, x, mean, width):
         return 0.5 * width * x + mean
 
-    def plot_density_3d(self):
+    def plot_density_3d(self,n_division=20):
         if not self.b_store_training_data:
             raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
         else:
@@ -696,7 +709,7 @@ class KdeMdn:
             ax1.set_zlabel("frequency")
             plt.show()
 
-    def plot_density_per_group(self):
+    def plot_density_per_group(self,n_division=100):
         if not self.b_store_training_data:
             raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
         else:
@@ -801,40 +814,7 @@ class KdeMdn:
 
             plt.show()
 
-            # slider = Slider(zs_set,"Group ID",min(zs_set),max(zs_set))
-            #
-            # hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=20)
-            # # plt.scatter(zs, xs)
-            #
-            # # Construct arrays for the anchor positions of the 16 bars.
-            # xpos, ypos = np.meshgrid(xedges[:-1] + 0.25, yedges[:-1] + 0.25, indexing="ij")
-            # xpos = xpos.ravel()
-            # ypos = ypos.ravel()
-            # zpos = 0
-            #
-            # # Construct arrays with the dimensions for the 16 bars.
-            # dx = dy = 0.5 * np.ones_like(zpos)
-            # dz = hist.ravel()
-            #
-            # ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort='average')
-            # ax.set_xlabel("range predicate")
-            # ax.set_ylabel("group by attribute")
-            # ax.set_zlabel("frequency")
-            # --------------------------------------------------
 
-            # ax1 = fig.add_subplot(212)
-            # zs_set = list(set(zs_plot))
-            # for z in zs_set:
-            #
-            #     xxs, yys = self.predict([[z]], 200, b_plot=True)
-            #     xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
-            #     yys = [yi / self.widthx * 2 for yi in yys]
-            #     zzs = [z] * len(xxs)
-            #     ax1.plot(xxs, zzs, yys)
-            # ax1.set_xlabel("range predicate")
-            # ax1.set_ylabel("group by attribute")
-            # ax1.set_zlabel("frequency")
-            # plt.show()
 
 
 def test1():
@@ -1022,18 +1002,7 @@ def test_gm():
     plt.show()
 
 
-def gm(weights, mus, vars, x, b_plot=False):
-    if not b_plot:
-        result = 0
-        for index in range(len(weights)):
-            result += stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
-        return result
-    else:
-        xs = np.linspace(-1, 1, 100)
-        ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
-        return xs, ys
-        # plt.plot(xs, ys)
-        # plt.show()
+
 
 
 def test_gmm():
