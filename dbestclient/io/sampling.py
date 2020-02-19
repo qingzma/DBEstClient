@@ -8,12 +8,13 @@ import  pandas as pd
 
 
 class DBEstSampling:
-    def __init__(self, headers):
+    def __init__(self, headers,usecols):
         self.n_sample_point = None
         self.n_total_point = None
         self.sample = None
         self.sample_mean = None
         self.headers=headers
+        self.usecols=usecols
 
     def make_sample(self, file, ratio,  method='uniform', split_char=',', file2save=None, num_total_records=None):
         if method == 'uniform':
@@ -23,7 +24,7 @@ class DBEstSampling:
                 ratio = int(ratio)
                 self.n_sample_point = ratio
                 self.sample = ReservoirSampling(headers=self.headers)
-                self.sample.build_reservoir(file,ratio,split_char=split_char, save2file=file2save,n_total_point=num_total_records)
+                self.sample.build_reservoir(file,ratio,split_char=split_char, save2file=file2save,n_total_point=num_total_records,usecols=self.usecols)
                 self.n_total_point =  self.sample.n_total_point
                 # print("total point", self.n_total_point)
                 # print("sample point",self.n_sample_point)

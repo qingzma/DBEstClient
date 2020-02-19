@@ -117,7 +117,14 @@ class SqlExecutor:
                 ratio = self.parser.get_sampling_ratio()
                 method = self.parser.get_sampling_method()
 
-                sampler = DBEstSampling(headers=self.table_header)
+                # make samples
+                if not self.parser.if_contain_groupby():  # if group by is not involved
+                    sampler = DBEstSampling(headers=self.table_header,usecols=[xheader,yheader])
+                else:
+                    groupby_attribute = self.parser.get_groupby_value()
+                    sampler = DBEstSampling(headers=self.table_header,usecols=[xheader,yheader,groupby_attribute])
+
+
                 # print(self.config)
                 if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
                     print(

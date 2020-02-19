@@ -29,7 +29,7 @@ class ReservoirSampling:
         self.sampledf = None
         self.sampledfmean=None
 
-    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=",", save2file=None, n_total_point=None):
+    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=",", save2file=None, n_total_point=None,usecols=None):
 
         self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(1 for _ in open(file)) - 1
 
@@ -82,7 +82,16 @@ class ReservoirSampling:
             except StopIteration:
                 pass
 
+
             self.sampledf =  pd.DataFrame(res, columns=self.header)
+            # print(self.sampledf)
+            if usecols is not None:
+                self.sampledf = self.sampledf[usecols]
+
+                for col in usecols:
+                    self.sampledf[col] = pd.to_numeric(self.sampledf[col], errors='coerce')
+                self.sampledf = self.sampledf.dropna(subset=usecols)
+                # print(self.sampledf)
 
             if save2file is not None:
                 self.sampledf.to_csv(save2file, index=False)

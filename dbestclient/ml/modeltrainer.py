@@ -103,13 +103,15 @@ class KdeModelTrainer:
 
         xzs_train = np.concatenate(
             (x[:, np.newaxis], groupby[:, np.newaxis]), axis=1)
+
         print("training regression...")
-        reg = RegMdn(dim_input=2,n_mdn_layer_node=15).fit(xzs_train, y,num_epoch=3,num_gaussians=3)
+        reg = RegMdn(dim_input=2,n_mdn_layer_node=15,b_store_training_data=False).fit(xzs_train, y,num_epoch=1,num_gaussians=3)
 
         print("training density...")
         # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-        density = KdeMdn(b_one_hot=True)
+        density = KdeMdn(b_one_hot=True,b_store_training_data=False)
         density.fit(groupby[:,np.newaxis], x, num_epoch=20, num_gaussians=20,n_mdn_layer_node=20)
+        # density.plot_density_per_group()
 
         # density = DBEstDensity(config=self.config).fit(x)
         self.kde_model_wrapper.load_model(density, reg)

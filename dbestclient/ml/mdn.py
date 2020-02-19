@@ -21,7 +21,7 @@ from torch.distributions import Categorical
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 # import matplotlib
-# matplotlib.use('Qt5Agg')
+# ##### matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.widgets import Slider
@@ -132,7 +132,7 @@ class RegMdn():
     """ This class implements the regression using mixture density network.
     """
 
-    def __init__(self, dim_input, b_store_training_data=True, n_mdn_layer_node=20, b_one_hot=True):
+    def __init__(self, dim_input, b_store_training_data=False, n_mdn_layer_node=20, b_one_hot=True):
         if b_store_training_data:
             self.xs = None  # query range
             self.ys = None  # aggregate value
