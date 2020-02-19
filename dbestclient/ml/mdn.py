@@ -20,10 +20,15 @@ from torch.distributions import Categorical
 # from torch.utils.data import Dataset
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
+# import matplotlib
+# matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.widgets import Slider
 import numpy as np
 import scipy.stats as stats
 from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
@@ -544,11 +549,6 @@ class KdeMdn:
         :param zs: group by attribute
         :param xs: range attribute
         """
-        if b_show_plot:
-            plt.scatter(zs, xs)
-            plt.xlabel('group by attribute')
-            plt.ylabel("range prediate")
-            plt.show()
 
         if self.b_store_training_data:
             self.zs = zs
@@ -595,7 +595,7 @@ class KdeMdn:
         self.model = nn.Sequential(
             nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
             nn.Tanh(),
-            nn.Dropout(0.01),
+            nn.Dropout(0.1),
             MDN(n_mdn_layer_node, 1, num_gaussians)
         )
 
@@ -657,6 +657,184 @@ class KdeMdn:
 
     def denormalize(self, x, mean, width):
         return 0.5 * width * x + mean
+
+    def plot_density_3d(self):
+        if not self.b_store_training_data:
+            raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
+        else:
+            fig = plt.figure()
+            ax = fig.add_subplot(211, projection='3d')
+            zs_plot = self.zs.reshape(1, -1)[0]
+            hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=20)
+            # plt.scatter(zs, xs)
+
+            # Construct arrays for the anchor positions of the 16 bars.
+            xpos, ypos = np.meshgrid(xedges[:-1] + 0.25, yedges[:-1] + 0.25, indexing="ij")
+            xpos = xpos.ravel()
+            ypos = ypos.ravel()
+            zpos = 0
+
+            # Construct arrays with the dimensions for the 16 bars.
+            dx = dy = 0.5 * np.ones_like(zpos)
+            dz = hist.ravel()
+
+            ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort='average')
+            ax.set_xlabel("range predicate")
+            ax.set_ylabel("group by attribute")
+            ax.set_zlabel("frequency")
+
+            ax1 = fig.add_subplot(212, projection='3d')
+            zs_set = list(set(zs_plot))
+            for z in zs_set:
+                xxs, yys = self.predict([[z]], 200, b_plot=True)
+                xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+                yys = [yi / self.widthx * 2 for yi in yys]
+                zzs = [z] * len(xxs)
+                ax1.plot(xxs, zzs, yys)
+            ax1.set_xlabel("range predicate")
+            ax1.set_ylabel("group by attribute")
+            ax1.set_zlabel("frequency")
+            plt.show()
+
+    def plot_density_per_group(self):
+        if not self.b_store_training_data:
+            raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
+        else:
+
+            zs_plot = self.zs.reshape(1, -1)[0]
+            df = pd.DataFrame({"z": zs_plot, "x": self.xs})
+            # print(df)
+            df = df.dropna(subset=["z", "x"])
+            gp = df.groupby(["z"])
+            # for group, values in gp:
+            #     print(group)
+
+            zs_set = list(gp.groups.keys())
+            # zs_set = list(set(zs_plot)).sort()
+            z_min = zs_set[0]  # the minimial value of the paramater a
+            z_max = zs_set[-1]  # the maximal value of the paramater a
+            z_init = zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
+
+            self.fig = plt.figure(figsize=(8, 8))
+            # self.fig, self.ax = plt.subplots()
+            # self.fig.set
+
+            # first we create the general layount of the figure
+            # with two axes objects: one for the plot of the function
+            # and the other for the slider
+            plot_ax = plt.axes([0.1, 0.2, 0.8, 0.65])
+            slider_ax = plt.axes([0.1, 0.05, 0.8, 0.05])
+
+            # in plot_ax we plot the function with the initial value of the parameter a
+            one_group = gp.get_group(z_init)
+
+            x_plot = one_group['x']
+            z_plot = one_group["z"]
+            # print(one_group)
+            # raise Exception()
+            # group_x =0
+            plt.axes(plot_ax)  # select sin_ax
+            plt.title('Density Estimation')
+            plt.xlabel("Query range attribute")
+            plt.ylabel("Frequency")
+            main_plot,_,_ = plt.hist(x_plot, bins=100)
+            # plt.xlim(0, 2 * math.pi)
+            # plt.ylim(-1.1, 1.1)
+
+            # here we create the slider
+            self.a_slider = Slider(slider_ax,  # the axes object containing the slider
+                                   'groupz',  # the name of the slider parameter
+                                   z_min,  # minimal value of the parameter
+                                   z_max,  # maximal value of the parameter
+                                   valinit=z_init  # initial value of the parameter
+                                   )
+
+            # plot the density estimation on another y axis
+
+            ax_frequency = plt.gca()
+            ax_density = ax_frequency.twinx()
+            ax_density.set_ylabel("Density",color="tab:red")
+            xxs, yys = self.predict([[z_init]], 200, b_plot=True)
+            xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            yys = [yi / self.widthx * 2 for yi in yys]
+            #
+            # plt.plot(xxs, yys)
+            ax_density.plot(xxs, yys,"r")
+
+            
+            # Next we define a function that will be executed each time the value
+            # indicated by the slider changes. The variable of this function will
+            # be assigned the value of the slider.
+            def update(groupz):
+                # sin_plot.set_ydata(np.sin(a * x))  # set new y-coordinates of the plotted points
+                group_approx = min(zs_set,key=lambda  x:abs(x-groupz))
+                print("result for group "+ str(group_approx))
+                one_group = gp.get_group(group_approx)
+                x_plot = one_group['x']
+                # main_plot
+                plt.axes(plot_ax)
+                plt.cla()
+                plt.hist(x_plot, bins=100)
+                plt.title('Density Estimation')
+                plt.xlabel("Query range attribute")
+                plt.ylabel("Frequency")
+
+                ax_frequency = plt.gca()
+                # if ax_density is None:
+                #     ax_density = ax_frequency.twinx()
+                ax_density.cla()
+                ax_density.set_ylabel("Density", color="tab:red")
+                xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
+                xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+                yys = [yi / self.widthx * 2 for yi in yys]
+                #
+                # plt.plot(xxs, yys)
+                ax_density.plot(xxs, yys,"r")
+
+                self.fig.canvas.draw_idle()  # redraw the plot
+
+
+
+            # the final step is to specify that the slider needs to
+            # execute the above function when its value changes
+            self.a_slider.on_changed(update)
+
+            plt.show()
+
+            # slider = Slider(zs_set,"Group ID",min(zs_set),max(zs_set))
+            #
+            # hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=20)
+            # # plt.scatter(zs, xs)
+            #
+            # # Construct arrays for the anchor positions of the 16 bars.
+            # xpos, ypos = np.meshgrid(xedges[:-1] + 0.25, yedges[:-1] + 0.25, indexing="ij")
+            # xpos = xpos.ravel()
+            # ypos = ypos.ravel()
+            # zpos = 0
+            #
+            # # Construct arrays with the dimensions for the 16 bars.
+            # dx = dy = 0.5 * np.ones_like(zpos)
+            # dz = hist.ravel()
+            #
+            # ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort='average')
+            # ax.set_xlabel("range predicate")
+            # ax.set_ylabel("group by attribute")
+            # ax.set_zlabel("frequency")
+            # --------------------------------------------------
+
+            # ax1 = fig.add_subplot(212)
+            # zs_set = list(set(zs_plot))
+            # for z in zs_set:
+            #
+            #     xxs, yys = self.predict([[z]], 200, b_plot=True)
+            #     xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            #     yys = [yi / self.widthx * 2 for yi in yys]
+            #     zzs = [z] * len(xxs)
+            #     ax1.plot(xxs, zzs, yys)
+            # ax1.set_xlabel("range predicate")
+            # ax1.set_ylabel("group by attribute")
+            # ax1.set_zlabel("frequency")
+            # plt.show()
 
 
 def test1():
@@ -748,18 +926,20 @@ def test_pm25_2d_density():
     # plt.show()
     # raise Exception()
 
-    regMdn = KdeMdn(b_one_hot=True)
-    regMdn.fit(pres_train, pm25_train, num_epoch=30, num_gaussians=10, b_show_plot=False)
+    regMdn = KdeMdn(b_one_hot=True, b_store_training_data=True)
+    regMdn.fit(pres_train, pm25_train, num_epoch=20, num_gaussians=20, b_show_plot=False)
+    regMdn.plot_density_per_group()
     # regMdn.predict(pres_train, b_show_plot=True)
     # regMdn.predict(pres_test, b_show_plot=True)
-    print(regMdn.predict([[1010]], 200, b_plot=False))
-    # xxs, yys = regMdn.predict([[1030]], 200, b_plot=True)
-    xxs, yys = regMdn.predict([[1010]], 200, b_plot=True)
-    xxs = [regMdn.denormalize(xi, regMdn.meanx, regMdn.widthx) for xi in xxs]
-    yys = [yi / regMdn.widthx * 2 for yi in yys]
 
-    plt.plot(xxs, yys)
-    plt.show()
+    # print(regMdn.predict([[1010]], 200, b_plot=False))
+    # # xxs, yys = regMdn.predict([[1030]], 200, b_plot=True)
+    # xxs, yys = regMdn.predict([[1010]], 200, b_plot=True)
+    # xxs = [regMdn.denormalize(xi, regMdn.meanx, regMdn.widthx) for xi in xxs]
+    # yys = [yi / regMdn.widthx * 2 for yi in yys]
+    #
+    # plt.plot(xxs, yys)
+    # plt.show()
 
 
 def test_ss_2d_density():
@@ -775,13 +955,15 @@ def test_ss_2d_density():
     g_test = df_test.ss_store_sk.values
     # temp_test = df_test.PRES.values  #df_test.pm25.values
 
-    data = df_train.groupby(["ss_store_sk"]).get_group(1)["ss_sold_date_sk"].values
-    plt.hist(data, bins=100)
-    plt.show()
-    raise Exception()
+    # data = df_train.groupby(["ss_store_sk"]).get_group(1)["ss_sold_date_sk"].values
+    # plt.hist(data, bins=100)
+    # plt.show()
+    # raise Exception()
 
     kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit(g_train, x_train, num_epoch=20, num_gaussians=30)
+    kdeMdn.fit(g_train, x_train, num_epoch=10, num_gaussians=20)
+
+    kdeMdn.plot_density_per_group()
 
     # regMdn = RegMdn(dim_input=1, b_store_training_data=True)
     # regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False, num_gaussians=5)
@@ -847,7 +1029,7 @@ def gm(weights, mus, vars, x, b_plot=False):
             result += stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
         return result
     else:
-        xs = np.linspace(-1, 1, 1000)
+        xs = np.linspace(-1, 1, 100)
         ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
         return xs, ys
         # plt.plot(xs, ys)
@@ -917,8 +1099,8 @@ def test_onehot():
 
 
 if __name__ == "__main__":
-    # test_pm25_2d_density()
     test_pm25_2d_density()
+    # test_pm25_2d_density()
     # test_pm25_3d()
     # test_ss_3d()
     # test_ss_3d()

@@ -31,7 +31,7 @@ setup(
         },
     zip_safe=False,
     install_requires=[
-          'numpy','sqlparse','pandas','scikit-learn','qregpy', 'scipy', 'dill'
+          'numpy','sqlparse','pandas','scikit-learn','qregpy', 'scipy', 'dill', 'matplotlib', 'torch'
       ],
     test_suite='nose.collector',
     tests_require=['nose'],
