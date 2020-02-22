@@ -12,6 +12,8 @@ For more info on MDNs, see _Mixture Desity Networks_ by Bishop, 1994.
 """
 import sys
 import math
+
+import dill
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -813,6 +815,14 @@ class KdeMdn:
             self.a_slider.on_changed(update)
 
             plt.show()
+
+    def serialize(self, file):
+        with open(file, 'wb') as f:
+            dill.dump(self, f)
+
+    def de_serialize(self, file):
+        with open(file, 'rb') as f:
+            self = dill.load(f)
 
 
 
