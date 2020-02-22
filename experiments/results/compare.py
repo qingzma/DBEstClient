@@ -78,7 +78,7 @@ def plot_count():
     plt.text(10, 20, "DBEst error " + str(sum(res1) / len(res1)) + "%")
     plt.show()
 
-def
+
 if __name__=="__main__":
     plot_count()
 

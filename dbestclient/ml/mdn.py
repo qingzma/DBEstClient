@@ -117,7 +117,7 @@ def sample(pi, sigma, mu):
     return sample
 
 
-def gm(weights, mus, vars, x, b_plot=False,n_division=100):
+def gm(weights, mus, vars, x, b_plot=False, n_division=100):
     if not b_plot:
         result = 0
         for index in range(len(weights)):
@@ -129,6 +129,7 @@ def gm(weights, mus, vars, x, b_plot=False,n_division=100):
         return xs, ys
         # plt.plot(xs, ys)
         # plt.show()
+
 
 class RegMdn():
     """ This class implements the regression using mixture density network.
@@ -627,7 +628,7 @@ class KdeMdn:
                 optimizer.step()
         return self
 
-    def predict(self, zs, xs, b_plot=False,n_division=100):
+    def predict(self, zs, xs, b_plot=False, n_division=100):
         if self.is_normalized:
             xs = self.normalize(xs, self.meanx, self.widthx)
 
@@ -665,7 +666,7 @@ class KdeMdn:
             # print("kde predict for "+str(y)+": "+ str(result))
             return result
         else:
-            return gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot,n_division=n_division)
+            return gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot, n_division=n_division)
 
     def normalize(self, x, mean, width):
         return (x - mean) / width * 2
@@ -673,7 +674,7 @@ class KdeMdn:
     def denormalize(self, x, mean, width):
         return 0.5 * width * x + mean
 
-    def plot_density_3d(self,n_division=20):
+    def plot_density_3d(self, n_division=20):
         if not self.b_store_training_data:
             raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
         else:
@@ -711,7 +712,7 @@ class KdeMdn:
             ax1.set_zlabel("frequency")
             plt.show()
 
-    def plot_density_per_group(self,n_division=100):
+    def plot_density_per_group(self, n_division=100):
         if not self.b_store_training_data:
             raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
         else:
@@ -752,7 +753,7 @@ class KdeMdn:
             plt.title('Density Estimation')
             plt.xlabel("Query range attribute")
             plt.ylabel("Frequency")
-            main_plot,_,_ = plt.hist(x_plot, bins=100)
+            main_plot, _, _ = plt.hist(x_plot, bins=100)
             # plt.xlim(0, 2 * math.pi)
             # plt.ylim(-1.1, 1.1)
 
@@ -768,22 +769,21 @@ class KdeMdn:
 
             ax_frequency = plt.gca()
             ax_density = ax_frequency.twinx()
-            ax_density.set_ylabel("Density",color="tab:red")
+            ax_density.set_ylabel("Density", color="tab:red")
             xxs, yys = self.predict([[z_init]], 200, b_plot=True)
             xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
             yys = [yi / self.widthx * 2 for yi in yys]
             #
             # plt.plot(xxs, yys)
-            ax_density.plot(xxs, yys,"r")
+            ax_density.plot(xxs, yys, "r")
 
-            
             # Next we define a function that will be executed each time the value
             # indicated by the slider changes. The variable of this function will
             # be assigned the value of the slider.
             def update(groupz):
                 # sin_plot.set_ydata(np.sin(a * x))  # set new y-coordinates of the plotted points
-                group_approx = min(zs_set,key=lambda  x:abs(x-groupz))
-                print("result for group "+ str(group_approx))
+                group_approx = min(zs_set, key=lambda x: abs(x - groupz))
+                print("result for group " + str(group_approx))
                 one_group = gp.get_group(group_approx)
                 x_plot = one_group['x']
                 # main_plot
@@ -804,11 +804,9 @@ class KdeMdn:
                 yys = [yi / self.widthx * 2 for yi in yys]
                 #
                 # plt.plot(xxs, yys)
-                ax_density.plot(xxs, yys,"r")
+                ax_density.plot(xxs, yys, "r")
 
                 self.fig.canvas.draw_idle()  # redraw the plot
-
-
 
             # the final step is to specify that the slider needs to
             # execute the above function when its value changes
@@ -820,11 +818,132 @@ class KdeMdn:
         with open(file, 'wb') as f:
             dill.dump(self, f)
 
-    def de_serialize(self, file):
-        with open(file, 'rb') as f:
-            self = dill.load(f)
+    def bin_wise_error(self,n_division=20):
+        if not self.b_store_training_data:
+            raise ValueError("b_store_training_data must be set to True to enable the plotting function for bin-wise "
+                             "comparison.")
+        else:
+            from scipy import integrate
+
+            zs_plot = self.zs.reshape(1, -1)[0]
+            df = pd.DataFrame({"z": zs_plot, "x": self.xs})
+            df = df.dropna(subset=["z", "x"])
+            gp = df.groupby(["z"])
+
+            zs_set = list(gp.groups.keys())
+            z_min = zs_set[0]  # the minimial value of the paramater a
+            z_max = zs_set[-1]  # the maximal value of the paramater a
+            z_init = zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
+
+            self.fig = plt.figure(figsize=(8, 8))
+
+            # first we create the general layount of the figure
+            # with two axes objects: one for the plot of the function
+            # and the other for the slider
+            plot_ax = plt.axes([0.1, 0.2, 0.8, 0.65])
+            slider_ax = plt.axes([0.1, 0.05, 0.8, 0.05])
+
+            # in plot_ax we plot the function with the initial value of the parameter a
+            one_group = gp.get_group(z_init)
+
+            x_plot = one_group['x']
+            z_plot = one_group["z"]
+
+            plt.axes(plot_ax)  # select sin_ax
+            plt.title('Density Estimation')
+            plt.xlabel("Query range attribute")
+            plt.ylabel("Frequency")
+            main_plot, bins, patches = plt.hist(x_plot, bins=20)
+
+            # print(main_plot)
+            # print(bins)
+            # print(patches[0])
+            # print(patches[1])
+            # print(patches[2])
+            # print(patches[3])
+            # print(patches[4])
+            # print(patches[0]._x0,patches[0]._x1,patches[0]._height)
+            # print(patches[4]._x0, patches[4]._x1, patches[4]._height)
+
+            def predict_func(x):
+                return self.predict([[z_init]],x)
+
+            frequencies=[]
+            approxs=[]
+            total= sum(main_plot)
+            for patch in patches:
+                left, right,frequency = patch._x0, patch._x1, patch._y1/total
+
+                approx = integrate.quad(predict_func,left,right)[0]
+                print(frequency,approx)
+                frequencies.append(frequency)
+                approxs.append(approx)
+            print(sum(frequencies),sum(approxs))
+            print(integrate.quad(predict_func, bins[0],bins[-1]))
 
 
+
+
+            # here we create the slider
+            self.a_slider = Slider(slider_ax,  # the axes object containing the slider
+                                   'groupz',  # the name of the slider parameter
+                                   z_min,  # minimal value of the parameter
+                                   z_max,  # maximal value of the parameter
+                                   valinit=z_init  # initial value of the parameter
+                                   )
+
+            # plot the density estimation on another y axis
+            ax_frequency = plt.gca()
+            ax_density = ax_frequency.twinx()
+            ax_density.set_ylabel("Density", color="tab:red")
+            xxs, yys = self.predict([[z_init]], 200, b_plot=True)
+            xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            yys = [yi / self.widthx * 2 for yi in yys]
+            #
+            # plt.plot(xxs, yys)
+            ax_density.plot(xxs, yys, "r")
+
+            # # Next we define a function that will be executed each time the value
+            # # indicated by the slider changes. The variable of this function will
+            # # be assigned the value of the slider.
+            # def update(groupz):
+            #     # sin_plot.set_ydata(np.sin(a * x))  # set new y-coordinates of the plotted points
+            #     group_approx = min(zs_set, key=lambda x: abs(x - groupz))
+            #     print("result for group " + str(group_approx))
+            #     one_group = gp.get_group(group_approx)
+            #     x_plot = one_group['x']
+            #     # main_plot
+            #     plt.axes(plot_ax)
+            #     plt.cla()
+            #     plt.hist(x_plot, bins=100)
+            #     plt.title('Density Estimation')
+            #     plt.xlabel("Query range attribute")
+            #     plt.ylabel("Frequency")
+            #
+            #     ax_frequency = plt.gca()
+            #     # if ax_density is None:
+            #     #     ax_density = ax_frequency.twinx()
+            #     ax_density.cla()
+            #     ax_density.set_ylabel("Density", color="tab:red")
+            #     xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
+            #     xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            #     yys = [yi / self.widthx * 2 for yi in yys]
+            #     #
+            #     # plt.plot(xxs, yys)
+            #     ax_density.plot(xxs, yys, "r")
+            #
+            #     self.fig.canvas.draw_idle()  # redraw the plot
+            #
+            # # the final step is to specify that the slider needs to
+            # # execute the above function when its value changes
+            # self.a_slider.on_changed(update)
+            #
+            plt.show()
+
+
+def de_serialize(file):
+    with open(file, 'rb') as f:
+        return dill.load(f)
 
 
 def test1():
@@ -936,6 +1055,7 @@ def test_ss_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     file = "/data/tpcds/40G/ss_600k_headers.csv"
+    file = "/Users/scott/projects/ss_600k_headers.csv"
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
     df_train = df  # .head(1000)
@@ -951,9 +1071,11 @@ def test_ss_2d_density():
     # raise Exception()
 
     kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit(g_train, x_train, num_epoch=10, num_gaussians=20)
+    kdeMdn.fit(g_train, x_train, num_epoch=1, num_gaussians=20)
 
-    kdeMdn.plot_density_per_group()
+    # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
+
+    kdeMdn.plot_density_3d()
 
     # regMdn = RegMdn(dim_input=1, b_store_training_data=True)
     # regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False, num_gaussians=5)
@@ -1010,9 +1132,6 @@ def test_gm():
 
     plt.plot(x, y)
     plt.show()
-
-
-
 
 
 def test_gmm():
@@ -1077,11 +1196,40 @@ def test_onehot():
     enc.fit(X)
 
 
+def bin_wise_error_ss():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    file = "/data/tpcds/40G/ss_600k_headers.csv"
+    file = "/Users/scott/projects/ss_600k_headers.csv"
+    df = pd.read_csv(file, sep='|')
+    df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
+    # df = df.head(10000)
+    df_train = df  # .head(1000)
+    df_test = df  # .head(1000)
+    g_train = df_train.ss_store_sk.values[:, np.newaxis]
+    x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
+    g_test = df_test.ss_store_sk.values
+    # temp_test = df_test.PRES.values  #df_test.pm25.values
+
+    # data = df_train.groupby(["ss_store_sk"]).get_group(1)["ss_sold_date_sk"].values
+    # plt.hist(data, bins=100)
+    # plt.show()
+    # raise Exception()
+
+    kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
+    kdeMdn.fit(g_train, x_train, num_epoch=10, num_gaussians=20)
+
+    # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
+
+    kdeMdn.bin_wise_error()
+
+
 if __name__ == "__main__":
-    test_pm25_2d_density()
+    # test_pm25_2d_density()
     # test_pm25_2d_density()
     # test_pm25_3d()
     # test_ss_3d()
     # test_ss_3d()
     # test_ss_2d_density()
     # test_gmm()
+    bin_wise_error_ss()
