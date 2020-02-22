@@ -853,7 +853,7 @@ class KdeMdn:
             plt.title('Density Estimation')
             plt.xlabel("Query range attribute")
             plt.ylabel("Frequency")
-            main_plot, bins, patches = plt.hist(x_plot, bins=20)
+            main_plot, bins, patches = plt.hist(x_plot, bins=50)
 
             # print(main_plot)
             # print(bins)
@@ -880,65 +880,69 @@ class KdeMdn:
                 approxs.append(approx)
             print(sum(frequencies),sum(approxs))
             print(integrate.quad(predict_func, bins[0],bins[-1]))
-
-
-
-
-            # here we create the slider
-            self.a_slider = Slider(slider_ax,  # the axes object containing the slider
-                                   'groupz',  # the name of the slider parameter
-                                   z_min,  # minimal value of the parameter
-                                   z_max,  # maximal value of the parameter
-                                   valinit=z_init  # initial value of the parameter
-                                   )
-
-            # plot the density estimation on another y axis
-            ax_frequency = plt.gca()
-            ax_density = ax_frequency.twinx()
-            ax_density.set_ylabel("Density", color="tab:red")
-            xxs, yys = self.predict([[z_init]], 200, b_plot=True)
-            xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
-            yys = [yi / self.widthx * 2 for yi in yys]
-            #
-            # plt.plot(xxs, yys)
-            ax_density.plot(xxs, yys, "r")
-
-            # # Next we define a function that will be executed each time the value
-            # # indicated by the slider changes. The variable of this function will
-            # # be assigned the value of the slider.
-            # def update(groupz):
-            #     # sin_plot.set_ydata(np.sin(a * x))  # set new y-coordinates of the plotted points
-            #     group_approx = min(zs_set, key=lambda x: abs(x - groupz))
-            #     print("result for group " + str(group_approx))
-            #     one_group = gp.get_group(group_approx)
-            #     x_plot = one_group['x']
-            #     # main_plot
-            #     plt.axes(plot_ax)
-            #     plt.cla()
-            #     plt.hist(x_plot, bins=100)
-            #     plt.title('Density Estimation')
-            #     plt.xlabel("Query range attribute")
-            #     plt.ylabel("Frequency")
-            #
-            #     ax_frequency = plt.gca()
-            #     # if ax_density is None:
-            #     #     ax_density = ax_frequency.twinx()
-            #     ax_density.cla()
-            #     ax_density.set_ylabel("Density", color="tab:red")
-            #     xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
-            #     xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
-            #     yys = [yi / self.widthx * 2 for yi in yys]
-            #     #
-            #     # plt.plot(xxs, yys)
-            #     ax_density.plot(xxs, yys, "r")
-            #
-            #     self.fig.canvas.draw_idle()  # redraw the plot
-            #
-            # # the final step is to specify that the slider needs to
-            # # execute the above function when its value changes
-            # self.a_slider.on_changed(update)
-            #
+            errors = [abs(f-p) for f,p in zip(frequencies,approxs)]
+            plt.clf()
+            plt.hist(errors, bins=20)
             plt.show()
+
+
+
+
+            # # here we create the slider
+            # self.a_slider = Slider(slider_ax,  # the axes object containing the slider
+            #                        'groupz',  # the name of the slider parameter
+            #                        z_min,  # minimal value of the parameter
+            #                        z_max,  # maximal value of the parameter
+            #                        valinit=z_init  # initial value of the parameter
+            #                        )
+            #
+            # # plot the density estimation on another y axis
+            # ax_frequency = plt.gca()
+            # ax_density = ax_frequency.twinx()
+            # ax_density.set_ylabel("Density", color="tab:red")
+            # xxs, yys = self.predict([[z_init]], 200, b_plot=True)
+            # xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            # yys = [yi / self.widthx * 2 for yi in yys]
+            # #
+            # # plt.plot(xxs, yys)
+            # ax_density.plot(xxs, yys, "r")
+            #
+            # # # Next we define a function that will be executed each time the value
+            # # # indicated by the slider changes. The variable of this function will
+            # # # be assigned the value of the slider.
+            # # def update(groupz):
+            # #     # sin_plot.set_ydata(np.sin(a * x))  # set new y-coordinates of the plotted points
+            # #     group_approx = min(zs_set, key=lambda x: abs(x - groupz))
+            # #     print("result for group " + str(group_approx))
+            # #     one_group = gp.get_group(group_approx)
+            # #     x_plot = one_group['x']
+            # #     # main_plot
+            # #     plt.axes(plot_ax)
+            # #     plt.cla()
+            # #     plt.hist(x_plot, bins=100)
+            # #     plt.title('Density Estimation')
+            # #     plt.xlabel("Query range attribute")
+            # #     plt.ylabel("Frequency")
+            # #
+            # #     ax_frequency = plt.gca()
+            # #     # if ax_density is None:
+            # #     #     ax_density = ax_frequency.twinx()
+            # #     ax_density.cla()
+            # #     ax_density.set_ylabel("Density", color="tab:red")
+            # #     xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
+            # #     xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            # #     yys = [yi / self.widthx * 2 for yi in yys]
+            # #     #
+            # #     # plt.plot(xxs, yys)
+            # #     ax_density.plot(xxs, yys, "r")
+            # #
+            # #     self.fig.canvas.draw_idle()  # redraw the plot
+            # #
+            # # # the final step is to specify that the slider needs to
+            # # # execute the above function when its value changes
+            # # self.a_slider.on_changed(update)
+            # #
+            # plt.show()
 
 
 def de_serialize(file):
