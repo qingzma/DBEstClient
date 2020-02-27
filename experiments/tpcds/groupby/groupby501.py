@@ -18,10 +18,10 @@ def run():
         'b_show_latency': 'True',
         'backend_server': 'None',
         'csv_split_char': '|',
-        "epsabs": 10.0,
-        "epsrel": 0.1,
-        "mesh_grid_num": 20,
-        "limit": 30,
+        "epsabs": 20.0,  #10
+        "epsrel": 0.4,   #0.1
+        "mesh_grid_num": 15,  #20
+        "limit": 20,     #30
         # "b_reg_mean":'True',
         "num_epoch": 400,
         "reg_type": "mdn",
@@ -40,10 +40,10 @@ def run():
 def build_models(sqlExecutor):
     # 10k
     sqlExecutor.execute(
-        "create table ss1t_20node_20gaussion_20epoch(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000")
+        "create table ss1t_15node_10gaussion_20epoch(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000")
 
 def query(sqlExecutor):
-    sqlExecutor.execute("select count(ss_sales_price)  from ss1t_20node_20gaussion_20epoch where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk")
+    sqlExecutor.execute("select count(ss_sales_price)  from ss1t_15node_10gaussion_20epoch where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk")
 
 if __name__=="__main__":
     run()

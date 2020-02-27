@@ -4,11 +4,14 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 
-from datetime import  datetime
+from datetime import datetime
 from scipy import integrate
 import numpy as np
-
-
+from torch.multiprocessing import Process, set_start_method
+try:
+     set_start_method('spawn')
+except RuntimeError:
+    pass
 
 
 class MdnQueryEngine:
@@ -32,7 +35,7 @@ class MdnQueryEngine:
                 'mesh_grid_num': 20,
                 'limit': 30,
                 'csv_split_char': '|',
-                'num_epoch':400,
+                'num_epoch': 400,
                 "reg_type": "mdn",
             }
         else:
@@ -74,11 +77,12 @@ class MdnQueryEngine:
 
         def f_pRx(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=True) \
-                   * self.reg.predict(np.array([[args[0],groupby_value]]))[0]
-                   # * self.reg.predict(np.array(args))
+                   * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
+            # * self.reg.predict(np.array(args))
 
         # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
-        result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0] * float(self.n_total_point[str(int(groupby_value))])
+        result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
+                     0] * float(self.n_total_point[str(int(groupby_value))])
         # return result
 
         # result = result / float(self.n_training_point) * float(self.n_total_point)
@@ -108,28 +112,57 @@ class MdnQueryEngine:
             # print("Time spent for approximate COUNT: %.4fs." % time_cost)
         return result, time_cost
 
-    def predict(self,func, x_lb, x_ub, groupby_value):
+    def predict(self, func, x_lb, x_ub, groupby_value):
         if func.lower() == "count":
-            p,t = self.approx_count(x_lb, x_ub, groupby_value)
+            p, t = self.approx_count(x_lb, x_ub, groupby_value)
         elif func.lower() == "sum":
-            p,t = self.approx_sum(x_lb, x_ub, groupby_value)
+            p, t = self.approx_sum(x_lb, x_ub, groupby_value)
         elif func.lower() == "avg":
-            p,t = self.approx_avg(x_lb, x_ub, groupby_value)
+            p, t = self.approx_avg(x_lb, x_ub, groupby_value)
         else:
             print("Aggregate function " + func + " is not implemented yet!")
-        return p,t
+        return p, t
 
-    def predicts(self,func, x_lb, x_ub):
-        predictions=[]
+    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4):
+        predictions = []
         times = []
-        for groupby_value in self.groupby_values:
-            if groupby_value =="":
-                continue
-            pre,t = self.predict(func, x_lb, x_ub,float(groupby_value))
-            predictions.append(pre)
-            times.append(t)
-            print(groupby_value,pre)
-        return predictions,times
+        if not b_parallel:  # single process implementation
+            for groupby_value in self.groupby_values:
+                if groupby_value == "":
+                    continue
+                pre, t = self.predict(func, x_lb, x_ub, float(groupby_value))
+                predictions.append(pre)
+                times.append(t)
+                print(groupby_value, pre)
+        else:  # multiple threads implementation
+            width = int(len(self.groupby_values) / n_jobs)
+            subgroups = [self.groupby_values[inde:inde + width] for inde in range(0, len(self.groupby_values), width)]
+            if len(self.groupby_values) % n_jobs != 0:
+                subgroups[n_jobs - 1] = subgroups[n_jobs - 1] + subgroups[n_jobs]
+                del subgroups[-1]
+            index_in_groups = [[self.groupby_values.index(sgname) for sgname in sgnames] for sgnames in subgroups]
+
+            processes = []
+            for subgroup in subgroups:
+                preds=[]
+                ts=[]
+                t=Process(target=query_partial_group, args=(self,subgroup,func,x_lb,x_ub, preds,ts))
+                processes.append(t)
+                t.start()
+                predictions.append(preds)
+                times.append(ts)
+
+            for t in processes:
+                t.join()
+
+            # raise Exception()
+        return predictions, times
+
+
+def query_partial_group(mdnQueryEngine,group,func,x_lb, x_ub,preds,times):
+    mdnQueryEngine.groupby_values = group
+    preds, times = mdnQueryEngine.predicts(func,x_lb,x_ub,b_parallel=False,n_jobs=1)
+
 
 if __name__ == "__main__":
     pass
