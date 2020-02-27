@@ -35,8 +35,8 @@ import pandas as pd
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
 global device
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 class MDN(nn.Module):
     """A mixture density network layer

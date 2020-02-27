@@ -7,9 +7,10 @@
 from datetime import datetime
 from scipy import integrate
 import numpy as np
-from torch.multiprocessing import Process, set_start_method
+from torch.multiprocessing import Process, set_start_method, Queue, Pool
+
 try:
-     set_start_method('spawn')
+    set_start_method('spawn')
 except RuntimeError:
     pass
 
@@ -135,33 +136,58 @@ class MdnQueryEngine:
                 times.append(t)
                 print(groupby_value, pre)
         else:  # multiple threads implementation
+
             width = int(len(self.groupby_values) / n_jobs)
             subgroups = [self.groupby_values[inde:inde + width] for inde in range(0, len(self.groupby_values), width)]
             if len(self.groupby_values) % n_jobs != 0:
                 subgroups[n_jobs - 1] = subgroups[n_jobs - 1] + subgroups[n_jobs]
                 del subgroups[-1]
-            index_in_groups = [[self.groupby_values.index(sgname) for sgname in sgnames] for sgnames in subgroups]
+            # index_in_groups = [[self.groupby_values.index(sgname) for sgname in sgnames] for sgnames in subgroups]
 
-            processes = []
-            for subgroup in subgroups:
-                preds=[]
-                ts=[]
-                t=Process(target=query_partial_group, args=(self,subgroup,func,x_lb,x_ub, preds,ts))
-                processes.append(t)
-                t.start()
-                predictions.append(preds)
-                times.append(ts)
+            instances = []
 
-            for t in processes:
-                t.join()
+            with Pool(processes=n_jobs) as pool:
+                for subgroup in subgroups:
+                    i = pool.apply_async(query_partial_group,(self, subgroup, func, x_lb, x_ub))
+                    instances.append(i)
+                    # print(i.get())
+                    # print(instances[0].get(timeout=1))
+                for i in instances:
+                    result= i.get()
+                    pred=result[0]
+                    t=result[1]
+                    predictions+=pred
+                    times+=t
+            # print(predictions)
+            # print(times)
+            # print("Time cost-initial is "+ str(sum(times)))
+
+
+
+
+            # processes = []
+            # for subgroup in subgroups:
+            #     t = Process(target=query_partial_group, args=(self, subgroup, func, x_lb, x_ub))
+            #     processes.append(t)
+            #     t.start()
+            #
+            #
+            #
+            # for t in processes:
+            #     t.join()
+
+            # print(result_queue.get())
 
             # raise Exception()
         return predictions, times
 
 
-def query_partial_group(mdnQueryEngine,group,func,x_lb, x_ub,preds,times):
+result_queue = Queue()
+
+
+def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
     mdnQueryEngine.groupby_values = group
-    preds, times = mdnQueryEngine.predicts(func,x_lb,x_ub,b_parallel=False,n_jobs=1)
+    return mdnQueryEngine.predicts(func, x_lb, x_ub, b_parallel=False, n_jobs=1)
 
 
 if __name__ == "__main__":
