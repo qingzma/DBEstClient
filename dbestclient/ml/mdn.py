@@ -34,6 +34,9 @@ import pandas as pd
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
+global device
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 class MDN(nn.Module):
     """A mixture density network layer
@@ -65,6 +68,10 @@ class MDN(nn.Module):
         )
         self.sigma = nn.Linear(in_features, out_features * num_gaussians)
         self.mu = nn.Linear(in_features, out_features * num_gaussians)
+
+        self.pi= self.pi.to(device)
+        self.mu=self.mu.to(device)
+        self.sigma=self.sigma.to(device)
 
     def forward(self, minibatch):
         pi = self.pi(minibatch)
@@ -102,7 +109,7 @@ def mdn_loss(pi, sigma, mu, target):
     """
     prob = pi * gaussian_probability(sigma, mu, target)
 
-    nll = -torch.log(torch.sum(prob, dim=1))
+    nll = -torch.log(torch.sum(prob, dim=1)).to(device)
     return torch.mean(nll)
 
 
@@ -544,7 +551,7 @@ class RegMdn():
 class KdeMdn:
     """This is the implementation of density estimation using MDN"""
 
-    def __init__(self, b_store_training_data=False, b_one_hot=True):
+    def __init__(self, b_store_training_data=False, b_one_hot=True, b_use_cuda=True):
         if b_store_training_data:
             self.xs = None  # query range
             self.zs = None  # group by balue
@@ -558,6 +565,9 @@ class KdeMdn:
         self.enc = None
         self.is_normalized = False
         self.b_one_hot = b_one_hot
+        self.b_use_cuda= b_use_cuda
+        if self.b_use_cuda:
+            self.device=torch.device('cuda')
 
     def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, b_show_plot=False):
         """
@@ -601,11 +611,16 @@ class KdeMdn:
         xs = xs[:, np.newaxis]
         tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
 
+        if self.b_use_cuda:
+            tensor_xs = tensor_xs.to(device)
+            tensor_zs = tensor_zs.to(device)
+
         my_dataset = torch.utils.data.TensorDataset(
             tensor_zs, tensor_xs)  # create your datset
         # , num_workers=8) # create your dataloader
         my_dataloader = torch.utils.data.DataLoader(
             my_dataset, batch_size=1000, shuffle=False)
+
 
         # initialize the model
         self.model = nn.Sequential(
@@ -614,6 +629,8 @@ class KdeMdn:
             nn.Dropout(0.1),
             MDN(n_mdn_layer_node, 1, num_gaussians)
         )
+        if self.b_use_cuda:
+            self.model = self.model.to(device)
 
         optimizer = optim.Adam(self.model.parameters())
         for epoch in range(num_epoch):
@@ -622,10 +639,15 @@ class KdeMdn:
             # train the model
             for minibatch, labels in my_dataloader:
                 self.model.zero_grad()
+                if self.b_use_cuda:
+                    minibatch.to(self.device)
+                    labels.to(self.device)
                 pi, sigma, mu = self.model(minibatch)
                 loss = mdn_loss(pi, sigma, mu, labels)
                 loss.backward()
                 optimizer.step()
+        # turn the model to eval mode.
+        self.model.eval()
         return self
 
     def predict(self, zs, xs, b_plot=False, n_division=100):
@@ -645,8 +667,18 @@ class KdeMdn:
             else:
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs])
+            tensor_zs=tensor_zs.to(device)
 
             pi, sigma, mu = self.model(tensor_zs)
+            # print(pi)
+            # print(sigma)
+            # print(mu)
+            pi=pi.cpu()
+            sigma=sigma.cpu()
+            mu = mu.cpu()
+            # print(pi)
+            # print(sigma)
+            # print(mu)
             # print(tensor_xs)
             # print(pi, sigma, mu)
             self.last_mu = mu.detach().numpy().reshape(len(zs), -1)[0]
@@ -702,7 +734,7 @@ class KdeMdn:
             ax1 = fig.add_subplot(212, projection='3d')
             zs_set = list(set(zs_plot))
             for z in zs_set:
-                xxs, yys = self.predict([[z]], 200, b_plot=True)
+                xxs, yys = self.predict([[z]], 200, b_plot=True,n_division=40)
                 xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
                 yys = [yi / self.widthx * 2 for yi in yys]
                 zzs = [z] * len(xxs)
@@ -1059,10 +1091,10 @@ def test_ss_2d_density():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     file = "/data/tpcds/40G/ss_600k_headers.csv"
-    file = "/Users/scott/projects/ss_600k_headers.csv"
+    # file = "/Users/scott/projects/ss_600k_headers.csv"
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
-    df_train = df  # .head(1000)
+    df_train = df#.head(1000)
     df_test = df  # .head(1000)
     g_train = df_train.ss_store_sk.values[:, np.newaxis]
     x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
@@ -1075,7 +1107,7 @@ def test_ss_2d_density():
     # raise Exception()
 
     kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit(g_train, x_train, num_epoch=1, num_gaussians=20)
+    kdeMdn.fit(g_train, x_train, num_epoch=10, num_gaussians=20)
 
     # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
 
@@ -1228,12 +1260,15 @@ def bin_wise_error_ss():
     kdeMdn.bin_wise_error()
 
 
+
+
 if __name__ == "__main__":
     # test_pm25_2d_density()
     # test_pm25_2d_density()
     # test_pm25_3d()
     # test_ss_3d()
     # test_ss_3d()
-    # test_ss_2d_density()
+    test_ss_2d_density()
     # test_gmm()
-    bin_wise_error_ss()
+    # bin_wise_error_ss()
+
