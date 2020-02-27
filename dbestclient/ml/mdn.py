@@ -252,6 +252,10 @@ class RegMdn():
         ys = ys[:, np.newaxis]
         tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
 
+        # move variables to cuda
+        tensor_xzs= tensor_xzs.to(device)
+        tensor_ys=tensor_ys.to(device)
+
         my_dataset = torch.utils.data.TensorDataset(
             tensor_xzs, tensor_ys)  # create your datset
         # , num_workers=8) # create your dataloader
@@ -267,12 +271,16 @@ class RegMdn():
             MDN(self.n_mdn_layer_node, 1, num_gaussians)
         )
 
+        self.model = self.model.to(device)
+
         optimizer = optim.Adam(self.model.parameters())
         for epoch in range(num_epoch):
             if epoch % 100 == 0:
                 print("< Epoch {}".format(epoch))
             # train the model
             for minibatch, labels in my_dataloader:
+                minibatch.to(device)
+                labels.to(device)
                 self.model.zero_grad()
                 pi, sigma, mu = self.model(minibatch)
                 loss = mdn_loss(pi, sigma, mu, labels)
@@ -551,7 +559,7 @@ class RegMdn():
 class KdeMdn:
     """This is the implementation of density estimation using MDN"""
 
-    def __init__(self, b_store_training_data=False, b_one_hot=True, b_use_cuda=True):
+    def __init__(self, b_store_training_data=False, b_one_hot=True):
         if b_store_training_data:
             self.xs = None  # query range
             self.zs = None  # group by balue
@@ -565,9 +573,7 @@ class KdeMdn:
         self.enc = None
         self.is_normalized = False
         self.b_one_hot = b_one_hot
-        self.b_use_cuda= b_use_cuda
-        if self.b_use_cuda:
-            self.device=torch.device('cuda')
+
 
     def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, b_show_plot=False):
         """
@@ -611,9 +617,9 @@ class KdeMdn:
         xs = xs[:, np.newaxis]
         tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
 
-        if self.b_use_cuda:
-            tensor_xs = tensor_xs.to(device)
-            tensor_zs = tensor_zs.to(device)
+        # move variables to device
+        tensor_xs = tensor_xs.to(device)
+        tensor_zs = tensor_zs.to(device)
 
         my_dataset = torch.utils.data.TensorDataset(
             tensor_zs, tensor_xs)  # create your datset
@@ -629,8 +635,8 @@ class KdeMdn:
             nn.Dropout(0.1),
             MDN(n_mdn_layer_node, 1, num_gaussians)
         )
-        if self.b_use_cuda:
-            self.model = self.model.to(device)
+
+        self.model = self.model.to(device)
 
         optimizer = optim.Adam(self.model.parameters())
         for epoch in range(num_epoch):
@@ -639,9 +645,9 @@ class KdeMdn:
             # train the model
             for minibatch, labels in my_dataloader:
                 self.model.zero_grad()
-                if self.b_use_cuda:
-                    minibatch.to(self.device)
-                    labels.to(self.device)
+                # move variables to device
+                minibatch.to(device)
+                labels.to(device)
                 pi, sigma, mu = self.model(minibatch)
                 loss = mdn_loss(pi, sigma, mu, labels)
                 loss.backward()
