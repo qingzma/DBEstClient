@@ -40,12 +40,13 @@ def run():
 def build_models(sqlExecutor):
     # 10k
     sqlExecutor.execute(
-        "create table ss40g_600k_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
+        "create table ss40g_600k_gg(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
         # "create table ss40g_600k(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
         # "create table ss_600k(ss_quantity real, ss_sales_price real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
 
 def query(sqlExecutor):
-    sqlExecutor.execute("select count(ss_sales_price)  from ss40g_600k_cpu where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk")
+    sqlExecutor.execute("select count(ss_sales_price)  from ss40g_600k_gg where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk")
+
     # ("select count(ss_quantity)  from ss_600k where ss_sales_price between 1  and 20   group by ss_store_sk")
 
 if __name__=="__main__":
