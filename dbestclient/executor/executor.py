@@ -7,7 +7,7 @@
 import sys
 import pickle
 
-from dbestclient.executor.queryenginemdn import MdnQueryEngine
+from dbestclient.executor.queryenginemdn import MdnQueryEngine, MdnQueryEngineBundle
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer, KdeModelTrainer
 from dbestclient.parser.parser import DBEstParser
@@ -41,6 +41,7 @@ class SqlExecutor:
         self.table_header = None
         self.n_total_records = None  # a dictionary. {total:num, group_1:count_i}
         self.use_kde = True
+        self.b_use_gg = True
         # exit()
 
     def init_model_catalog(self):
@@ -201,14 +202,22 @@ class SqlExecutor:
                         # print(xys)
                         n_sample_point = {} #get_group_count_from_df(
                             #xys, groupby_attribute)
-                        kdeModelWrapper = KdeModelTrainer(mdl,tbl,xheader,yheader,groupby_attribute=groupby_attribute,
-                                                          groupby_values=list(n_total_point.keys()),
-                                                          n_total_point=n_total_point, n_sample_point=n_sample_point,
-                                                          x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
-                        xys)
-                        kdeModelWrapper.serialize2warehouse(
-                            self.config['warehousedir'])
-                        self.model_catalog.add_model_wrapper(kdeModelWrapper)
+
+
+                        if not self.b_use_gg:
+                            kdeModelWrapper = KdeModelTrainer(mdl,tbl,xheader,yheader,groupby_attribute=groupby_attribute,
+                                                              groupby_values=list(n_total_point.keys()),
+                                                              n_total_point=n_total_point, n_sample_point=n_sample_point,
+                                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                            xys)
+                            kdeModelWrapper.serialize2warehouse(
+                                self.config['warehousedir'])
+                            self.model_catalog.add_model_wrapper(kdeModelWrapper)
+                        else:
+                            queryEngineBundle=MdnQueryEngineBundle(config=self.config).fit(xys,groupby_attribute,n_total_point,mdl,tbl,xheader,yheader,n_per_group=20)
+                            self.model_catalog.add_model_wrapper(queryEngineBundle)
+                            queryEngineBundle.serialize2warehouse(
+                                self.config['warehousedir'])
                 time2 = datetime.now()
                 t = (time2-time1).seconds
                 if self.config['verbose']:
@@ -277,7 +286,10 @@ class SqlExecutor:
                         start = datetime.now()
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
-                        qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl+".pkl"],self.config)   #mdl+"_groupby_"+groupby_attribute+".pkl"
+                        if not self.b_use_gg:
+                            qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl+".pkl"],self.config)   #mdl+"_groupby_"+groupby_attribute+".pkl"
+                        else:
+                            qe = self.model_catalog.model_catalog[mdl+".pkl"]
                         print("OK")
                         qe.predicts(func, x_lb=x_lb, x_ub=x_ub)[0]
 

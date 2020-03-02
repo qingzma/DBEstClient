@@ -657,6 +657,13 @@ class KdeMdn:
         return self
 
     def predict(self, zs, xs, b_plot=False, n_division=100):
+        # convert group zs from string to int
+        # print(zs)
+        # if zs[0][0] =="":
+        #     zs=[[0.0]]
+        #     print("converted to [[0.0]]")
+        # zs = [[float(zs[0][0])]]
+
         if self.is_normalized:
             xs = self.normalize(xs, self.meanx, self.widthx)
 
@@ -666,6 +673,7 @@ class KdeMdn:
         if zs != self.last_zs:
             self.last_zs = zs
             if self.b_one_hot:
+                # print(zs)
                 zs_onehot = self.enc.transform(zs).toarray()
                 # print(zs_onehot)
                 tensor_zs = torch.stack([torch.Tensor(i)

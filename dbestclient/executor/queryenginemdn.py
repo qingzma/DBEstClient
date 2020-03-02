@@ -5,14 +5,22 @@
 # Q.Ma.2@warwick.ac.uk
 
 from datetime import datetime
+
+import dill
 from scipy import integrate
 import numpy as np
 from torch.multiprocessing import Process, set_start_method, Queue, Pool
+import pandas as pd
+
+from dbestclient.io.sampling import DBEstSampling
+from dbestclient.ml.modeltrainer import KdeModelTrainer
+from dbestclient.tools.dftools import get_group_count_from_summary_file
 
 try:
     set_start_method('spawn')
 except RuntimeError:
-    pass
+    print("Fail to set start method as spawn for pytorch multiprocessing, use default in advance. (see queryenginemdn "
+          "for more info.)")
 
 
 class MdnQueryEngine:
@@ -125,15 +133,15 @@ class MdnQueryEngine:
         return p, t
 
     def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4):
-        predictions = []
-        times = []
+        predictions = {}
+        times = {}
         if not b_parallel:  # single process implementation
             for groupby_value in self.groupby_values:
                 if groupby_value == "":
                     continue
                 pre, t = self.predict(func, x_lb, x_ub, float(groupby_value))
-                predictions.append(pre)
-                times.append(t)
+                predictions[groupby_value] = pre
+                times[groupby_value] = t
                 print(groupby_value, pre)
         else:  # multiple threads implementation
 
@@ -148,41 +156,24 @@ class MdnQueryEngine:
 
             with Pool(processes=n_jobs) as pool:
                 for subgroup in subgroups:
-                    i = pool.apply_async(query_partial_group,(self, subgroup, func, x_lb, x_ub))
+                    i = pool.apply_async(query_partial_group, (self, subgroup, func, x_lb, x_ub))
                     instances.append(i)
                     # print(i.get())
                     # print(instances[0].get(timeout=1))
                 for i in instances:
-                    result= i.get()
-                    pred=result[0]
-                    t=result[1]
-                    predictions+=pred
-                    times+=t
-            # print(predictions)
-            # print(times)
-            # print("Time cost-initial is "+ str(sum(times)))
-
-
-
-
-            # processes = []
-            # for subgroup in subgroups:
-            #     t = Process(target=query_partial_group, args=(self, subgroup, func, x_lb, x_ub))
-            #     processes.append(t)
-            #     t.start()
-            #
-            #
-            #
-            # for t in processes:
-            #     t.join()
-
-            # print(result_queue.get())
-
-            # raise Exception()
+                    result = i.get()
+                    pred = result[0]
+                    t = result[1]
+                    predictions.update(pred)
+                    times.update(t)
+                    # predictions += pred
+                    # times += t
         return predictions, times
 
 
-result_queue = Queue()
+
+
+# result_queue = Queue()
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
@@ -190,5 +181,117 @@ def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
     return mdnQueryEngine.predicts(func, x_lb, x_ub, b_parallel=False, n_jobs=1)
 
 
+class MdnQueryEngineBundle():
+    def __init__(self, config: dict):
+        self.enginesContainer = {}
+        self.config = config
+        self.n_total_point = None
+        self.group_keys_chunk = None
+        self.group_keys = None
+        self.pickle_file_name = None
+
+    def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
+            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10) -> None:
+
+
+        self.pickle_file_name = mdl
+        grouped = df.groupby(groupby_attribute)
+        self.group_keys = list(grouped.groups.keys())
+        self.group_keys_chunk = [self.group_keys[i:i+n_per_group] for i in range(0,len(self.group_keys), n_per_group)]
+        # print(self.group_keys_chunk)
+
+        groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group]) for sub_group in self.group_keys_chunk]
+
+        # print(n_total_point)
+        for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk,groups_chunk)):
+            # print(index,chunk_key)
+            n_total_point_chunk={float(k):n_total_point[k] for k in n_total_point if float(k) in chunk_key}
+            # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
+            # raise Exception()
+            print("Training network "+str(index) + " for group "+ str(chunk_key))
+            kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
+                                              groupby_values=chunk_key,
+                                              n_total_point=n_total_point, n_sample_point={},
+                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                chunk_group,network_size="small")
+            engine = MdnQueryEngine(kdeModelWrapper,config=self.config)
+            self.enginesContainer[index] = engine
+        return self
+
+
+    def predicts(self,func, x_lb, x_ub,n_jobs=4):
+        instances = []
+        predictions = []
+        times = []
+        with Pool(processes=n_jobs) as pool:
+            for index, sub_group in enumerate(self.group_keys_chunk):
+                engine = self.enginesContainer[index]
+                i = pool.apply_async(query_partial_group, (engine, sub_group, func, x_lb, x_ub))
+                instances.append(i)
+                # print(i.get())
+                # print(instances[0].get(timeout=1))
+            for i in instances:
+                result = i.get()
+                pred = result[0]
+                t = result[1]
+                predictions += pred
+                times += t
+        return predictions, times
+
+    def init_pickle_file_name(self):
+        # self.pickle_file_name = self.pickle_file_name
+        return self.pickle_file_name+ ".pkl"
+
+    def serialize2warehouse(self, warehouse):
+        if self.pickle_file_name is None:
+            self.init_pickle_file_name()
+
+        with open(warehouse + '/' + self.init_pickle_file_name(), 'wb') as f:
+            dill.dump(self, f)
+
+
+
+
+
+
 if __name__ == "__main__":
-    pass
+    config = {
+        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
+        'verbose': 'True',
+        'b_show_latency': 'True',
+        'backend_server': 'None',
+        'csv_split_char': ',',
+        "epsabs": 10.0,
+        "epsrel": 0.1,
+        "mesh_grid_num": 20,
+        "limit": 30,
+        # "b_reg_mean":'True',
+        "num_epoch": 400,
+        "reg_type": "mdn",
+        "density_type": "density_type",
+        "num_gaussians": 4,
+    }
+
+    headers = ["ss_sold_date_sk", "ss_sold_time_sk", "ss_item_sk", "ss_customer_sk", "ss_cdemo_sk", "ss_hdemo_sk",
+               "ss_addr_sk", "ss_store_sk", "ss_promo_sk", "ss_ticket_number", "ss_quantity", "ss_wholesale_cost",
+               "ss_list_price", "ss_sales_price", "ss_ext_discount_amt", "ss_ext_sales_price",
+               "ss_ext_wholesale_cost", "ss_ext_list_price", "ss_ext_tax", "ss_coupon_amt", "ss_net_paid",
+               "ss_net_paid_inc_tax", "ss_net_profit", "none"]
+    groupby_attribute = "ss_store_sk"
+    xheader = "ss_wholesale_cost"
+    yheader = "ss_list_price"
+
+    sampler = DBEstSampling(headers=headers, usecols=[xheader, yheader, groupby_attribute])
+    total_count = {'total': 2879987999}
+    original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
+
+    sampler.make_sample(original_data_file, 600000, "uniform", split_char="|",
+                        num_total_records=total_count)
+    xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
+    n_total_point = get_group_count_from_summary_file(config['warehousedir'] + "/num_of_points57.txt", sep=',')
+
+
+    bundles = MdnQueryEngineBundle(config=config)
+    bundles.fit(xyzs,groupby_attribute,n_total_point,"mdl","tbl",xheader,yheader,n_nodes=5,n_per_group=30,n_epoch=1)
+
+    bundles.predict("count", 2451119,2451483)

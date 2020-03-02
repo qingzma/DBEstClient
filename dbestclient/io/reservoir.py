@@ -88,10 +88,13 @@ class ReservoirSampling:
             if usecols is not None:
                 self.sampledf = self.sampledf[usecols]
 
-                for col in usecols:
+                for col in usecols:#[0:-1]:
                     self.sampledf[col] = pd.to_numeric(self.sampledf[col], errors='coerce')
+                # convert the group by column to string
+                # self.sampledf = self.sampledf.dropna(subset=[usecols[-1]])
+                # self.sampledf[usecols[-1]] = self.sampledf[usecols[-1]].astype(str)
                 self.sampledf = self.sampledf.dropna(subset=usecols)
-                # print(self.sampledf)
+
 
             if save2file is not None:
                 self.sampledf.to_csv(save2file, index=False)
@@ -99,13 +102,13 @@ class ReservoirSampling:
 
     def getyx(self, y, x, dropna=True, b_return_mean=False,groupby=None):
         # drop non-numerical values.
-        if dropna:
-            self.sampledf = self.sampledf.dropna(subset=[y, x])
-        if groupby is not None:
-            self.sampledf = self.sampledf.dropna(subset=[groupby])
-            self.sampledf[groupby] = pd.to_numeric(self.sampledf[groupby], errors='coerce').fillna(0)
-        self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
-        self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
+        # if dropna:
+        #     self.sampledf = self.sampledf.dropna(subset=[y, x])
+        # if groupby is not None:
+        #     self.sampledf = self.sampledf.dropna(subset=[groupby])
+        #     self.sampledf[groupby] = pd.to_numeric(self.sampledf[groupby], errors='coerce').fillna(0)
+        # self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
+        # self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
 
 
         if b_return_mean:
