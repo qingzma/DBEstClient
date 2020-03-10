@@ -132,14 +132,14 @@ class MdnQueryEngine:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
 
-    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4):
+    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4,result2file=None):
         predictions = {}
         times = {}
         if not b_parallel:  # single process implementation
             for groupby_value in self.groupby_values:
                 if groupby_value == "":
                     continue
-                pre, t = self.predict(func, x_lb, x_ub, float(groupby_value))
+                pre, t = self.predict(func, x_lb, x_ub, groupby_value)
                 predictions[groupby_value] = pre
                 times[groupby_value] = t
                 print(groupby_value, pre)
@@ -168,6 +168,10 @@ class MdnQueryEngine:
                     times.update(t)
                     # predictions += pred
                     # times += t
+        if result2file is not None:
+            with open(result2file, 'w') as f:
+                for key in predictions:
+                    f.write(key+","+str(predictions[key]))
         return predictions, times
 
 
@@ -191,40 +195,61 @@ class MdnQueryEngineBundle():
         self.pickle_file_name = None
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
-            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10) -> None:
+            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10) -> None:
 
 
         self.pickle_file_name = mdl
         grouped = df.groupby(groupby_attribute)
+
         self.group_keys = list(grouped.groups.keys())
+
+        # sort the group key by value
+        fakeKey = []
+        for key in self.group_keys:
+            if key =="":
+                k = 0.0
+            else:
+                try:
+                    k=float(key)
+                except ValueError:
+                    raise ValueError("ValueError: could not convert string to float in " + __file__)
+            fakeKey.append(k)
+
+        self.group_keys = [k for _, k in sorted(zip(fakeKey,self.group_keys))]
+        # print(self.group_keys)
+
+
         self.group_keys_chunk = [self.group_keys[i:i+n_per_group] for i in range(0,len(self.group_keys), n_per_group)]
         # print(self.group_keys_chunk)
+
+
 
         groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group]) for sub_group in self.group_keys_chunk]
 
         # print(n_total_point)
         for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk,groups_chunk)):
             # print(index,chunk_key)
-            n_total_point_chunk={float(k):n_total_point[k] for k in n_total_point if float(k) in chunk_key}
+            n_total_point_chunk={k:n_total_point[k] for k in n_total_point if k in chunk_key}
             # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
             # raise Exception()
             print("Training network "+str(index) + " for group "+ str(chunk_key))
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
-                                              n_total_point=n_total_point, n_sample_point={},
+                                              n_total_point=n_total_point_chunk, n_sample_point={},
                                               x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
-                chunk_group,network_size="small")
+                chunk_group,network_size="small",n_mdn_layer_node=n_mdn_layer_node)
             engine = MdnQueryEngine(kdeModelWrapper,config=self.config)
             self.enginesContainer[index] = engine
         return self
 
-
-    def predicts(self,func, x_lb, x_ub,n_jobs=4):
+    def predicts(self,func, x_lb, x_ub,n_jobs=4,result2file=None):
         instances = []
-        predictions = []
-        times = []
+        predictions = {}
+        times = {}
         with Pool(processes=n_jobs) as pool:
+            # print(self.group_keys_chunk)
             for index, sub_group in enumerate(self.group_keys_chunk):
+                # print(sub_group)
                 engine = self.enginesContainer[index]
                 i = pool.apply_async(query_partial_group, (engine, sub_group, func, x_lb, x_ub))
                 instances.append(i)
@@ -234,8 +259,13 @@ class MdnQueryEngineBundle():
                 result = i.get()
                 pred = result[0]
                 t = result[1]
-                predictions += pred
-                times += t
+                predictions.update(pred)
+                times.update(t)
+        if result2file is not None:
+            # print(predictions)
+            with open(result2file, 'w') as f:
+                for key in predictions:
+                    f.write(str(key)+","+str(predictions[key])+"\n")
         return predictions, times
 
     def init_pickle_file_name(self):

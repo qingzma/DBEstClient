@@ -31,6 +31,6 @@ def get_group_count_from_summary_file(file, sep=','):
     with open(file, 'r') as f:
         for line in f:
             splits = line.split(sep)
-            counts[str(int(splits[0]))]=int(splits[1])
+            counts[splits[0]]=int(splits[1])
     return counts
 

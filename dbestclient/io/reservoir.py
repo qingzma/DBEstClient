@@ -88,13 +88,13 @@ class ReservoirSampling:
             if usecols is not None:
                 self.sampledf = self.sampledf[usecols]
 
-                for col in usecols:#[0:-1]:
+                for col in usecols[0:2]:#[0:-1]:
                     self.sampledf[col] = pd.to_numeric(self.sampledf[col], errors='coerce')
                 # convert the group by column to string
-                # self.sampledf = self.sampledf.dropna(subset=[usecols[-1]])
-                # self.sampledf[usecols[-1]] = self.sampledf[usecols[-1]].astype(str)
+                if len(usecols)==3:
+                    # self.sampledf = self.sampledf.dropna(subset=[usecols[-1]])
+                    self.sampledf[usecols[-1]] = self.sampledf[usecols[-1]].astype(str)
                 self.sampledf = self.sampledf.dropna(subset=usecols)
-
 
             if save2file is not None:
                 self.sampledf.to_csv(save2file, index=False)

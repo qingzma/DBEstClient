@@ -87,7 +87,7 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql):
+    def execute(self, sql,n_per_gg=10,result2file=None,n_mdn_layer_node=10):
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -192,8 +192,8 @@ class SqlExecutor:
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
                     else: # "mdn"
                         xys = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
-                        xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
-                        xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
+                        # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
+                        # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
 
                         # n_total_point = get_group_count_from_table(
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
@@ -214,7 +214,7 @@ class SqlExecutor:
                                 self.config['warehousedir'])
                             self.model_catalog.add_model_wrapper(kdeModelWrapper)
                         else:
-                            queryEngineBundle=MdnQueryEngineBundle(config=self.config).fit(xys,groupby_attribute,n_total_point,mdl,tbl,xheader,yheader,n_per_group=20)
+                            queryEngineBundle=MdnQueryEngineBundle(config=self.config).fit(xys,groupby_attribute,n_total_point,mdl,tbl,xheader,yheader,n_per_group=n_per_gg,n_mdn_layer_node=n_mdn_layer_node)
                             self.model_catalog.add_model_wrapper(queryEngineBundle)
                             queryEngineBundle.serialize2warehouse(
                                 self.config['warehousedir'])
@@ -291,7 +291,7 @@ class SqlExecutor:
                         else:
                             qe = self.model_catalog.model_catalog[mdl+".pkl"]
                         print("OK")
-                        qe.predicts(func, x_lb=x_lb, x_ub=x_ub)[0]
+                        qe.predicts(func, x_lb=x_lb, x_ub=x_ub,result2file=result2file)
 
                     if self.config['verbose']:
                         end = datetime.now()

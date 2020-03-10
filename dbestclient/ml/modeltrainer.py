@@ -92,12 +92,13 @@ class KdeModelTrainer:
         self.x_max_value = x_max_value
         self.config = config
 
-    def fit_from_df(self, df,network_size="small"):
+    def fit_from_df(self, df,network_size="small",n_mdn_layer_node=10):
         print("Starting training kde models for model "+ self.mdl)
 
         x = df[self.xheader].values#.reshape(-1,1)
         y = df[self.yheader].values
         groupby = df[self.groupby_attribute].values
+        # print(groupby)
 
 
         # print(x,groupby)
@@ -109,18 +110,18 @@ class KdeModelTrainer:
         print("training regression...")
         if network_size.lower() =="small":
 
-            reg = RegMdn(dim_input=2,n_mdn_layer_node=10,b_store_training_data=False).fit(xzs_train, y,num_epoch=1,num_gaussians=3)
+            reg = RegMdn(dim_input=2,n_mdn_layer_node=n_mdn_layer_node,b_store_training_data=False).fit(xzs_train, y,num_epoch=20,num_gaussians=3)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
             density = KdeMdn(b_one_hot=True,b_store_training_data=False)
-            density.fit(groupby[:,np.newaxis], x, num_epoch=10, num_gaussians=10,n_mdn_layer_node=10)
+            density.fit(groupby[:,np.newaxis], x, num_epoch=20, num_gaussians=10,n_mdn_layer_node=n_mdn_layer_node)
         elif network_size.lower() == "large":
 
-            reg = RegMdn(dim_input=2, n_mdn_layer_node=15, b_store_training_data=False).fit(xzs_train, y, num_epoch=1,num_gaussians=3)
+            reg = RegMdn(dim_input=2, n_mdn_layer_node=15, b_store_training_data=False).fit(xzs_train, y, num_epoch=200,num_gaussians=3)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
             density = KdeMdn(b_one_hot=True, b_store_training_data=False)
-            density.fit(groupby[:, np.newaxis], x, num_epoch=20, num_gaussians=20, n_mdn_layer_node=20)
+            density.fit(groupby[:, np.newaxis], x, num_epoch=200, num_gaussians=20, n_mdn_layer_node=20)
         elif network_size.lower() == "testing":
 
             reg = RegMdn(dim_input=2, n_mdn_layer_node=8, b_store_training_data=False).fit(xzs_train, y, num_epoch=1,
@@ -130,7 +131,7 @@ class KdeModelTrainer:
             density = KdeMdn(b_one_hot=True, b_store_training_data=False)
             density.fit(groupby[:, np.newaxis], x, num_epoch=2, num_gaussians=8, n_mdn_layer_node=10)
         else:
-            raise ValueError("unexpected network_size passed in  modeltrainer.py")
+            raise ValueError("unexpected network_size passed in "+__file__)
 
         # density.plot_density_per_group()
 
