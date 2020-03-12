@@ -575,86 +575,161 @@ class KdeMdn:
         self.b_one_hot = b_one_hot
 
 
-    def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, b_show_plot=False):
+    def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20,lr=0.001, hidden=1,b_grid_search=True):
         """
         Fit the density estimation model.
         :param zs: group by attribute
         :param xs: range attribute
         """
+        if not b_grid_search:
+            if self.b_store_training_data:
+                self.zs = zs
+                self.xs = xs
 
-        if self.b_store_training_data:
-            self.zs = zs
-            self.xs = xs
+            if b_normalize:
+                self.meanx = (np.max(xs) + np.min(xs)) / 2
+                self.widthx = np.max(xs) - np.min(xs)
 
-        if b_normalize:
-            self.meanx = (np.max(xs) + np.min(xs)) / 2
-            self.widthx = np.max(xs) - np.min(xs)
+                xs = np.array([self.normalize(i, self.meanx, self.widthx)
+                               for i in xs])
+                self.is_normalized = True
+                if not self.b_one_hot:
+                    convert2float=True
+                    if convert2float:
+                        try:
+                            zs_float=[]
+                            for item in zs:
+                                if item[0] =="":
+                                    zs_float.append([0.0])
+                                else:
+                                    zs_float.append([(float)(item[0])])
+                            zs =np.array(zs_float)
+                        except:
+                            raise Exception
 
-            xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            self.is_normalized = True
-            if not self.b_one_hot:
-                self.meanz = (np.max(zs) + np.min(zs)) / 2
-                self.widthz = np.max(zs) - np.min(zs)
+                    self.meanz = (np.max(zs) + np.min(zs)) / 2
+                    self.widthz = np.max(zs) - np.min(zs)
 
-                zs = np.array([self.normalize(i, self.meanz, self.widthz)
-                               for i in zs])
+                    zs = np.array([self.normalize(i, self.meanz, self.widthz)
+                                   for i in zs])
 
-        if self.b_one_hot:
-            self.enc = OneHotEncoder(handle_unknown='ignore')
-            # zs_onehot = zs#[:, np.newaxis]
-            # print(zs_onehot)
-            zs_onehot = self.enc.fit_transform(zs).toarray()
+            if self.b_one_hot:
+                self.enc = OneHotEncoder(handle_unknown='ignore')
+                # zs_onehot = zs#[:, np.newaxis]
+                # print(zs_onehot)
+                zs_onehot = self.enc.fit_transform(zs).toarray()
 
-            input_dim = len(self.enc.categories_[0])
+                input_dim = len(self.enc.categories_[0])
 
-            tensor_zs = torch.stack([torch.Tensor(i)
-                                     for i in zs_onehot])  # transform to torch tensors
-        else:
-            input_dim = 1
-            tensor_zs = torch.stack([torch.Tensor(i)
-                                     for i in zs])
-        xs = xs[:, np.newaxis]
-        tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
+                tensor_zs = torch.stack([torch.Tensor(i)
+                                         for i in zs_onehot])  # transform to torch tensors
+            else:
+                input_dim = 1
+                tensor_zs = torch.stack([torch.Tensor(i)
+                                         for i in zs])
+            xs = xs[:, np.newaxis]
+            tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
 
-        # move variables to device
-        tensor_xs = tensor_xs.to(device)
-        tensor_zs = tensor_zs.to(device)
+            # move variables to device
+            tensor_xs = tensor_xs.to(device)
+            tensor_zs = tensor_zs.to(device)
 
-        my_dataset = torch.utils.data.TensorDataset(
-            tensor_zs, tensor_xs)  # create your datset
-        # , num_workers=8) # create your dataloader
-        my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False)
+            my_dataset = torch.utils.data.TensorDataset(
+                tensor_zs, tensor_xs)  # create your datset
+            # , num_workers=8) # create your dataloader
+            my_dataloader = torch.utils.data.DataLoader(
+                my_dataset, batch_size=1000, shuffle=False)
 
 
-        # initialize the model
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
-            nn.Tanh(),
-            nn.Dropout(0.1),
-            MDN(n_mdn_layer_node, 1, num_gaussians)
-        )
+            # initialize the model
+            if hidden ==1:
+                self.model = nn.Sequential(
+                    nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
+                    nn.Tanh(),
+                    nn.Dropout(0.1),
+                    MDN(n_mdn_layer_node, 1, num_gaussians)
+                )
+            elif hidden == 2:
+                self.model = nn.Sequential(
+                    nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
+                    nn.Tanh(),
+                    nn.Linear(n_mdn_layer_node, n_mdn_layer_node),  # self.dim_input
+                    nn.Tanh(),
+                    nn.Dropout(0.1),
+                    MDN(n_mdn_layer_node, 1, num_gaussians)
+                )
+            else:
+                raise ValueError("hidden layers must be 1 or 2, in "+__file__)
 
-        self.model = self.model.to(device)
+            self.model = self.model.to(device)
 
-        optimizer = optim.Adam(self.model.parameters())
-        for epoch in range(num_epoch):
-            if epoch % 1 == 0:
-                print("< Epoch {}".format(epoch))
-            # train the model
-            for minibatch, labels in my_dataloader:
-                self.model.zero_grad()
-                # move variables to device
-                minibatch.to(device)
-                labels.to(device)
-                pi, sigma, mu = self.model(minibatch)
-                loss = mdn_loss(pi, sigma, mu, labels)
-                loss.backward()
-                optimizer.step()
-        # turn the model to eval mode.
-        self.model.eval()
-        return self
+            optimizer = optim.Adam(self.model.parameters(),lr=lr)
+            decayRate = 0.96
+            my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=decayRate)
+            for epoch in range(num_epoch):
+                if epoch % 1 == 0:
+                    print("< Epoch {}".format(epoch))
+                # train the model
+                for minibatch, labels in my_dataloader:
+                    self.model.zero_grad()
+                    # move variables to device
+                    minibatch.to(device)
+                    labels.to(device)
+                    pi, sigma, mu = self.model(minibatch)
+                    loss = mdn_loss(pi, sigma, mu, labels)
+                    loss.backward()
+                    optimizer.step()
+                my_lr_scheduler.step()
+            # turn the model to eval mode.
+            self.model.eval()
+            print("finish mdn training...")
+            return self
+        else: #grid search
+            return self.fit_grid_search(zs, xs, b_normalize=b_normalize)
+
+    def fit_grid_search(self,zs, xs, b_normalize=True):
+        import itertools as it
+        param_grid ={'epoch':[5], 'lr':[0.001,0.0001],'node':[5,10,20],'hidden':[1,2],'gaussian':[10]}
+        # param_grid = {'epoch': [2], 'lr': [0.001], 'node': [4,  12], 'hidden': [1, 2], 'gaussian': [10]}
+        errors=[]
+        combinations = it.product(*(param_grid[Name] for Name in param_grid))
+        combinations = list(combinations)
+        combs = []
+        for combination in combinations:
+            idx = 0
+            comb={}
+            # print(combination)
+            for key in param_grid:
+                comb[key]=combination[idx]
+                idx +=1
+            combs.append(comb)
+            # print(comb)
+
+        self.b_store_training_data=True
+        for para in combs:
+            print("Grid search for parameter set :", para)
+            instance = self.fit(zs, xs, b_normalize=b_normalize, num_gaussians=para['gaussian'], num_epoch=para['epoch'],
+                                n_mdn_layer_node=para['node'],lr=para['lr'],hidden=para['hidden'],b_grid_search=False)
+            errors.append(instance.score())
+
+        index = errors.index(min(errors))
+        para  = combs[index]
+        print("Finding the best configuration for the network",para)
+
+        self.b_store_training_data = False
+        instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
+                            n_mdn_layer_node=para['node'], lr=para['lr'],hidden=para['hidden'],b_grid_search=False)
+        return instance
+
+
+
+
+
+
+
+
+
+
 
     def predict(self, zs, xs, b_plot=False, n_division=100):
         # convert group zs from string to int
@@ -663,6 +738,22 @@ class KdeMdn:
         #     zs=[[0.0]]
         #     print("converted to [[0.0]]")
         # zs = [[float(zs[0][0])]]
+        if not self.b_one_hot:
+            # print(zs, type(zs))
+            convert2float = True
+            if convert2float:
+                try:
+                    zs_float = []
+                    for item in zs:
+                        if item[0] == "":
+                            zs_float.append([0.0])
+                        else:
+                            zs_float.append([(float)(item[0])])
+                    zs = zs_float
+                    # print(zs, type(zs))
+                    # raise Exception
+                except:
+                    raise Exception
 
         if self.is_normalized:
             xs = self.normalize(xs, self.meanx, self.widthx)
@@ -727,7 +818,7 @@ class KdeMdn:
             fig = plt.figure()
             ax = fig.add_subplot(211, projection='3d')
             zs_plot = self.zs.reshape(1, -1)[0]
-            hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=20)
+            hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=n_division)
             # plt.scatter(zs, xs)
 
             # Construct arrays for the anchor positions of the 16 bars.
@@ -748,7 +839,7 @@ class KdeMdn:
             ax1 = fig.add_subplot(212, projection='3d')
             zs_set = list(set(zs_plot))
             for z in zs_set:
-                xxs, yys = self.predict([[z]], 200, b_plot=True,n_division=40)
+                xxs, yys = self.predict([[z]], 200, b_plot=True,n_division=n_division)
                 xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
                 yys = [yi / self.widthx * 2 for yi in yys]
                 zzs = [z] * len(xxs)
@@ -864,7 +955,7 @@ class KdeMdn:
         with open(file, 'wb') as f:
             dill.dump(self, f)
 
-    def bin_wise_error(self,n_division=20):
+    def bin_wise_error(self,g,n_division=20,b_show_plot=True):
         if not self.b_store_training_data:
             raise ValueError("b_store_training_data must be set to True to enable the plotting function for bin-wise "
                              "comparison.")
@@ -879,15 +970,17 @@ class KdeMdn:
             zs_set = list(gp.groups.keys())
             z_min = zs_set[0]  # the minimial value of the paramater a
             z_max = zs_set[-1]  # the maximal value of the paramater a
-            z_init = zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
+            z_init = g #zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
 
-            self.fig = plt.figure(figsize=(8, 8))
+            if b_show_plot:
+                self.fig = plt.figure(figsize=(8, 8))
 
             # first we create the general layount of the figure
             # with two axes objects: one for the plot of the function
             # and the other for the slider
-            plot_ax = plt.axes([0.1, 0.2, 0.8, 0.65])
-            slider_ax = plt.axes([0.1, 0.05, 0.8, 0.05])
+            if b_show_plot:
+                plot_ax = plt.axes([0.1, 0.2, 0.8, 0.65])
+                slider_ax = plt.axes([0.1, 0.05, 0.8, 0.05])
 
             # in plot_ax we plot the function with the initial value of the parameter a
             one_group = gp.get_group(z_init)
@@ -895,21 +988,12 @@ class KdeMdn:
             x_plot = one_group['x']
             z_plot = one_group["z"]
 
-            plt.axes(plot_ax)  # select sin_ax
-            plt.title('Density Estimation')
-            plt.xlabel("Query range attribute")
-            plt.ylabel("Frequency")
-            main_plot, bins, patches = plt.hist(x_plot, bins=50)
-
-            # print(main_plot)
-            # print(bins)
-            # print(patches[0])
-            # print(patches[1])
-            # print(patches[2])
-            # print(patches[3])
-            # print(patches[4])
-            # print(patches[0]._x0,patches[0]._x1,patches[0]._height)
-            # print(patches[4]._x0, patches[4]._x1, patches[4]._height)
+            if b_show_plot:
+                plt.axes(plot_ax)  # select sin_ax
+                plt.title('Density Estimation')
+                plt.xlabel("Query range attribute")
+                plt.ylabel("Frequency")
+            main_plot, bins, patches = plt.hist(x_plot, bins=n_division)
 
             def predict_func(x):
                 return self.predict([[z_init]],x)
@@ -921,74 +1005,40 @@ class KdeMdn:
                 left, right,frequency = patch._x0, patch._x1, patch._y1/total
 
                 approx = integrate.quad(predict_func,left,right)[0]
-                print(frequency,approx)
+                # print(frequency,approx)
                 frequencies.append(frequency)
                 approxs.append(approx)
-            print(sum(frequencies),sum(approxs))
-            print(integrate.quad(predict_func, bins[0],bins[-1]))
+            # print(sum(frequencies),sum(approxs))
+            # print(integrate.quad(predict_func, bins[0],bins[-1]))
             errors = [abs(f-p) for f,p in zip(frequencies,approxs)]
-            plt.clf()
-            plt.hist(errors, bins=20)
-            plt.show()
 
+            if b_show_plot:
+                plt.clf()
+                plt.hist(errors, bins=20)
+                plt.show()
+            return sum(errors)
 
+    def score(self):
+        import random
+        if not self.b_store_training_data:
+            raise ValueError("b_store_training_data must be set to True to enable the plotting function for bin-wise "
+                             "comparison.")
+        else:
+            zs_plot = self.zs.reshape(1, -1)[0]
+            df = pd.DataFrame({"z": zs_plot, "x": self.xs})
+            df = df.dropna(subset=["z", "x"])
+            gp = df.groupby(["z"])
 
-
-            # # here we create the slider
-            # self.a_slider = Slider(slider_ax,  # the axes object containing the slider
-            #                        'groupz',  # the name of the slider parameter
-            #                        z_min,  # minimal value of the parameter
-            #                        z_max,  # maximal value of the parameter
-            #                        valinit=z_init  # initial value of the parameter
-            #                        )
-            #
-            # # plot the density estimation on another y axis
-            # ax_frequency = plt.gca()
-            # ax_density = ax_frequency.twinx()
-            # ax_density.set_ylabel("Density", color="tab:red")
-            # xxs, yys = self.predict([[z_init]], 200, b_plot=True)
-            # xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
-            # yys = [yi / self.widthx * 2 for yi in yys]
-            # #
-            # # plt.plot(xxs, yys)
-            # ax_density.plot(xxs, yys, "r")
-            #
-            # # # Next we define a function that will be executed each time the value
-            # # # indicated by the slider changes. The variable of this function will
-            # # # be assigned the value of the slider.
-            # # def update(groupz):
-            # #     # sin_plot.set_ydata(np.sin(a * x))  # set new y-coordinates of the plotted points
-            # #     group_approx = min(zs_set, key=lambda x: abs(x - groupz))
-            # #     print("result for group " + str(group_approx))
-            # #     one_group = gp.get_group(group_approx)
-            # #     x_plot = one_group['x']
-            # #     # main_plot
-            # #     plt.axes(plot_ax)
-            # #     plt.cla()
-            # #     plt.hist(x_plot, bins=100)
-            # #     plt.title('Density Estimation')
-            # #     plt.xlabel("Query range attribute")
-            # #     plt.ylabel("Frequency")
-            # #
-            # #     ax_frequency = plt.gca()
-            # #     # if ax_density is None:
-            # #     #     ax_density = ax_frequency.twinx()
-            # #     ax_density.cla()
-            # #     ax_density.set_ylabel("Density", color="tab:red")
-            # #     xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
-            # #     xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
-            # #     yys = [yi / self.widthx * 2 for yi in yys]
-            # #     #
-            # #     # plt.plot(xxs, yys)
-            # #     ax_density.plot(xxs, yys, "r")
-            # #
-            # #     self.fig.canvas.draw_idle()  # redraw the plot
-            # #
-            # # # the final step is to specify that the slider needs to
-            # # # execute the above function when its value changes
-            # # self.a_slider.on_changed(update)
-            # #
-            # plt.show()
+            zs_set = list(gp.groups.keys())
+            # random choose
+            random.seed(0)
+            zs_set = random.sample(zs_set,min(len(zs_set), 20))
+            print(zs_set)
+            errors = []
+            for g in zs_set:
+                errors.append(self.bin_wise_error(g,n_division=10,b_show_plot=False))
+            # print("score: ", errors)
+            return sum(errors)
 
 
 def de_serialize(file):
@@ -1250,7 +1300,7 @@ def bin_wise_error_ss():
     import pandas as pd
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     file = "/data/tpcds/40G/ss_600k_headers.csv"
-    file = "/Users/scott/projects/ss_600k_headers.csv"
+    # file = "/Users/scott/projects/ss_600k_headers.csv"
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
     # df = df.head(10000)
@@ -1267,11 +1317,11 @@ def bin_wise_error_ss():
     # raise Exception()
 
     kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit(g_train, x_train, num_epoch=10, num_gaussians=20)
+    kdeMdn.fit_grid_search(g_train, x_train, num_epoch=5, num_gaussians=10)
 
     # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
 
-    kdeMdn.bin_wise_error()
+    # kdeMdn.score()
 
 
 
@@ -1282,7 +1332,7 @@ if __name__ == "__main__":
     # test_pm25_3d()
     # test_ss_3d()
     # test_ss_3d()
-    test_ss_2d_density()
+    # test_ss_2d_density()
     # test_gmm()
-    # bin_wise_error_ss()
+    bin_wise_error_ss()
 

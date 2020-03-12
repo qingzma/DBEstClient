@@ -10,3 +10,4 @@ dist/
 MNIST_data/
 dbest.sublime-workspace
 .vscode/
+experiments/results/

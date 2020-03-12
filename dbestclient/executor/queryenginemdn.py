@@ -195,7 +195,7 @@ class MdnQueryEngineBundle():
         self.pickle_file_name = None
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
-            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10) -> None:
+            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10,b_one_hot_encoding=True,b_grid_search=True) :
 
 
         self.pickle_file_name = mdl
@@ -222,8 +222,6 @@ class MdnQueryEngineBundle():
         self.group_keys_chunk = [self.group_keys[i:i+n_per_group] for i in range(0,len(self.group_keys), n_per_group)]
         # print(self.group_keys_chunk)
 
-
-
         groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group]) for sub_group in self.group_keys_chunk]
 
         # print(n_total_point)
@@ -233,11 +231,15 @@ class MdnQueryEngineBundle():
             # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
             # raise Exception()
             print("Training network "+str(index) + " for group "+ str(chunk_key))
+
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
-                                              groupby_values=chunk_key,
-                                              n_total_point=n_total_point_chunk, n_sample_point={},
-                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
-                chunk_group,network_size="small",n_mdn_layer_node=n_mdn_layer_node)
+                                          groupby_values=chunk_key,
+                                          n_total_point=n_total_point_chunk, n_sample_point={},
+                                          x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                                            chunk_group,network_size="small",n_mdn_layer_node=n_mdn_layer_node,
+                                            b_one_hot_encoding=b_one_hot_encoding, b_grid_search=b_grid_search)
+
+
             engine = MdnQueryEngine(kdeModelWrapper,config=self.config)
             self.enginesContainer[index] = engine
         return self

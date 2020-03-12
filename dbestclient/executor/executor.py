@@ -87,7 +87,7 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql,n_per_gg=10,result2file=None,n_mdn_layer_node=10):
+    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True,n_jobs=4,b_grid_search=True):
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -108,10 +108,10 @@ class SqlExecutor:
                 tbl = self.parser.get_from_name()
 
                 # remove unnecessary charactor '
-                tbl=tbl.replace("'","")
-                if os.path.isfile(tbl): # the absolute path is provided
+                tbl = tbl.replace("'", "")
+                if os.path.isfile(tbl):  # the absolute path is provided
                     original_data_file = tbl
-                else: # the file is in the warehouse direcotry
+                else:  # the file is in the warehouse direcotry
                     original_data_file = self.config['warehousedir'] + "/" + tbl
                 yheader = self.parser.get_y()[0]
                 xheader = self.parser.get_x()[0]
@@ -120,11 +120,10 @@ class SqlExecutor:
 
                 # make samples
                 if not self.parser.if_contain_groupby():  # if group by is not involved
-                    sampler = DBEstSampling(headers=self.table_header,usecols=[xheader,yheader])
+                    sampler = DBEstSampling(headers=self.table_header, usecols=[xheader, yheader])
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
-                    sampler = DBEstSampling(headers=self.table_header,usecols=[xheader,yheader,groupby_attribute])
-
+                    sampler = DBEstSampling(headers=self.table_header, usecols=[xheader, yheader, groupby_attribute])
 
                 # print(self.config)
                 if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
@@ -137,16 +136,18 @@ class SqlExecutor:
                         print(
                             "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
                         return
-                print("Start creating model "+mdl)
-                time1= datetime.now()
+                print("Start creating model " + mdl)
+                time1 = datetime.now()
 
                 if self.save_sample:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config['csv_split_char'],
-                        file2save=self.config['warehousedir'] + "/" + mdl + '.csv',num_total_records=self.n_total_records)
+                        file2save=self.config['warehousedir'] + "/" + mdl + '.csv',
+                        num_total_records=self.n_total_records)
                 else:
                     sampler.make_sample(
-                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],num_total_records=self.n_total_records)
+                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],
+                        num_total_records=self.n_total_records)
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     # check whether this model exists, if so, skip training
@@ -179,18 +180,20 @@ class SqlExecutor:
                         xys = sampler.getyx(yheader, xheader)
                         # print(xys[groupby_attribute])
                         n_total_point = get_group_count_from_table(
-                            original_data_file, groupby_attribute, sep=self.config['csv_split_char'],headers=self.table_header)
+                            original_data_file, groupby_attribute, sep=self.config['csv_split_char'],
+                            headers=self.table_header)
                         # print(xys)
                         n_sample_point = get_group_count_from_df(
                             xys, groupby_attribute)
                         groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
                                                                     n_total_point, n_sample_point,
-                                                                    x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                                                                    x_min_value=-np.inf, x_max_value=np.inf,
+                                                                    config=self.config).fit_from_df(
                             xys)
                         groupby_model_wrapper.serialize2warehouse(
                             self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
-                    else: # "mdn"
+                    else:  # "mdn"
                         xys = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
                         # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
                         # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
@@ -198,28 +201,39 @@ class SqlExecutor:
                         # n_total_point = get_group_count_from_table(
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
-                        n_total_point = get_group_count_from_summary_file(self.config['warehousedir'] + "/num_of_points.txt",sep=',')
+                        n_total_point = get_group_count_from_summary_file(
+                            self.config['warehousedir'] + "/num_of_points.txt", sep=',')
                         # print(xys)
-                        n_sample_point = {} #get_group_count_from_df(
-                            #xys, groupby_attribute)
-
+                        n_sample_point = {}  # get_group_count_from_df(
+                        # xys, groupby_attribute)
 
                         if not self.b_use_gg:
-                            kdeModelWrapper = KdeModelTrainer(mdl,tbl,xheader,yheader,groupby_attribute=groupby_attribute,
+                            kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader,
+                                                              groupby_attribute=groupby_attribute,
                                                               groupby_values=list(n_total_point.keys()),
-                                                              n_total_point=n_total_point, n_sample_point=n_sample_point,
-                                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
-                            xys)
+                                                              n_total_point=n_total_point,
+                                                              n_sample_point=n_sample_point,
+                                                              x_min_value=-np.inf, x_max_value=np.inf,
+                                                              config=self.config).fit_from_df(
+                                xys,b_one_hot_encoding=b_one_hot_encoding,network_size="testing")
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
                             self.model_catalog.add_model_wrapper(kdeModelWrapper)
                         else:
-                            queryEngineBundle=MdnQueryEngineBundle(config=self.config).fit(xys,groupby_attribute,n_total_point,mdl,tbl,xheader,yheader,n_per_group=n_per_gg,n_mdn_layer_node=n_mdn_layer_node)
+
+                            queryEngineBundle = MdnQueryEngineBundle(config=self.config).fit(xys, groupby_attribute,
+                                                                                             n_total_point, mdl, tbl,
+                                                                                             xheader, yheader,
+                                                                                             n_per_group=n_per_gg,
+                                                                                             n_mdn_layer_node=n_mdn_layer_node,
+                                                                                             b_one_hot_encoding=b_one_hot_encoding,
+                                                                                             b_grid_search=b_grid_search)
+
                             self.model_catalog.add_model_wrapper(queryEngineBundle)
                             queryEngineBundle.serialize2warehouse(
                                 self.config['warehousedir'])
                 time2 = datetime.now()
-                t = (time2-time1).seconds
+                t = (time2 - time1).seconds
                 if self.config['verbose']:
                     print("time cost: " + str(t))
                 print("------------------------")
@@ -282,23 +296,23 @@ class SqlExecutor:
                         for key, item in predictions.items():
                             print(key, item)
 
-                    else:   # use mdn models to give the predictions.
+                    else:  # use mdn models to give the predictions.
                         start = datetime.now()
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
                         if not self.b_use_gg:
-                            qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl+".pkl"],self.config)   #mdl+"_groupby_"+groupby_attribute+".pkl"
+                            qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
+                                                self.config)  # mdl+"_groupby_"+groupby_attribute+".pkl"
                         else:
-                            qe = self.model_catalog.model_catalog[mdl+".pkl"]
+                            qe = self.model_catalog.model_catalog[mdl + ".pkl"]
                         print("OK")
-                        qe.predicts(func, x_lb=x_lb, x_ub=x_ub,result2file=result2file)
+                        qe.predicts(func, x_lb=x_lb, x_ub=x_ub, result2file=result2file,n_jobs=n_jobs)
 
                     if self.config['verbose']:
                         end = datetime.now()
                         time_cost = (end - start).total_seconds()
                         print("Time cost: %.4fs." % time_cost)
                     print("------------------------")
-
 
     def set_table_headers(self, str, split_char=","):
         if str is None:
@@ -324,8 +338,8 @@ if __name__ == "__main__":
         # "b_reg_mean":'True',
         "num_epoch": 400,
         "reg_type": "mdn",
-        "density_type":"density_type",
-        "num_gaussians":4,
+        "density_type": "density_type",
+        "num_gaussians": 4,
     }
     sqlExecutor = SqlExecutor(config)
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
@@ -366,9 +380,7 @@ if __name__ == "__main__":
     sqlExecutor.execute(
         "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost2 where ss_wholesale_cost between 1 and 10")
 
-
     # sqlExecutor.execute(
     #     "create table ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' group by ss_store_sk method uniform size 2000")
     # sqlExecutor.execute(
     #     "select avg(ss_list_price) from ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk where ss_wholesale_cost between 1 and 10 group by ss_store_sk")
-
