@@ -137,7 +137,7 @@ def gm(weights, mus, vars, x, b_plot=False, n_division=100):
         # plt.plot(xs, ys)
         # plt.show()
 
-
+# TODO grid search for paramteters.
 class RegMdn():
     """ This class implements the regression using mixture density network.
     """
