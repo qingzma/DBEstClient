@@ -38,6 +38,7 @@ global device
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 
+
 class MDN(nn.Module):
     """A mixture density network layer
     The input maps to the parameters of a MoG probability distribution, where
@@ -69,9 +70,9 @@ class MDN(nn.Module):
         self.sigma = nn.Linear(in_features, out_features * num_gaussians)
         self.mu = nn.Linear(in_features, out_features * num_gaussians)
 
-        self.pi= self.pi.to(device)
-        self.mu=self.mu.to(device)
-        self.sigma=self.sigma.to(device)
+        self.pi = self.pi.to(device)
+        self.mu = self.mu.to(device)
+        self.sigma = self.sigma.to(device)
 
     def forward(self, minibatch):
         pi = self.pi(minibatch)
@@ -128,7 +129,8 @@ def gm(weights, mus, vars, x, b_plot=False, n_division=100):
     if not b_plot:
         result = 0
         for index in range(len(weights)):
-            result += stats.norm(mus[index], vars[index]).pdf(x) * weights[index]
+            result += stats.norm(mus[index], vars[index]
+                                 ).pdf(x) * weights[index]
         return result
     else:
         xs = np.linspace(-1, 1, n_division)
@@ -138,6 +140,8 @@ def gm(weights, mus, vars, x, b_plot=False, n_division=100):
         # plt.show()
 
 # TODO grid search for paramteters.
+
+
 class RegMdn():
     """ This class implements the regression using mixture density network.
     """
@@ -241,7 +245,8 @@ class RegMdn():
         # print(zs_onehot)
         if self.b_one_hot:
             xs_onehot = xs[:, np.newaxis]
-            xzs_onehot = np.concatenate([xs_onehot, zs_onehot], axis=1).tolist()
+            xzs_onehot = np.concatenate(
+                [xs_onehot, zs_onehot], axis=1).tolist()
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_onehot])  # transform to torch tensors
             # print(tensor_xzs)
@@ -253,8 +258,8 @@ class RegMdn():
         tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
 
         # move variables to cuda
-        tensor_xzs= tensor_xzs.to(device)
-        tensor_ys=tensor_ys.to(device)
+        tensor_xzs = tensor_xzs.to(device)
+        tensor_ys = tensor_ys.to(device)
 
         my_dataset = torch.utils.data.TensorDataset(
             tensor_xzs, tensor_ys)  # create your datset
@@ -544,7 +549,8 @@ class RegMdn():
         #     plt.show()
         #     sys.exit(0)
 
-        result = gm(self.last_pi, self.last_mu, self.last_sigma, y, b_plot=b_plot)
+        result = gm(self.last_pi, self.last_mu,
+                    self.last_sigma, y, b_plot=b_plot)
         result = result / self.widthy * 2
         # print("kde predict for "+str(y)+": "+ str(result))
         return result
@@ -574,8 +580,7 @@ class KdeMdn:
         self.is_normalized = False
         self.b_one_hot = b_one_hot
 
-
-    def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20,lr=0.001, hidden=1,b_grid_search=True):
+    def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True):
         """
         Fit the density estimation model.
         :param zs: group by attribute
@@ -594,16 +599,16 @@ class KdeMdn:
                                for i in xs])
                 self.is_normalized = True
                 if not self.b_one_hot:
-                    convert2float=True
+                    convert2float = True
                     if convert2float:
                         try:
-                            zs_float=[]
+                            zs_float = []
                             for item in zs:
-                                if item[0] =="":
+                                if item[0] == "":
                                     zs_float.append([0.0])
                                 else:
                                     zs_float.append([(float)(item[0])])
-                            zs =np.array(zs_float)
+                            zs = np.array(zs_float)
                         except:
                             raise Exception
 
@@ -640,9 +645,8 @@ class KdeMdn:
             my_dataloader = torch.utils.data.DataLoader(
                 my_dataset, batch_size=1000, shuffle=False)
 
-
             # initialize the model
-            if hidden ==1:
+            if hidden == 1:
                 self.model = nn.Sequential(
                     nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
                     nn.Tanh(),
@@ -653,7 +657,8 @@ class KdeMdn:
                 self.model = nn.Sequential(
                     nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
                     nn.Tanh(),
-                    nn.Linear(n_mdn_layer_node, n_mdn_layer_node),  # self.dim_input
+                    # self.dim_input
+                    nn.Linear(n_mdn_layer_node, n_mdn_layer_node),
                     nn.Tanh(),
                     nn.Dropout(0.1),
                     MDN(n_mdn_layer_node, 1, num_gaussians)
@@ -663,9 +668,10 @@ class KdeMdn:
 
             self.model = self.model.to(device)
 
-            optimizer = optim.Adam(self.model.parameters(),lr=lr)
+            optimizer = optim.Adam(self.model.parameters(), lr=lr)
             decayRate = 0.96
-            my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=decayRate)
+            my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+                optimizer=optimizer, gamma=decayRate)
             for epoch in range(num_epoch):
                 if epoch % 1 == 0:
                     print("< Epoch {}".format(epoch))
@@ -684,43 +690,43 @@ class KdeMdn:
             self.model.eval()
             print("finish mdn training...")
             return self
-        else: #grid search
+        else:  # grid search
             return self.fit_grid_search(zs, xs, b_normalize=b_normalize)
 
-    def fit_grid_search(self,zs, xs, b_normalize=True):
+    def fit_grid_search(self, zs, xs, b_normalize=True):
         import itertools as it
-        param_grid ={'epoch':[5], 'lr':[0.001,0.0001],'node':[5,10,20],'hidden':[1,2],'gaussian':[10]}
+        param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
+            5, 10, 20], 'hidden': [1, 2], 'gaussian': [10]}
         # param_grid = {'epoch': [2], 'lr': [0.001], 'node': [4,  12], 'hidden': [1, 2], 'gaussian': [10]}
-        errors=[]
+        errors = []
         combinations = it.product(*(param_grid[Name] for Name in param_grid))
         combinations = list(combinations)
         combs = []
         for combination in combinations:
             idx = 0
-            comb={}
+            comb = {}
             # print(combination)
             for key in param_grid:
-                comb[key]=combination[idx]
-                idx +=1
+                comb[key] = combination[idx]
+                idx += 1
             combs.append(comb)
             # print(comb)
 
-        self.b_store_training_data=True
+        self.b_store_training_data = True
         for para in combs:
             print("Grid search for parameter set :", para)
             instance = self.fit(zs, xs, b_normalize=b_normalize, num_gaussians=para['gaussian'], num_epoch=para['epoch'],
-                                n_mdn_layer_node=para['node'],lr=para['lr'],hidden=para['hidden'],b_grid_search=False)
+                                n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
             errors.append(instance.score())
 
         index = errors.index(min(errors))
-        para  = combs[index]
-        print("Finding the best configuration for the network",para)
+        para = combs[index]
+        print("Finding the best configuration for the network", para)
 
         self.b_store_training_data = False
         instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
-                            n_mdn_layer_node=para['node'], lr=para['lr'],hidden=para['hidden'],b_grid_search=False)
+                            n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
         return instance
-
 
     def predict(self, zs, xs, b_plot=False, n_division=100):
         # convert group zs from string to int
@@ -763,14 +769,14 @@ class KdeMdn:
             else:
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs])
-            tensor_zs=tensor_zs.to(device)
+            tensor_zs = tensor_zs.to(device)
 
             pi, sigma, mu = self.model(tensor_zs)
             # print(pi)
             # print(sigma)
             # print(mu)
-            pi=pi.cpu()
-            sigma=sigma.cpu()
+            pi = pi.cpu()
+            sigma = sigma.cpu()
             mu = mu.cpu()
             # print(pi)
             # print(sigma)
@@ -789,8 +795,10 @@ class KdeMdn:
         #     sys.exit(0)
 
         if not b_plot:
-            result = gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot)
-            result = result / self.widthx * 2  # scale up the probability, due to normalization of the x axis.
+            result = gm(self.last_pi, self.last_mu,
+                        self.last_sigma, xs, b_plot=b_plot)
+            # scale up the probability, due to normalization of the x axis.
+            result = result / self.widthx * 2
             # print("kde predict for "+str(y)+": "+ str(result))
             return result
         else:
@@ -804,16 +812,19 @@ class KdeMdn:
 
     def plot_density_3d(self, n_division=20):
         if not self.b_store_training_data:
-            raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
+            raise ValueError(
+                "b_store_training_data must be set to True to enable the plotting function.")
         else:
             fig = plt.figure()
             ax = fig.add_subplot(211, projection='3d')
             zs_plot = self.zs.reshape(1, -1)[0]
-            hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=n_division)
+            hist, xedges, yedges = np.histogram2d(
+                self.xs, zs_plot, bins=n_division)
             # plt.scatter(zs, xs)
 
             # Construct arrays for the anchor positions of the 16 bars.
-            xpos, ypos = np.meshgrid(xedges[:-1] + 0.25, yedges[:-1] + 0.25, indexing="ij")
+            xpos, ypos = np.meshgrid(
+                xedges[:-1] + 0.25, yedges[:-1] + 0.25, indexing="ij")
             xpos = xpos.ravel()
             ypos = ypos.ravel()
             zpos = 0
@@ -830,8 +841,10 @@ class KdeMdn:
             ax1 = fig.add_subplot(212, projection='3d')
             zs_set = list(set(zs_plot))
             for z in zs_set:
-                xxs, yys = self.predict([[z]], 200, b_plot=True,n_division=n_division)
-                xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+                xxs, yys = self.predict(
+                    [[z]], 200, b_plot=True, n_division=n_division)
+                xxs = [self.denormalize(xi, self.meanx, self.widthx)
+                       for xi in xxs]
                 yys = [yi / self.widthx * 2 for yi in yys]
                 zzs = [z] * len(xxs)
                 ax1.plot(xxs, zzs, yys)
@@ -842,7 +855,8 @@ class KdeMdn:
 
     def plot_density_per_group(self, n_division=100):
         if not self.b_store_training_data:
-            raise ValueError("b_store_training_data must be set to True to enable the plotting function.")
+            raise ValueError(
+                "b_store_training_data must be set to True to enable the plotting function.")
         else:
 
             zs_plot = self.zs.reshape(1, -1)[0]
@@ -857,7 +871,8 @@ class KdeMdn:
             # zs_set = list(set(zs_plot)).sort()
             z_min = zs_set[0]  # the minimial value of the paramater a
             z_max = zs_set[-1]  # the maximal value of the paramater a
-            z_init = zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
+            # the value of the parameter a to be used initially, when the graph is created
+            z_init = zs_set[5]
 
             self.fig = plt.figure(figsize=(8, 8))
             # self.fig, self.ax = plt.subplots()
@@ -928,7 +943,8 @@ class KdeMdn:
                 ax_density.cla()
                 ax_density.set_ylabel("Density", color="tab:red")
                 xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
-                xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+                xxs = [self.denormalize(xi, self.meanx, self.widthx)
+                       for xi in xxs]
                 yys = [yi / self.widthx * 2 for yi in yys]
                 #
                 # plt.plot(xxs, yys)
@@ -946,7 +962,7 @@ class KdeMdn:
         with open(file, 'wb') as f:
             dill.dump(self, f)
 
-    def bin_wise_error(self,g,n_division=20,b_show_plot=True):
+    def bin_wise_error(self, g, n_division=20, b_show_plot=True):
         if not self.b_store_training_data:
             raise ValueError("b_store_training_data must be set to True to enable the plotting function for bin-wise "
                              "comparison.")
@@ -961,7 +977,8 @@ class KdeMdn:
             zs_set = list(gp.groups.keys())
             z_min = zs_set[0]  # the minimial value of the paramater a
             z_max = zs_set[-1]  # the maximal value of the paramater a
-            z_init = g #zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
+            # zs_set[5]  # the value of the parameter a to be used initially, when the graph is created
+            z_init = g
 
             if b_show_plot:
                 self.fig = plt.figure(figsize=(8, 8))
@@ -987,21 +1004,21 @@ class KdeMdn:
             main_plot, bins, patches = plt.hist(x_plot, bins=n_division)
 
             def predict_func(x):
-                return self.predict([[z_init]],x)
+                return self.predict([[z_init]], x)
 
-            frequencies=[]
-            approxs=[]
-            total= sum(main_plot)
+            frequencies = []
+            approxs = []
+            total = sum(main_plot)
             for patch in patches:
-                left, right,frequency = patch._x0, patch._x1, patch._y1/total
+                left, right, frequency = patch._x0, patch._x1, patch._y1/total
 
-                approx = integrate.quad(predict_func,left,right)[0]
+                approx = integrate.quad(predict_func, left, right)[0]
                 # print(frequency,approx)
                 frequencies.append(frequency)
                 approxs.append(approx)
             # print(sum(frequencies),sum(approxs))
             # print(integrate.quad(predict_func, bins[0],bins[-1]))
-            errors = [abs(f-p) for f,p in zip(frequencies,approxs)]
+            errors = [abs(f-p) for f, p in zip(frequencies, approxs)]
 
             if b_show_plot:
                 plt.clf()
@@ -1023,11 +1040,12 @@ class KdeMdn:
             zs_set = list(gp.groups.keys())
             # random choose
             random.seed(0)
-            zs_set = random.sample(zs_set,min(len(zs_set), 20))
+            zs_set = random.sample(zs_set, min(len(zs_set), 20))
             print(zs_set)
             errors = []
             for g in zs_set:
-                errors.append(self.bin_wise_error(g,n_division=10,b_show_plot=False))
+                errors.append(self.bin_wise_error(
+                    g, n_division=10, b_show_plot=False))
             # print("score: ", errors)
             return sum(errors)
 
@@ -1078,7 +1096,8 @@ def test_pm25_2d():
 
     regMdn = RegMdn(dim_input=1)
     regMdn.fit(pres_train, pm25_train, num_epoch=100, b_show_plot=False)
-    print(regMdn.predict([[1000], [1005], [1010], [1015], [1020], [1025], [1030], [1035]], b_show_plot=True))
+    print(regMdn.predict([[1000], [1005], [1010], [1015], [
+          1020], [1025], [1030], [1035]], b_show_plot=True))
     print(regMdn.predict([[1000.5], [1005.5], [1010.5], [1015.5], [1020.5], [1025.5], [1030.5], [1035.5]],
                          b_show_plot=True))
     xxs = np.linspace(np.min(pres_train), np.max(pres_train), 100)
@@ -1127,7 +1146,8 @@ def test_pm25_2d_density():
     # raise Exception()
 
     regMdn = KdeMdn(b_one_hot=True, b_store_training_data=True)
-    regMdn.fit(pres_train, pm25_train, num_epoch=20, num_gaussians=20, b_show_plot=False)
+    regMdn.fit(pres_train, pm25_train, num_epoch=20,
+               num_gaussians=20, b_show_plot=False)
     regMdn.plot_density_per_group()
     # regMdn.predict(pres_train, b_show_plot=True)
     # regMdn.predict(pres_test, b_show_plot=True)
@@ -1149,7 +1169,7 @@ def test_ss_2d_density():
     # file = "/Users/scott/projects/ss_600k_headers.csv"
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
-    df_train = df#.head(1000)
+    df_train = df  # .head(1000)
     df_test = df  # .head(1000)
     g_train = df_train.ss_store_sk.values[:, np.newaxis]
     x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
@@ -1239,7 +1259,8 @@ def test_ss_3d():
     import pandas as pd
     file = "/data/tpcds/1G/ss_10k.csv"
     # file = "/data/tpcds/1t/ss_1m.csv"
-    df = pd.read_csv(file, sep="|", usecols=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
+    df = pd.read_csv(file, sep="|", usecols=[
+                     'ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
     # df = df.dropna(subset=['ss_list_price', 'ss_sales_price', 'ss_store_sk'])
     df = df.dropna(subset=['ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
     # one_hot = pd.get_dummies(df["ss_store_sk"])
@@ -1315,8 +1336,6 @@ def bin_wise_error_ss():
     # kdeMdn.score()
 
 
-
-
 if __name__ == "__main__":
     # test_pm25_2d_density()
     # test_pm25_2d_density()
@@ -1326,4 +1345,3 @@ if __name__ == "__main__":
     # test_ss_2d_density()
     # test_gmm()
     bin_wise_error_ss()
-
