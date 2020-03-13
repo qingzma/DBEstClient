@@ -3,6 +3,7 @@ This repository extends the work of  [DBEst: Revisiting Approximate Query Proces
 
 ## How to install
 ```pip install dbestclient```
+<<<<<<< HEAD
 
 If you have problems installing the code, you could go to the root directory of DBEst, and install the latest version by 
 ```pip install -e```.
@@ -60,7 +61,7 @@ Currently, there is no backend server, and DBEst handles csv files with headers.
 ```create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 1000```
  (Note, you need to open the file and rename the header from pm2.5 to pm25)
 - Then get result from model only!
-``` select count(pm25 real) from mdl1 where PRES between 1000 and 1020;```
+``` select count(pm25 real) from mdl where PRES between 1000 and 1020;```
 	```
 	OK
 	578.380307583211

@@ -72,7 +72,7 @@ class QueryEngine:
         def f_pRx(*args):
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1))) \
                    * self.reg.predict([[args[0]]])[0]
-                   # * self.reg.predict(np.array(args))
+            # * self.reg.predict(np.array(args))
 
         # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
         result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0] * float(self.n_total_point)
