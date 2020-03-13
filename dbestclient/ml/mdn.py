@@ -722,15 +722,6 @@ class KdeMdn:
         return instance
 
 
-
-
-
-
-
-
-
-
-
     def predict(self, zs, xs, b_plot=False, n_division=100):
         # convert group zs from string to int
         # print(zs)

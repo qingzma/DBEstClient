@@ -41,7 +41,7 @@ class SqlExecutor:
         self.table_header = None
         self.n_total_records = None  # a dictionary. {total:num, group_1:count_i}
         self.use_kde = True
-        self.b_use_gg = True
+        self.b_use_gg = False
         # exit()
 
     def init_model_catalog(self):
@@ -215,7 +215,7 @@ class SqlExecutor:
                                                               n_sample_point=n_sample_point,
                                                               x_min_value=-np.inf, x_max_value=np.inf,
                                                               config=self.config).fit_from_df(
-                                xys,b_one_hot_encoding=b_one_hot_encoding,network_size="testing")
+                                xys,b_one_hot_encoding=b_one_hot_encoding,network_size="large", b_grid_search=b_grid_search)
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
                             self.model_catalog.add_model_wrapper(kdeModelWrapper)
