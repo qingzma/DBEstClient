@@ -24,6 +24,7 @@ except RuntimeError:
 
 # TODO update the integral packages.
 
+
 class MdnQueryEngine:
     def __init__(self, kdeModelWrapper, config=None):
         self.n_training_point = kdeModelWrapper.n_sample_point
@@ -57,7 +58,7 @@ class MdnQueryEngine:
         def f_pRx(*args):
             # print(self.cregression.predict(x))
             return self.kde.predict([[groupby_value]], args[0], b_plot=False) \
-                   * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
+                * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
 
         def f_p(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=False)
@@ -87,12 +88,12 @@ class MdnQueryEngine:
 
         def f_pRx(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=True) \
-                   * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
+                * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
             # * self.reg.predict(np.array(args))
 
         # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
         result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
-                     0] * float(self.n_total_point[str(int(groupby_value))])
+            0] * float(self.n_total_point[str(int(groupby_value))])
         # return result
 
         # result = result / float(self.n_training_point) * float(self.n_total_point)
@@ -112,7 +113,8 @@ class MdnQueryEngine:
             return self.kde.predict([[groupby_value]], args[0], b_plot=False)
             # return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
-        result = integrate.quad(f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+        result = integrate.quad(
+            f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
         result = result * float(self.n_total_point[str(int(groupby_value))])
 
         # print("Approximate COUNT: %.4f." % result)
@@ -147,9 +149,11 @@ class MdnQueryEngine:
         else:  # multiple threads implementation
 
             width = int(len(self.groupby_values) / n_jobs)
-            subgroups = [self.groupby_values[inde:inde + width] for inde in range(0, len(self.groupby_values), width)]
+            subgroups = [self.groupby_values[inde:inde + width]
+                         for inde in range(0, len(self.groupby_values), width)]
             if len(self.groupby_values) % n_jobs != 0:
-                subgroups[n_jobs - 1] = subgroups[n_jobs - 1] + subgroups[n_jobs]
+                subgroups[n_jobs - 1] = subgroups[n_jobs - 1] + \
+                    subgroups[n_jobs]
                 del subgroups[-1]
             # index_in_groups = [[self.groupby_values.index(sgname) for sgname in sgnames] for sgnames in subgroups]
 
@@ -157,7 +161,8 @@ class MdnQueryEngine:
 
             with Pool(processes=n_jobs) as pool:
                 for subgroup in subgroups:
-                    i = pool.apply_async(query_partial_group, (self, subgroup, func, x_lb, x_ub))
+                    i = pool.apply_async(
+                        query_partial_group, (self, subgroup, func, x_lb, x_ub))
                     instances.append(i)
                     # print(i.get())
                     # print(instances[0].get(timeout=1))
@@ -175,6 +180,12 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
+    def f_pRx(self, *args):
+        return self.kde.predict([[groupby_value]], args[0], b_plot=False) \
+            * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
+
+    def f_p(self,  *args):
+        return self.kde.predict([[groupby_value]], args[0], b_plot=False)
 
 # result_queue = Queue()
 
@@ -211,7 +222,8 @@ class MdnQueryEngineBundle():
                 try:
                     k = float(key)
                 except ValueError:
-                    raise ValueError("ValueError: could not convert string to float in " + __file__)
+                    raise ValueError(
+                        "ValueError: could not convert string to float in " + __file__)
             fakeKey.append(k)
 
         self.group_keys = [k for _, k in sorted(zip(fakeKey, self.group_keys))]
@@ -221,15 +233,18 @@ class MdnQueryEngineBundle():
                                  range(0, len(self.group_keys), n_per_group)]
         # print(self.group_keys_chunk)
 
-        groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group]) for sub_group in self.group_keys_chunk]
+        groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group])
+                        for sub_group in self.group_keys_chunk]
 
         # print(n_total_point)
         for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk, groups_chunk)):
             # print(index,chunk_key)
-            n_total_point_chunk = {k: n_total_point[k] for k in n_total_point if k in chunk_key}
+            n_total_point_chunk = {k: n_total_point[k]
+                                   for k in n_total_point if k in chunk_key}
             # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
             # raise Exception()
-            print("Training network " + str(index) + " for group " + str(chunk_key))
+            print("Training network " + str(index) +
+                  " for group " + str(chunk_key))
 
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
@@ -251,7 +266,8 @@ class MdnQueryEngineBundle():
             for index, sub_group in enumerate(self.group_keys_chunk):
                 # print(sub_group)
                 engine = self.enginesContainer[index]
-                i = pool.apply_async(query_partial_group, (engine, sub_group, func, x_lb, x_ub))
+                i = pool.apply_async(query_partial_group,
+                                     (engine, sub_group, func, x_lb, x_ub))
                 instances.append(i)
                 # print(i.get())
                 # print(instances[0].get(timeout=1))
@@ -307,16 +323,19 @@ if __name__ == "__main__":
     xheader = "ss_wholesale_cost"
     yheader = "ss_list_price"
 
-    sampler = DBEstSampling(headers=headers, usecols=[xheader, yheader, groupby_attribute])
+    sampler = DBEstSampling(headers=headers, usecols=[
+                            xheader, yheader, groupby_attribute])
     total_count = {'total': 2879987999}
     original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
 
     sampler.make_sample(original_data_file, 60000, "uniform", split_char="|",
                         num_total_records=total_count)
     xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
-    n_total_point = get_group_count_from_summary_file(config['warehousedir'] + "/num_of_points57.txt", sep=',')
+    n_total_point = get_group_count_from_summary_file(
+        config['warehousedir'] + "/num_of_points57.txt", sep=',')
 
     bundles = MdnQueryEngineBundle(config=config)
-    bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl", xheader, yheader, n_per_group=30,b_grid_search=False,)
+    bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl",
+                xheader, yheader, n_per_group=30, b_grid_search=False,)
 
     bundles.predicts("count", 2451119, 2451483)
