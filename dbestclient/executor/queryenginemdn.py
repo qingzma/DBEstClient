@@ -311,13 +311,12 @@ if __name__ == "__main__":
     total_count = {'total': 2879987999}
     original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
 
-    sampler.make_sample(original_data_file, 600000, "uniform", split_char="|",
+    sampler.make_sample(original_data_file, 60000, "uniform", split_char="|",
                         num_total_records=total_count)
     xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
     n_total_point = get_group_count_from_summary_file(config['warehousedir'] + "/num_of_points57.txt", sep=',')
 
     bundles = MdnQueryEngineBundle(config=config)
-    bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl", xheader, yheader, n_nodes=5, n_per_group=30,
-                n_epoch=1)
+    bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl", xheader, yheader, n_per_group=30,b_grid_search=False,)
 
-    bundles.predict("count", 2451119, 2451483)
+    bundles.predicts("count", 2451119, 2451483)
