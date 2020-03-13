@@ -85,7 +85,7 @@ def plot_count():
     plt.show()
 
 def plt501():
-    mdn = read_results("mdn501/grid_ss1t_5m_gg8.txt",split_char=",")
+    mdn = read_results("mdn501/ss1t_1m_gg4.txt",split_char=",")
     truth = read_results("groundtruth/count1.result")
     kde = read_results("DBEst/count1.txt")
     res0 = compare_dicts(truth, mdn)

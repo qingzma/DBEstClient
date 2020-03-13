@@ -10,27 +10,25 @@
 """A module for a mixture density network layer
 For more info on MDNs, see _Mixture Desity Networks_ by Bishop, 1994.
 """
-import sys
 import math
+import sys
 
 import dill
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.autograd import Variable
-from torch.distributions import Categorical
-# from torch.utils.data import Dataset
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
-
 # import matplotlib
 # ##### matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.widgets import Slider
 import numpy as np
-import scipy.stats as stats
-from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
+import scipy.stats as stats
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from matplotlib.widgets import Slider
+# from torch.utils.data import Dataset
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from sklearn.preprocessing import OneHotEncoder
+from torch.autograd import Variable
+from torch.distributions import Categorical
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
@@ -125,16 +123,37 @@ def sample(pi, sigma, mu):
     return sample
 
 
-def gm(weights, mus, vars, x, b_plot=False, n_division=100):
+def gm(weights: list, mus: list, vars: list, x: list, b_plot=False, n_division=100):
+    """ given a list of points, calculate the gaussian mixture probability
+
+    Args:
+        weights (list): weights
+        mus (list): the centroids of gaussions.
+        vars (list): the variances.
+        x (list): the targeting points.
+        b_plot (bool, optional): whether return the value for plotting. Defaults to False.
+        n_division (int, optional): number of division, if b_plot=True. Defaults to 100.
+
+    Returns:
+        float: the pdf of a gaussian mixture.
+    """
     if not b_plot:
-        result = 0
-        for index in range(len(weights)):
-            result += stats.norm(mus[index], vars[index]
-                                 ).pdf(x) * weights[index]
+        result = [stats.norm(mu_i, vars_i).pdf(
+            x)*weights_i for mu_i, vars_i, weights_i in zip(mus, vars, weights)]
+        result = sum(result)
+        # print(result)
+        # print("*"*10)
+
+        # result = 0
+        # for index in range(len(weights)):
+        #     result += stats.norm(mus[index], vars[index]
+        #                          ).pdf(x) * weights[index]
+        # print(result)
         return result
     else:
         xs = np.linspace(-1, 1, n_division)
-        ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
+        # ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
+        ys = gm(weights, mus, vars, xs, b_plot=False) 
         return xs, ys
         # plt.plot(xs, ys)
         # plt.show()
@@ -1249,8 +1268,11 @@ def test_gmm():
     weights = [0.5, 0.5]
     mus = [0, 10]
     vars = [4, 4]
-    xs = np.array(np.linspace(-5, 15, 1000))
-    results = [gm(weights, mus, vars, x) for x in xs]
+    xs = np.array(np.linspace(-5, 15, 10))
+    # results = [gm(weights, mus, vars, x) for x in xs]
+    print([gm(weights, mus, vars, x) for x in xs])
+    results = gm(weights, mus, vars, xs)
+    print(results)
     plt.plot(xs, results)
     plt.show()
 
@@ -1343,5 +1365,5 @@ if __name__ == "__main__":
     # test_ss_3d()
     # test_ss_3d()
     # test_ss_2d_density()
-    # test_gmm()
-    bin_wise_error_ss()
+    test_gmm()
+    # bin_wise_error_ss()

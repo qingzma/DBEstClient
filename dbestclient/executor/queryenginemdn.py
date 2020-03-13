@@ -10,9 +10,10 @@ import dill
 import numpy as np
 import pandas as pd
 from scipy import integrate
-from torch.multiprocessing import set_start_method, Pool
+from torch.multiprocessing import Pool, set_start_method
 
 from dbestclient.io.sampling import DBEstSampling
+from dbestclient.ml.integral import approx_integrate
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.tools.dftools import get_group_count_from_summary_file
 
@@ -26,7 +27,7 @@ except RuntimeError:
 
 
 class MdnQueryEngine:
-    def __init__(self, kdeModelWrapper, config=None):
+    def __init__(self, kdeModelWrapper, config=None, b_use_integral=False):
         self.n_training_point = kdeModelWrapper.n_sample_point
         self.n_total_point = kdeModelWrapper.n_total_point
         self.reg = kdeModelWrapper.reg
@@ -51,6 +52,7 @@ class MdnQueryEngine:
             }
         else:
             self.config = config
+        self.b_use_integral = b_use_integral
 
     def approx_avg(self, x_min, x_max, groupby_value):
         start = datetime.now()
@@ -63,19 +65,19 @@ class MdnQueryEngine:
         def f_p(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=False)
 
-        a = integrate.quad(f_pRx, x_min, x_max,
-                           epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
-        b = integrate.quad(f_p, x_min, x_max,
-                           epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+        if self.b_use_integral:
+            a = integrate.quad(f_pRx, x_min, x_max,
+                               epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+            b = integrate.quad(f_p, x_min, x_max,
+                               epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+        else:
+            a = approx_integrate(f_pRx, x_min, x_max)
+            b = approx_integrate(f_p, x_min, x_max)
 
         if b:
             result = a / b
         else:
             result = None
-        # if result != None:
-        #      print("Approximate AVG: %.4f." % result)
-        # else:
-        #     print("Nan")
 
         if self.config['verbose']:
             end = datetime.now()
@@ -92,8 +94,11 @@ class MdnQueryEngine:
             # * self.reg.predict(np.array(args))
 
         # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
-        result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
-            0] * float(self.n_total_point[str(int(groupby_value))])
+        if self.b_use_integral:
+            result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
+                0] * float(self.n_total_point[str(int(groupby_value))])
+        else:
+            result = approx_integrate(f_pRx, x_min, x_max) * float(self.n_total_point[str(int(groupby_value))])
         # return result
 
         # result = result / float(self.n_training_point) * float(self.n_total_point)
@@ -113,8 +118,11 @@ class MdnQueryEngine:
             return self.kde.predict([[groupby_value]], args[0], b_plot=False)
             # return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
-        result = integrate.quad(
-            f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+        if self.b_use_integral:
+            result = integrate.quad(
+                f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+        else:
+            result = approx_integrate(f_p, x_min, x_max)
         result = result * float(self.n_total_point[str(int(groupby_value))])
 
         # print("Approximate COUNT: %.4f." % result)
@@ -179,15 +187,6 @@ class MdnQueryEngine:
                 for key in predictions:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
-
-    def f_pRx(self, *args):
-        return self.kde.predict([[groupby_value]], args[0], b_plot=False) \
-            * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
-
-    def f_p(self,  *args):
-        return self.kde.predict([[groupby_value]], args[0], b_plot=False)
-
-# result_queue = Queue()
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
