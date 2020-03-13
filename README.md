@@ -3,7 +3,6 @@ This repository extends the work of  [DBEst: Revisiting Approximate Query Proces
 
 ## How to install
 ```pip install dbestclient```
-<<<<<<< HEAD
 
 If you have problems installing the code, you could go to the root directory of DBEst, and install the latest version by 
 ```pip install -e```.
