@@ -87,10 +87,10 @@ def build_models(sqlExecutor):
     #     "create table ss1t_1m_gg_2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
     #     n_per_gg=254)
 
-    sqlExecutor.execute(
-        "create table grid_ss1t_1m_gg1(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-        n_per_gg=508, n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True)
-
+    # sqlExecutor.execute(
+    #     "create table grid_ss1t_1m_gg1(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
+    #     n_per_gg=508, n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True)
+    #
     sqlExecutor.execute(
         "create table grid_ss1t_5m_gg4(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000",
         n_per_gg=127,n_mdn_layer_node=8,b_one_hot_encoding=True,b_grid_search=True)
@@ -163,7 +163,7 @@ def query(sqlExecutor):
     #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node18.txt")
 
     sqlExecutor.execute(
-        "select count(ss_sales_price)  from grid_ss1t_1m_gg1 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
+        "select count(ss_sales_price)  from grid_ss1t_5m_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
         result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/grid_ss1t_1m_gg1.txt")
     # sqlExecutor.execute(
     #     "select count(ss_sales_price)  from grid_ss1t_5m_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",

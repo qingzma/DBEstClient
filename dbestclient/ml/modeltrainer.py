@@ -3,14 +3,13 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
+import numpy as np
+
 from dbestclient.ml.density import DBEstDensity
+from dbestclient.ml.mdn import RegMdn, KdeMdn
 from dbestclient.ml.modelwraper import SimpleModelWrapper, GroupByModelWrapper, KdeModelWrapper
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.tools.dftools import convert_df_to_yx
-import numpy as np
-from dbestclient.ml.mdn import RegMdn, KdeMdn
-import pandas as pd
-from datetime import  datetime
 
 
 class SimpleModelTrainer:

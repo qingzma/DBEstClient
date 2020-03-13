@@ -4,26 +4,21 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 
-import sys
-import pickle
+import os
+from datetime import datetime
 
+import dill
+import numpy as np
+
+from dbestclient.catalog.catalog import DBEstModelCatalog
+from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import MdnQueryEngine, MdnQueryEngineBundle
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer, KdeModelTrainer
+from dbestclient.ml.modelwraper import get_pickle_file_name, GroupByModelWrapper
 from dbestclient.parser.parser import DBEstParser
-from dbestclient.io import getxy
-from dbestclient.ml.regression import DBEstReg
-from dbestclient.ml.density import DBEstDensity
-from dbestclient.executor.queryengine import QueryEngine
-from dbestclient.ml.modelwraper import SimpleModelWrapper, get_pickle_file_name, GroupByModelWrapper, KdeModelWrapper
-from dbestclient.catalog.catalog import DBEstModelCatalog
-from dbestclient.tools.dftools import convert_df_to_yx, get_group_count_from_df, get_group_count_from_table, \
+from dbestclient.tools.dftools import get_group_count_from_df, get_group_count_from_table, \
     get_group_count_from_summary_file
-import numpy as np
-from datetime import datetime
-import os
-import pandas as pd
-import dill
 
 
 class SqlExecutor:
@@ -41,7 +36,7 @@ class SqlExecutor:
         self.table_header = None
         self.n_total_records = None  # a dictionary. {total:num, group_1:count_i}
         self.use_kde = True
-        self.b_use_gg = False
+        self.b_use_gg = True
         # exit()
 
     def init_model_catalog(self):

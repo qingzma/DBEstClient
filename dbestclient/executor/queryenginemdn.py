@@ -7,10 +7,10 @@
 from datetime import datetime
 
 import dill
-from scipy import integrate
 import numpy as np
-from torch.multiprocessing import Process, set_start_method, Queue, Pool
 import pandas as pd
+from scipy import integrate
+from torch.multiprocessing import set_start_method, Pool
 
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import KdeModelTrainer
@@ -132,7 +132,7 @@ class MdnQueryEngine:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
 
-    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4,result2file=None):
+    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, result2file=None):
         predictions = {}
         times = {}
         if not b_parallel:  # single process implementation
@@ -171,10 +171,8 @@ class MdnQueryEngine:
         if result2file is not None:
             with open(result2file, 'w') as f:
                 for key in predictions:
-                    f.write(key+","+str(predictions[key]))
+                    f.write(key + "," + str(predictions[key]))
         return predictions, times
-
-
 
 
 # result_queue = Queue()
@@ -195,8 +193,8 @@ class MdnQueryEngineBundle():
         self.pickle_file_name = None
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
-            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10,b_one_hot_encoding=True,b_grid_search=True) :
-
+            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10,
+            b_one_hot_encoding=True, b_grid_search=True):
 
         self.pickle_file_name = mdl
         grouped = df.groupby(groupby_attribute)
@@ -206,45 +204,44 @@ class MdnQueryEngineBundle():
         # sort the group key by value
         fakeKey = []
         for key in self.group_keys:
-            if key =="":
+            if key == "":
                 k = 0.0
             else:
                 try:
-                    k=float(key)
+                    k = float(key)
                 except ValueError:
                     raise ValueError("ValueError: could not convert string to float in " + __file__)
             fakeKey.append(k)
 
-        self.group_keys = [k for _, k in sorted(zip(fakeKey,self.group_keys))]
+        self.group_keys = [k for _, k in sorted(zip(fakeKey, self.group_keys))]
         # print(self.group_keys)
 
-
-        self.group_keys_chunk = [self.group_keys[i:i+n_per_group] for i in range(0,len(self.group_keys), n_per_group)]
+        self.group_keys_chunk = [self.group_keys[i:i + n_per_group] for i in
+                                 range(0, len(self.group_keys), n_per_group)]
         # print(self.group_keys_chunk)
 
         groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group]) for sub_group in self.group_keys_chunk]
 
         # print(n_total_point)
-        for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk,groups_chunk)):
+        for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk, groups_chunk)):
             # print(index,chunk_key)
-            n_total_point_chunk={k:n_total_point[k] for k in n_total_point if k in chunk_key}
+            n_total_point_chunk = {k: n_total_point[k] for k in n_total_point if k in chunk_key}
             # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
             # raise Exception()
-            print("Training network "+str(index) + " for group "+ str(chunk_key))
+            print("Training network " + str(index) + " for group " + str(chunk_key))
 
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
-                                          groupby_values=chunk_key,
-                                          n_total_point=n_total_point_chunk, n_sample_point={},
-                                          x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
-                                            chunk_group,network_size="small",n_mdn_layer_node=n_mdn_layer_node,
-                                            b_one_hot_encoding=b_one_hot_encoding, b_grid_search=b_grid_search)
+                                              groupby_values=chunk_key,
+                                              n_total_point=n_total_point_chunk, n_sample_point={},
+                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                chunk_group, network_size="small", n_mdn_layer_node=n_mdn_layer_node,
+                b_one_hot_encoding=b_one_hot_encoding, b_grid_search=b_grid_search)
 
-
-            engine = MdnQueryEngine(kdeModelWrapper,config=self.config)
+            engine = MdnQueryEngine(kdeModelWrapper, config=self.config)
             self.enginesContainer[index] = engine
         return self
 
-    def predicts(self,func, x_lb, x_ub,n_jobs=4,result2file=None):
+    def predicts(self, func, x_lb, x_ub, n_jobs=4, result2file=None):
         instances = []
         predictions = {}
         times = {}
@@ -267,12 +264,12 @@ class MdnQueryEngineBundle():
             # print(predictions)
             with open(result2file, 'w') as f:
                 for key in predictions:
-                    f.write(str(key)+","+str(predictions[key])+"\n")
+                    f.write(str(key) + "," + str(predictions[key]) + "\n")
         return predictions, times
 
     def init_pickle_file_name(self):
         # self.pickle_file_name = self.pickle_file_name
-        return self.pickle_file_name+ ".pkl"
+        return self.pickle_file_name + ".pkl"
 
     def serialize2warehouse(self, warehouse):
         if self.pickle_file_name is None:
@@ -280,10 +277,6 @@ class MdnQueryEngineBundle():
 
         with open(warehouse + '/' + self.init_pickle_file_name(), 'wb') as f:
             dill.dump(self, f)
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -322,8 +315,8 @@ if __name__ == "__main__":
     xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
     n_total_point = get_group_count_from_summary_file(config['warehousedir'] + "/num_of_points57.txt", sep=',')
 
-
     bundles = MdnQueryEngineBundle(config=config)
-    bundles.fit(xyzs,groupby_attribute,n_total_point,"mdl","tbl",xheader,yheader,n_nodes=5,n_per_group=30,n_epoch=1)
+    bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl", xheader, yheader, n_nodes=5, n_per_group=30,
+                n_epoch=1)
 
-    bundles.predict("count", 2451119,2451483)
+    bundles.predict("count", 2451119, 2451483)

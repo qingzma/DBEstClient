@@ -6,8 +6,10 @@
 
 # This is the query engine for frequence table-based AQP processing.
 from datetime import datetime
-from scipy import integrate
+
 import numpy as np
+from scipy import integrate
+
 
 class QueryEngineFt:
     def __init__(self, reg, ft, n_training_point, n_total_point, x_min, x_max, config=None):
