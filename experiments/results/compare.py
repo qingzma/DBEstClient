@@ -4,6 +4,7 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 import re
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 
@@ -25,7 +26,7 @@ def read_results(file, b_remove_null=True, split_char="\s"):
         for line in f:
             # ignore empty lines
 
-            if line!="":
+            if line != "":
                 if line.strip():
                     # print(line)
                     key_value = line.replace(
@@ -51,18 +52,20 @@ def read_results(file, b_remove_null=True, split_char="\s"):
 
     return key_values
 
+
 def compare_dicts(true, pred):
-    res=[]
+    res = []
     for key in true:
-        res.append(abs(((true[key]-pred[key])/true[key]) )  )
+        res.append(abs(((true[key]-pred[key])/true[key])))
         # print(key)
     # print(res)
     # plt.hist(res,bins=50)
     # plt.show()
     return res
 
+
 def plot_count():
-    mdn = read_results("mdn40/count1gg20.txt",split_char=",")
+    mdn = read_results("mdn40/count1gg20.txt", split_char=",")
     truth = read_results("mdn40/count1truth.txt")
     kde = read_results("mdn40/count1gg10.txt")
     res0 = compare_dicts(truth, mdn)
@@ -84,8 +87,9 @@ def plot_count():
     plt.text(10, 2, "DBEst error " + str(sum(res1) / len(res1)) + "%")
     plt.show()
 
+
 def plt501():
-    mdn = read_results("mdn501/ss1t_5m_gg4_integral.txt",split_char=",")
+    mdn = read_results("mdn501/ss1t_5m_gg4_integral.txt", split_char=",")
     truth = read_results("groundtruth/count1.result")
     kde = read_results("DBEst/count1.txt")
     res0 = compare_dicts(truth, mdn)
@@ -112,6 +116,5 @@ def plt501():
     plt.show()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     plt501()
-
