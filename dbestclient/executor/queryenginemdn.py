@@ -23,8 +23,6 @@ except RuntimeError:
     print("Fail to set start method as spawn for pytorch multiprocessing, use default in advance. (see queryenginemdn "
           "for more info.)")
 
-# TODO update the integral packages.
-
 
 class MdnQueryEngine:
     def __init__(self, kdeModelWrapper, config=None, b_use_integral=False):
@@ -98,7 +96,8 @@ class MdnQueryEngine:
             result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
                 0] * float(self.n_total_point[str(int(groupby_value))])
         else:
-            result = approx_integrate(f_pRx, x_min, x_max) * float(self.n_total_point[str(int(groupby_value))])
+            result = approx_integrate(
+                f_pRx, x_min, x_max) * float(self.n_total_point[str(int(groupby_value))])
         # return result
 
         # result = result / float(self.n_training_point) * float(self.n_total_point)

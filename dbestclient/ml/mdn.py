@@ -5,11 +5,6 @@
 # # Q.Ma.2@warwick.ac.uk
 
 
-# https://www.katnoria.com/mdn/
-# https://github.com/sagelywizard/pytorch-mdn
-"""A module for a mixture density network layer
-For more info on MDNs, see _Mixture Desity Networks_ by Bishop, 1994.
-"""
 import math
 import sys
 
@@ -35,6 +30,12 @@ ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 global device
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
+
+# https://www.katnoria.com/mdn/
+# https://github.com/sagelywizard/pytorch-mdn
+"""A module for a mixture density network layer
+For more info on MDNs, see _Mixture Desity Networks_ by Bishop, 1994.
+"""
 
 
 class MDN(nn.Module):
@@ -153,7 +154,7 @@ def gm(weights: list, mus: list, vars: list, x: list, b_plot=False, n_division=1
     else:
         xs = np.linspace(-1, 1, n_division)
         # ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
-        ys = gm(weights, mus, vars, xs, b_plot=False) 
+        ys = gm(weights, mus, vars, xs, b_plot=False)
         return xs, ys
         # plt.plot(xs, ys)
         # plt.show()
