@@ -53,7 +53,16 @@ def read_results(file, b_remove_null=True, split_char="\s"):
     return key_values
 
 
-def compare_dicts(true, pred):
+def compare_dicts(true: dict, pred: dict) -> dict:
+    """compare the error between two dicts
+
+    Args:
+        true (dict): truth
+        pred (dict): prediction
+
+    Returns:
+        dict: relative error
+    """
     res = []
     for key in true:
         res.append(abs(((true[key]-pred[key])/true[key])))
@@ -65,6 +74,8 @@ def compare_dicts(true, pred):
 
 
 def plot_count():
+    """ plot count
+    """
     mdn = read_results("mdn40/count1gg20.txt", split_char=",")
     truth = read_results("mdn40/count1truth.txt")
     kde = read_results("mdn40/count1gg10.txt")
@@ -89,6 +100,8 @@ def plot_count():
 
 
 def plt501():
+    """ plot for 501 group.
+    """
     mdn = read_results("mdn501/ss1t_5m_gg4_integral.txt", split_char=",")
     truth = read_results("groundtruth/count1.result")
     kde = read_results("DBEst/count1.txt")
@@ -114,6 +127,8 @@ def plt501():
     print("DBEst error " + str(sum(res1) / len(res1)) + "%")
 
     plt.show()
+
+
 
 
 if __name__ == "__main__":
