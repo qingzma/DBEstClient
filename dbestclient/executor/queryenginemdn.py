@@ -214,15 +214,13 @@ class MdnQueryEngine:
             else:  # avg
                 preds = approx_avg(pre_density, pre_reg, step)
             results = dict(zip(groups, preds))
-            print(results)
-            return results
+
         else:
             instances = []
             results = {}
             n_per_chunk = math.ceil(len(groups)/n_jobs)
             group_chunks = [groups[i:i+n_per_chunk]
                             for i in range(0, len(groups), n_per_chunk)]
-            print(group_chunks)
             with Pool(processes=n_jobs) as pool:
                 # print(self.group_keys_chunk)
                 for sub_group in group_chunks:
@@ -235,12 +233,15 @@ class MdnQueryEngine:
 
                 for i in instances:
                     result = i.get()
-                    # pred = result[0]
-                    # t = result[1]
                     results.update(result)
-                    # times.update(t)
-            print(results)
-            return results
+        for key in results:
+            print(key + "," + str(results[key]))
+
+        if result2file is not None:
+            with open(result2file, 'w') as f:
+                for key in results:
+                    f.write(str(key) + "," + str(results[key]) + "\n")
+        return results
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
