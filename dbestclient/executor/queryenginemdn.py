@@ -13,7 +13,7 @@ from scipy import integrate
 from torch.multiprocessing import Pool, set_start_method
 
 from dbestclient.io.sampling import DBEstSampling
-from dbestclient.ml.integral import approx_integrate
+from dbestclient.ml.integral import approx_integrate, prepare_reg_density_data
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.tools.dftools import get_group_count_from_summary_file
 
@@ -187,6 +187,10 @@ class MdnQueryEngine:
                 for key in predictions:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
+
+    def predict_one_pass(self, x_lb: float, x_ub: float, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
+        if n_jobs == 1:
+            prepare_reg_density_data()
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):

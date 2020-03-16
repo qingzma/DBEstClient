@@ -218,7 +218,7 @@ class RegMdnGroupBy():
 
     def fit(self, z_group: list, x_points: list, y_points: list,
             n_epoch: int = 100, n_gaussians: int = 5, n_hidden_layer: int = 1,
-            n_mdn_layer_node: int = 10):
+            n_mdn_layer_node: int = 10, lr: float = 0.001,):
         """fit the MDN regression model.
 
         Args:
@@ -229,6 +229,7 @@ class RegMdnGroupBy():
             n_gaussians (int, optional): the number of gaussions. Defaults to 5.
             n_hidden_layer (int, optional): the number of hidden layers. Defaults to 1.
             n_mdn_layer_node (int, optional): the node number in the hidden layer. Defaults to 10.
+            lr (float, optional): the learning rate of the MDN network for training. Defaults to 0.001.
 
         Raises:
             ValueError: The hidden layer should be 1 or 2.            
@@ -324,9 +325,104 @@ class RegMdnGroupBy():
         print("Finish regression training.")
         return self
 
-    def predict(self,):
-        # TODO implement this function.
-        pass
+    def predict(self, z_group, x_points, b_plot=False):
+        # check input data type, and convert to np.array
+        if type(z_group) is list:
+            z_group = np.array(z_group)
+        if type(x_points) is list:
+            x_points = np.array(x_points)
+
+        if not self.b_one_hot:
+            convert2float = True
+            if convert2float:
+                try:
+                    zs_float = []
+                    for item in z_group:
+                        if item[0] == "":
+                            zs_float.append([0.0])
+                        else:
+                            zs_float.append([(float)(item[0])])
+                    z_group = zs_float
+                    # print(zs, type(zs))
+                    # raise Exception
+                except:
+                    raise Exception
+
+        if self.b_normalize_data:
+            x_points = normalize(x_points, self.meanx, self.widthx)
+
+        if self.b_one_hot:
+            zs_onehot = z_group[:, np.newaxis]
+            zs_onehot = self.enc.transform(zs_onehot).toarray()
+            x_points = x_points[:, np.newaxis]
+            xzs_onehot = np.concatenate(
+                [x_points, zs_onehot], axis=1).tolist()
+            tensor_xzs = torch.stack([torch.Tensor(i)
+                                      for i in xzs_onehot])
+        else:
+            xzs = [[x_point, z_point]
+                   for x_point, z_point in zip(x_points, z_group)]
+            tensor_xzs = torch.stack([torch.Tensor(i)
+                                      for i in xzs])
+
+        tensor_xzs = tensor_xzs.to(device)
+
+        pis, sigmas, mus = self.model(tensor_xzs)
+        if not b_plot:
+            pis = pis.detach().numpy()  # [0]
+            # sigmas = sigmas.detach().numpy().reshape(len(sigmas), -1)[0]
+            mus = mus.detach().numpy().reshape(len(z_group), -1)  # [0]
+            predictions = np.sum(np.multiply(pis, mus), axis=1)
+
+            if self.b_normalize_data:
+                predictions = [denormalize(pred, self.meany, self.widthy)
+                               for pred in predictions]
+            return predictions
+        else:
+            samples = sample(pis, sigmas, mus).data.numpy().reshape(-1)
+            if self.b_normalize_data:
+                samples = [denormalize(pred, self.meany, self.widthy)
+                           for pred in samples]
+            # plt.scatter(z_group, x_points, samples)
+            # plt.show()
+            # return samples
+
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            if len(self.x_points) > 2000:
+                idx = np.random.randint(0, len(self.x_points), 2000)
+                if self.b_normalize_data:
+                    x_samples = [denormalize(i, self.meanx, self.widthx)
+                                 for i in self.x_points[idx]]
+                    y_samples = [denormalize(i, self.meany, self.widthy)
+                                 for i in self.y_points[idx]]
+                ax.scatter(x_samples,
+                           self.z_points[idx], y_samples)
+            else:
+                ax.scatter(self.x_points, self.z_points, self.y_points)
+
+            if self.b_normalize_data:
+                x_points = denormalize(x_points, self.meanx, self.widthx)
+            if len(samples) > 2000:
+                idx = np.random.randint(0, len(x_points), 2000)
+                ax.scatter(np.array(x_points)[idx], np.array(
+                    z_group)[idx], np.array(samples)[idx])
+            else:
+                ax.scatter(x_points, z_group, samples)
+            ax.set_xlabel('query range attribute')
+            ax.set_ylabel('group by attribute')
+            ax.set_zlabel('aggregate attribute')
+            plt.show()
+            return samples
+
+        # TODO plot implementation
+        if not b_plot:
+            result = gm(pis, mus, sigmas, x_points, b_plot=False)
+            # scale up the probability, due to normalization of the x axis.
+            result = result / self.widthx * 2
+            return result
+        else:
+            return gm(pis, mus, sigmas, x_points, b_plot=True)
 
 
 class RegMdn():
@@ -1009,6 +1105,7 @@ class KdeMdn:
 
         if zs != self.last_zs:
             self.last_zs = zs
+            print(zs)
             if self.b_one_hot:
                 # print(zs)
                 zs_onehot = self.enc.transform(zs).toarray()
@@ -1419,7 +1516,7 @@ def test_ss_2d_density():
     # file = "/Users/scott/projects/ss_600k_headers.csv"
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
-    df_train = df  # .head(1000)
+    df_train = df  # .head(5000)
     df_test = df  # .head(1000)
     g_train = df_train.ss_store_sk.values[:, np.newaxis]
     x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
@@ -1432,17 +1529,18 @@ def test_ss_2d_density():
     # raise Exception()
 
     kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit(g_train, x_train, num_epoch=10, num_gaussians=20)
+    kdeMdn.fit(g_train, x_train, num_epoch=2,
+               num_gaussians=10, b_grid_search=False)
 
     # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
 
-    kdeMdn.plot_density_3d()
+    # kdeMdn.plot_density_3d()
 
     # regMdn = RegMdn(dim_input=1, b_store_training_data=True)
     # regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False, num_gaussians=5)
     #
     # print(kdeMdn.predict([[1]], 2451119, b_plot=True))
-    xxs, p = kdeMdn.predict([[1]], 2451119, b_plot=True)
+    xxs, p = kdeMdn.predict([[1], [2], [10]], 2451119, b_plot=True)
     xxs = [kdeMdn.denormalize(xi, kdeMdn.meanx, kdeMdn.widthx) for xi in xxs]
     print(xxs, p)
     # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
@@ -1589,6 +1687,32 @@ def bin_wise_error_ss():
     # kdeMdn.score()
 
 
+def test_RegMdnGroupBy():
+    import pandas as pd
+    file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
+    df = pd.read_csv(file)
+    df = df.dropna(subset=['pm25', 'PRES', 'TEMP'])
+    df_train = df  # .head(1000)
+    df_test = df  # .tail(1000)
+    pres_train = df_train.PRES.values
+    temp_train = df_train.TEMP.values
+    pm25_train = df_train.pm25.values
+    pres_test = df_test.PRES.values
+    pm25_test = df_test.pm25.values
+    temp_test = df_test.TEMP.values
+    xzs_train = np.concatenate(
+        (temp_train[:, np.newaxis], pres_train[:, np.newaxis]), axis=1)
+    xzs_test = np.concatenate(
+        (temp_test[:, np.newaxis], pres_test[:, np.newaxis]), axis=1)
+    regMdn = RegMdnGroupBy(b_store_training_data=True)
+    regMdn.fit(pres_train, temp_train, pm25_train, n_epoch=5, n_gaussians=10)
+    print(pres_train, temp_train, pm25_train)
+    print("*"*10)
+    print(regMdn.predict(pres_train[:5], temp_train[:5], b_plot=False))
+    # print("*"*10)
+    print(regMdn.predict([1010], [-2], b_plot=False))
+
+
 if __name__ == "__main__":
     # test_pm25_2d_density()
     # test_pm25_2d_density()
@@ -1598,4 +1722,5 @@ if __name__ == "__main__":
     # test_ss_2d_density()
     # test_gmm()
     # bin_wise_error_ss()
-    test_pm25_3d()
+    # test_RegMdnGroupBy()
+    test_ss_2d_density()

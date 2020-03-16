@@ -25,8 +25,8 @@ def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) ->
 
     Args:
         func (callable): the integral funcion, must be able to predict for a list of points.
-        lb (float): lower bound
-        ub ([type]): upper bound
+        x_lb (float): lower bound
+        x_ub (float): upper bound
         n_division (int, optional): the mesh division number. Defaults to 20.
 
     Returns:
@@ -37,7 +37,37 @@ def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) ->
     # print(step)
     # print(func(grid)[0:-1].sum()*step)
     # print(func(grid)[1:].sum()*step)
-    return (func(grid)[0:-1].sum() + func(grid)[1:].sum())*0.5*step
+    predictions = func(grid)
+    return (0.5*(predictions[0]+predictions[-1]) + predictions[1:-1])*step
+    # return (func(grid)[0:-1].sum() + func(grid)[1:].sum())*0.5*step
+
+
+def prepare_density_data(func: callable, x_lb: float, x_ub: float, n_division=20, groups: list = None) -> dict:
+    """provide the approximate results for all groups, in one call to the MDN.
+
+    Args:
+        func (callable): the MDN network
+        x_lb (float): lower bound
+        x_ub (float): upper bound
+        n_division (int, optional): the mesh division number. Defaults to 20.
+        groups (float): the groups that need to calculate. Defaults to None, and results for all groups are returned.
+
+    Returns:
+        dict: approximate anwers, with group as the key, and predictions as values.
+    """
+    if groups is None:
+        groups = func.groupby_values
+
+    group_values = np.linspace(x_lb, x_ub, n_division)*len(groups)
+    print(group_values)
+
+    return {}
+
+
+def prepare_reg_density_data(density: callable, x_lb: float, x_ub: float, reg: callable = None, groups: list = None):
+    return {}, {}
+
+def approx_
 
 
 def sin_(points: list) -> float:
