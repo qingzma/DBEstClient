@@ -13,7 +13,9 @@ from scipy import integrate
 from torch.multiprocessing import Pool, set_start_method
 
 from dbestclient.io.sampling import DBEstSampling
-from dbestclient.ml.integral import approx_integrate, prepare_reg_density_data
+from dbestclient.ml.integral import (approx_avg, approx_count,
+                                     approx_integrate, approx_sum,
+                                     prepare_reg_density_data)
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.tools.dftools import get_group_count_from_summary_file
 
@@ -188,9 +190,31 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, x_lb: float, x_ub: float, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
+
+        if func.lower() not in ("count", "sum", "avg"):
+            raise ValueError("function not supported: "+func)
+
         if n_jobs == 1:
-            prepare_reg_density_data()
+            groups = self.groupby_values
+            print(groups)
+            print(self.n_total_point)
+            scaling_factor = np.array([self.n_total_point[key]
+                                       for key in groups])
+            pre_density, pre_reg, step = prepare_reg_density_data(
+                self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
+            if func.lower() == "count":
+                preds = approx_count(pre_density, step)
+                print(preds.shape)
+                print(scaling_factor.shape)
+                preds = np.multiply(preds, scaling_factor)
+            elif func.lower() == "sum":
+                preds = approx_sum(pre_density, pre_reg, step)
+                preds = np.multiply(preds, scaling_factor)
+            else:  # avg
+                preds = approx_avg(pre_density, pre_reg, step)
+            results = dict(zip(groups, preds))
+            print(results)
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
@@ -327,7 +351,7 @@ if __name__ == "__main__":
     yheader = "ss_list_price"
 
     sampler = DBEstSampling(headers=headers, usecols=[
-                            xheader, yheader, groupby_attribute])
+        xheader, yheader, groupby_attribute])
     total_count = {'total': 2879987999}
     original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
 

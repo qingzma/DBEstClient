@@ -27,9 +27,9 @@ from sklearn.preprocessing import OneHotEncoder
 from torch.autograd import Variable
 from torch.distributions import Categorical
 
-global device
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+global DEVICE
+# DEVICE = torch.DEVICE("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cpu")
 
 # https://www.katnoria.com/mdn/
 # https://github.com/sagelywizard/pytorch-mdn
@@ -69,9 +69,9 @@ class MDN(nn.Module):
         self.sigma = nn.Linear(in_features, out_features * num_gaussians)
         self.mu = nn.Linear(in_features, out_features * num_gaussians)
 
-        self.pi = self.pi.to(device)
-        self.mu = self.mu.to(device)
-        self.sigma = self.sigma.to(device)
+        self.pi = self.pi.to(DEVICE)
+        self.mu = self.mu.to(DEVICE)
+        self.sigma = self.sigma.to(DEVICE)
 
     def forward(self, minibatch):
         pi = self.pi(minibatch)
@@ -112,7 +112,7 @@ def mdn_loss(pi, sigma, mu, target):
     """
     prob = pi * gaussian_probability(sigma, mu, target)
 
-    nll = -torch.log(torch.sum(prob, dim=1)).to(device)
+    nll = -torch.log(torch.sum(prob, dim=1)).to(DEVICE)
     return torch.mean(nll)
 
 
@@ -271,8 +271,8 @@ class RegMdnGroupBy():
         tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
 
         # move variables to cuda
-        tensor_xzs = tensor_xzs.to(device)
-        tensor_ys = tensor_ys.to(device)
+        tensor_xzs = tensor_xzs.to(DEVICE)
+        tensor_ys = tensor_ys.to(DEVICE)
 
         my_dataset = torch.utils.data.TensorDataset(
             tensor_xzs, tensor_ys)  # create your datset
@@ -302,7 +302,7 @@ class RegMdnGroupBy():
             raise ValueError(
                 "The hidden layer should be 1 or 2, but you provided "+str(n_hidden_layer))
 
-        self.model = self.model.to(device)
+        self.model = self.model.to(DEVICE)
 
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
         decay_rate = 0.96
@@ -313,8 +313,8 @@ class RegMdnGroupBy():
                 print("< Epoch {}".format(epoch))
             # train the model
             for minibatch, labels in my_dataloader:
-                minibatch.to(device)
-                labels.to(device)
+                minibatch.to(DEVICE)
+                labels.to(DEVICE)
                 self.model.zero_grad()
                 pi, sigma, mu = self.model(minibatch)
                 loss = mdn_loss(pi, sigma, mu, labels)
@@ -365,7 +365,7 @@ class RegMdnGroupBy():
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs])
 
-        tensor_xzs = tensor_xzs.to(device)
+        tensor_xzs = tensor_xzs.to(DEVICE)
 
         pis, sigmas, mus = self.model(tensor_xzs)
         if not b_plot:
@@ -539,8 +539,8 @@ class RegMdn():
         tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
 
         # move variables to cuda
-        tensor_xzs = tensor_xzs.to(device)
-        tensor_ys = tensor_ys.to(device)
+        tensor_xzs = tensor_xzs.to(DEVICE)
+        tensor_ys = tensor_ys.to(DEVICE)
 
         my_dataset = torch.utils.data.TensorDataset(
             tensor_xzs, tensor_ys)  # create your datset
@@ -557,7 +557,7 @@ class RegMdn():
             MDN(self.n_mdn_layer_node, 1, num_gaussians)
         )
 
-        self.model = self.model.to(device)
+        self.model = self.model.to(DEVICE)
 
         optimizer = optim.Adam(self.model.parameters())
         for epoch in range(num_epoch):
@@ -565,8 +565,8 @@ class RegMdn():
                 print("< Epoch {}".format(epoch))
             # train the model
             for minibatch, labels in my_dataloader:
-                minibatch.to(device)
-                labels.to(device)
+                minibatch.to(DEVICE)
+                labels.to(DEVICE)
                 self.model.zero_grad()
                 pi, sigma, mu = self.model(minibatch)
                 loss = mdn_loss(pi, sigma, mu, labels)
@@ -982,8 +982,8 @@ class KdeMdn:
             tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
 
             # move variables to device
-            tensor_xs = tensor_xs.to(device)
-            tensor_zs = tensor_zs.to(device)
+            tensor_xs = tensor_xs.to(DEVICE)
+            tensor_zs = tensor_zs.to(DEVICE)
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_zs, tensor_xs)  # create your datset
@@ -1012,7 +1012,7 @@ class KdeMdn:
             else:
                 raise ValueError("hidden layers must be 1 or 2, in "+__file__)
 
-            self.model = self.model.to(device)
+            self.model = self.model.to(DEVICE)
 
             optimizer = optim.Adam(self.model.parameters(), lr=lr)
             decayRate = 0.96
@@ -1025,8 +1025,8 @@ class KdeMdn:
                 for minibatch, labels in my_dataloader:
                     self.model.zero_grad()
                     # move variables to device
-                    minibatch.to(device)
-                    labels.to(device)
+                    minibatch.to(DEVICE)
+                    labels.to(DEVICE)
                     pi, sigma, mu = self.model(minibatch)
                     loss = mdn_loss(pi, sigma, mu, labels)
                     loss.backward()
@@ -1111,7 +1111,7 @@ class KdeMdn:
         else:
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs])
-        tensor_zs = tensor_zs.to(device)
+        tensor_zs = tensor_zs.to(DEVICE)
 
         pis, sigmas, mus = self.model(tensor_zs)
 
@@ -1694,9 +1694,9 @@ def test_RegMdnGroupBy():
     regMdn.fit(pres_train, temp_train, pm25_train, n_epoch=5, n_gaussians=10)
     print(pres_train, temp_train, pm25_train)
     print("*"*10)
-    print(regMdn.predict(pres_train[:5], temp_train[:5], b_plot=False))
+    # print(regMdn.predict(pres_train[:5], temp_train[:5], b_plot=False))
     # print("*"*10)
-    print(regMdn.predict([1010], [-2], b_plot=False))
+    print(regMdn.predict([1010, 1020], [-2, -2], b_plot=False))
 
 
 if __name__ == "__main__":

@@ -19,6 +19,8 @@
 
 import numpy as np
 
+from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy
+
 
 def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) -> float:
     """ simulate the integral using user-defined functions.
@@ -42,32 +44,68 @@ def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) ->
     # return (func(grid)[0:-1].sum() + func(grid)[1:].sum())*0.5*step
 
 
-def prepare_density_data(func: callable, x_lb: float, x_ub: float, n_division=20, groups: list = None) -> dict:
-    """provide the approximate results for all groups, in one call to the MDN.
+# def prepare_density_data(func: callable, x_lb: float, x_ub: float, n_division=20, groups: list = None) -> dict:
+#     """provide the approximate results for all groups, in one call to the MDN.
 
-    Args:
-        func (callable): the MDN network
-        x_lb (float): lower bound
-        x_ub (float): upper bound
-        n_division (int, optional): the mesh division number. Defaults to 20.
-        groups (float): the groups that need to calculate. Defaults to None, and results for all groups are returned.
+#     Args:
+#         func (callable): the MDN network
+#         x_lb (float): lower bound
+#         x_ub (float): upper bound
+#         n_division (int, optional): the mesh division number. Defaults to 20.
+#         groups (float): the groups that need to calculate. Defaults to None, and results for all groups are returned.
 
-    Returns:
-        dict: approximate anwers, with group as the key, and predictions as values.
-    """
-    if groups is None:
-        groups = func.groupby_values
+#     Returns:
+#         dict: approximate anwers, with group as the key, and predictions as values.
+#     """
+#     if groups is None:
+#         groups = func.groupby_values
+#     print("here")
+#     group_values = np.linspace(x_lb, x_ub, n_division)*len(groups)
+#     print(group_values)
 
-    group_values = np.linspace(x_lb, x_ub, n_division)*len(groups)
-    print(group_values)
-
-    return {}
+#     return {}
 
 
-def prepare_reg_density_data(density: callable, x_lb: float, x_ub: float, reg: callable = None, groups: list = None):
-    return {}, {}
+def prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: list, reg: RegMdnGroupBy = None,  n_division: int = 20):
+    x_points, step = np.linspace(x_lb, x_ub, n_division, retstep=True)
 
-def approx_
+    reg_x_points = list(x_points)*len(groups)
+    reg_g_points = [g for g in groups for _ in range(n_division)]
+
+    density_g_points = groups
+    density_x_points = list(x_points)
+
+    pre_density = density.predict(
+        density_g_points, density_x_points, b_plot=False)
+    # print(pre_density, pre_density.shape)
+    # pre_density = pre_density
+    pre_reg = None if reg is None else reg.predict(reg_g_points, reg_x_points)
+    # print(pre_density)
+    # print(pre_reg)
+    pre_reg = np.array(pre_reg).reshape(len(groups), n_division)
+    # print(pre_reg, pre_reg.shape)
+    return pre_density, pre_reg, step
+
+
+def approx_count(pred_density, step: float):
+    # TODO the integral only use the left point in the interval, not the central point, need improvement
+    return np.sum(pred_density[:-1, :], axis=1)*step
+
+
+def approx_sum(pred_density, pre_reg, step: float):
+    # print(pred_density)
+    # print(pre_reg)
+    results = np.multiply(pred_density, pre_reg)
+
+    results = np.sum(results[:-1, :], axis=1)*step
+    # print(results, results.shape)
+    return results
+
+
+def approx_avg(pred_density, pre_reg, step: float):
+    results = np.divide(approx_sum(pred_density, pre_reg,
+                                   step), approx_count(pred_density, step))
+    return results
 
 
 def sin_(points: list) -> float:

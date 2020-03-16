@@ -12,13 +12,17 @@ import numpy as np
 
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
-from dbestclient.executor.queryenginemdn import MdnQueryEngine, MdnQueryEngineBundle
+from dbestclient.executor.queryenginemdn import (MdnQueryEngine,
+                                                 MdnQueryEngineBundle)
 from dbestclient.io.sampling import DBEstSampling
-from dbestclient.ml.modeltrainer import SimpleModelTrainer, GroupByModelTrainer, KdeModelTrainer
-from dbestclient.ml.modelwraper import get_pickle_file_name, GroupByModelWrapper
+from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
+                                         SimpleModelTrainer)
+from dbestclient.ml.modelwraper import (GroupByModelWrapper,
+                                        get_pickle_file_name)
 from dbestclient.parser.parser import DBEstParser
-from dbestclient.tools.dftools import get_group_count_from_df, get_group_count_from_table, \
-    get_group_count_from_summary_file
+from dbestclient.tools.dftools import (get_group_count_from_df,
+                                       get_group_count_from_summary_file,
+                                       get_group_count_from_table)
 
 
 class SqlExecutor:
@@ -34,9 +38,10 @@ class SqlExecutor:
         self.init_model_catalog()
         self.save_sample = False
         self.table_header = None
-        self.n_total_records = None  # a dictionary. {total:num, group_1:count_i}
+        # a dictionary. {total:num, group_1:count_i}
+        self.n_total_records = None
         self.use_kde = True
-        self.b_use_gg = True
+        self.b_use_gg = False
         # exit()
 
     def init_model_catalog(self):
@@ -82,7 +87,7 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True,n_jobs=4,b_grid_search=True):
+    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True, n_jobs=4, b_grid_search=True):
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -115,10 +120,12 @@ class SqlExecutor:
 
                 # make samples
                 if not self.parser.if_contain_groupby():  # if group by is not involved
-                    sampler = DBEstSampling(headers=self.table_header, usecols=[xheader, yheader])
+                    sampler = DBEstSampling(
+                        headers=self.table_header, usecols=[xheader, yheader])
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
-                    sampler = DBEstSampling(headers=self.table_header, usecols=[xheader, yheader, groupby_attribute])
+                    sampler = DBEstSampling(headers=self.table_header, usecols=[
+                                            xheader, yheader, groupby_attribute])
 
                 # print(self.config)
                 if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
@@ -137,7 +144,8 @@ class SqlExecutor:
                 if self.save_sample:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config['csv_split_char'],
-                        file2save=self.config['warehousedir'] + "/" + mdl + '.csv',
+                        file2save=self.config['warehousedir'] +
+                        "/" + mdl + '.csv',
                         num_total_records=self.n_total_records)
                 else:
                     sampler.make_sample(
@@ -189,7 +197,8 @@ class SqlExecutor:
                             self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
                     else:  # "mdn"
-                        xys = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
+                        xys = sampler.getyx(
+                            yheader, xheader, groupby=groupby_attribute)
                         # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
                         # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
 
@@ -205,15 +214,17 @@ class SqlExecutor:
                         if not self.b_use_gg:
                             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader,
                                                               groupby_attribute=groupby_attribute,
-                                                              groupby_values=list(n_total_point.keys()),
+                                                              groupby_values=list(
+                                                                  n_total_point.keys()),
                                                               n_total_point=n_total_point,
                                                               n_sample_point=n_sample_point,
                                                               x_min_value=-np.inf, x_max_value=np.inf,
                                                               config=self.config).fit_from_df(
-                                xys,b_one_hot_encoding=b_one_hot_encoding,network_size="large", b_grid_search=b_grid_search)
+                                xys, b_one_hot_encoding=b_one_hot_encoding, network_size="testing", b_grid_search=b_grid_search)
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
-                            self.model_catalog.add_model_wrapper(kdeModelWrapper)
+                            self.model_catalog.add_model_wrapper(
+                                kdeModelWrapper)
                         else:
 
                             queryEngineBundle = MdnQueryEngineBundle(config=self.config).fit(xys, groupby_attribute,
@@ -224,7 +235,8 @@ class SqlExecutor:
                                                                                              b_one_hot_encoding=b_one_hot_encoding,
                                                                                              b_grid_search=b_grid_search)
 
-                            self.model_catalog.add_model_wrapper(queryEngineBundle)
+                            self.model_catalog.add_model_wrapper(
+                                queryEngineBundle)
                             queryEngineBundle.serialize2warehouse(
                                 self.config['warehousedir'])
                 time2 = datetime.now()
@@ -301,7 +313,8 @@ class SqlExecutor:
                         else:
                             qe = self.model_catalog.model_catalog[mdl + ".pkl"]
                         print("OK")
-                        qe.predicts(func, x_lb=x_lb, x_ub=x_ub, result2file=result2file,n_jobs=n_jobs)
+                        qe.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                            result2file=result2file, n_jobs=n_jobs)
 
                     if self.config['verbose']:
                         end = datetime.now()
