@@ -918,12 +918,12 @@ class KdeMdn:
         self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
-        self.last_zs = None
-        self.last_pi = None
-        self.last_mu = None
-        self.last_sigma = None
+        # self.last_zs = None
+        # self.last_pi = None
+        # self.last_mu = None
+        # self.last_sigma = None
         self.enc = None
-        self.is_normalized = False
+        # self.is_normalized = False
         self.b_one_hot = b_one_hot
 
     def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True):
@@ -1075,11 +1075,6 @@ class KdeMdn:
 
     def predict(self, zs, xs, b_plot=False, n_division=100):
         # convert group zs from string to int
-        # print(zs)
-        # if zs[0][0] =="":
-        #     zs=[[0.0]]
-        #     print("converted to [[0.0]]")
-        # zs = [[float(zs[0][0])]]
         if not self.b_one_hot:
             # print(zs, type(zs))
             convert2float = True
@@ -1103,52 +1098,41 @@ class KdeMdn:
             # y = self.normalize(y, self.meany, self.widthy)
             # print("x is normalized to " + str(xs))
 
-        if zs != self.last_zs:
-            self.last_zs = zs
-            print(zs)
-            if self.b_one_hot:
-                # print(zs)
-                zs_onehot = self.enc.transform(zs).toarray()
-                # print(zs_onehot)
-                tensor_zs = torch.stack([torch.Tensor(i)
-                                         for i in zs_onehot])
-            else:
-                tensor_zs = torch.stack([torch.Tensor(i)
-                                         for i in zs])
-            tensor_zs = tensor_zs.to(device)
+        # if zs != self.last_zs:
+        # self.last_zs = zs
+        zs = np.array(zs)[:, np.newaxis]
+        # print("zs", zs)
+        if self.b_one_hot:
+            # print(zs)
+            zs_onehot = self.enc.transform(zs).toarray()
+            # print(zs_onehot)
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_onehot])
+        else:
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs])
+        tensor_zs = tensor_zs.to(device)
 
-            pi, sigma, mu = self.model(tensor_zs)
-            # print(pi)
-            # print(sigma)
-            # print(mu)
-            pi = pi.cpu()
-            sigma = sigma.cpu()
-            mu = mu.cpu()
-            # print(pi)
-            # print(sigma)
-            # print(mu)
-            # print(tensor_xs)
-            # print(pi, sigma, mu)
-            self.last_mu = mu.detach().numpy().reshape(len(zs), -1)[0]
-            self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
-            self.last_sigma = sigma.detach().numpy().reshape(len(sigma), -1)[0]
-        # sigmas = [sig**0.5 for sig in sigma]
-        # if b_plot:
-        #     xs,ys= gm(self.last_pi,self.last_mu,self.last_sigma,zs, b_plot=b_plot)
-        #     print("printing the mdn density estimation...")
-        #     plt.plot(xs, ys)
-        #     plt.show()
-        #     sys.exit(0)
+        pis, sigmas, mus = self.model(tensor_zs)
+
+        pis = pis.cpu()
+        sigmas = sigmas.cpu()
+        mus = mus.cpu()
+
+        mus = mus.detach().numpy().reshape(len(zs), -1)  # [0]
+        pis = pis.detach().numpy()  # [0]  # .reshape(-1,2)
+        sigmas = sigmas.detach().numpy().reshape(
+            len(sigmas), -1)  # [0]
 
         if not b_plot:
-            result = gm(self.last_pi, self.last_mu,
-                        self.last_sigma, xs, b_plot=b_plot)
+            result = [gm(pi, mu,
+                         sigma, xs, b_plot=False) for pi, mu, sigma in zip(pis, mus, sigmas)]
             # scale up the probability, due to normalization of the x axis.
             result = result / self.widthx * 2
             # print("kde predict for "+str(y)+": "+ str(result))
             return result
         else:
-            return gm(self.last_pi, self.last_mu, self.last_sigma, xs, b_plot=b_plot, n_division=n_division)
+            return gm(pis[0], mus[0], sigmas[0], xs, b_plot=b_plot, n_division=n_division)
 
     def normalize(self, x, mean, width):
         return (x - mean) / width * 2
@@ -1516,7 +1500,7 @@ def test_ss_2d_density():
     # file = "/Users/scott/projects/ss_600k_headers.csv"
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
-    df_train = df  # .head(5000)
+    df_train = df.head(5000)
     df_test = df  # .head(1000)
     g_train = df_train.ss_store_sk.values[:, np.newaxis]
     x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
@@ -1529,7 +1513,7 @@ def test_ss_2d_density():
     # raise Exception()
 
     kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit(g_train, x_train, num_epoch=2,
+    kdeMdn.fit(g_train, x_train, num_epoch=1,
                num_gaussians=10, b_grid_search=False)
 
     # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
@@ -1540,12 +1524,14 @@ def test_ss_2d_density():
     # regMdn.fit(g_train, x_train, num_epoch=100, b_show_plot=False, num_gaussians=5)
     #
     # print(kdeMdn.predict([[1]], 2451119, b_plot=True))
-    xxs, p = kdeMdn.predict([[1], [2], [10]], 2451119, b_plot=True)
-    xxs = [kdeMdn.denormalize(xi, kdeMdn.meanx, kdeMdn.widthx) for xi in xxs]
-    print(xxs, p)
-    # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
-    plt.plot(xxs, p)
-    plt.show()
+    print(kdeMdn.predict([1, 2], [2451119, 2451120, 2451121], b_plot=False))
+    # xxs, p = kdeMdn.predict([1, 2],  [2451119], b_plot=True)
+    # xxs = [kdeMdn.denormalize(xi, kdeMdn.meanx, kdeMdn.widthx)
+    #        for xi in xxs]
+    # print(xxs, p)
+    # # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
+    # plt.plot(xxs, p)
+    # plt.show()
 
 
 # def test_pm25_3d_density():
