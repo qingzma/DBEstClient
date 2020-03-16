@@ -4,6 +4,7 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 
+import math
 from datetime import datetime
 
 import dill
@@ -190,23 +191,22 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
 
         if func.lower() not in ("count", "sum", "avg"):
             raise ValueError("function not supported: "+func)
+        if groups is None:  # provide predictions for all groups.
+            groups = self.groupby_values
 
         if n_jobs == 1:
-            groups = self.groupby_values
-            print(groups)
-            print(self.n_total_point)
+
             scaling_factor = np.array([self.n_total_point[key]
                                        for key in groups])
             pre_density, pre_reg, step = prepare_reg_density_data(
                 self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
+
             if func.lower() == "count":
                 preds = approx_count(pre_density, step)
-                print(preds.shape)
-                print(scaling_factor.shape)
                 preds = np.multiply(preds, scaling_factor)
             elif func.lower() == "sum":
                 preds = approx_sum(pre_density, pre_reg, step)
@@ -215,6 +215,32 @@ class MdnQueryEngine:
                 preds = approx_avg(pre_density, pre_reg, step)
             results = dict(zip(groups, preds))
             print(results)
+            return results
+        else:
+            instances = []
+            results = {}
+            n_per_chunk = math.ceil(len(groups)/n_jobs)
+            group_chunks = [groups[i:i+n_per_chunk]
+                            for i in range(0, len(groups), n_per_chunk)]
+            print(group_chunks)
+            with Pool(processes=n_jobs) as pool:
+                # print(self.group_keys_chunk)
+                for sub_group in group_chunks:
+                    # print(sub_group)
+                    # engine = self.enginesContainer[index]
+                    print(sub_group)
+                    i = pool.apply_async(
+                        self.predict_one_pass, (func, x_lb, x_ub, sub_group))
+                    instances.append(i)
+
+                for i in instances:
+                    result = i.get()
+                    # pred = result[0]
+                    # t = result[1]
+                    results.update(result)
+                    # times.update(t)
+            print(results)
+            return results
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):

@@ -77,29 +77,31 @@ def prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: 
 
     pre_density = density.predict(
         density_g_points, density_x_points, b_plot=False)
-    # print(pre_density, pre_density.shape)
-    # pre_density = pre_density
+
     pre_reg = None if reg is None else reg.predict(reg_g_points, reg_x_points)
-    # print(pre_density)
-    # print(pre_reg)
+
     pre_reg = np.array(pre_reg).reshape(len(groups), n_division)
-    # print(pre_reg, pre_reg.shape)
+
     return pre_density, pre_reg, step
 
 
 def approx_count(pred_density, step: float):
     # TODO the integral only use the left point in the interval, not the central point, need improvement
-    return np.sum(pred_density[:-1, :], axis=1)*step
+    return np.sum(pred_density[:, :-1], axis=1)*step
+    # result = np.sum(pred_density[:, 1:-1], axis=1)
+    # result = np.add(result, pred_density[:, 0]*0.5)
+    # result = np.add(result, pred_density[:, -1]*0.5)
+    # return result*step
 
 
 def approx_sum(pred_density, pre_reg, step: float):
-    # print(pred_density)
-    # print(pre_reg)
-    results = np.multiply(pred_density, pre_reg)
+    multi = np.multiply(pred_density, pre_reg)
+    result = np.sum(multi[:, :-1], axis=1)
+    # result = np.sum(multi[:, 1:-1], axis=1)
+    # result = np.add(result, multi[:, 0]*0.5)
+    # result = np.add(result, multi[:, -1]*0.5)
 
-    results = np.sum(results[:-1, :], axis=1)*step
-    # print(results, results.shape)
-    return results
+    return result*step
 
 
 def approx_avg(pred_density, pre_reg, step: float):

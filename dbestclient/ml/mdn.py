@@ -1708,5 +1708,5 @@ if __name__ == "__main__":
     # test_ss_2d_density()
     # test_gmm()
     # bin_wise_error_ss()
-    # test_RegMdnGroupBy()
-    test_ss_2d_density()
+    test_RegMdnGroupBy()
+    # test_ss_2d_density()

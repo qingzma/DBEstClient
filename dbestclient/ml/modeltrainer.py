@@ -102,7 +102,9 @@ class KdeModelTrainer:
         x = df[self.xheader].values  # .reshape(-1,1)
         y = df[self.yheader].values
         groupby = df[self.groupby_attribute].values
-        # print(groupby)
+        print("*"*20)
+        print(set(groupby))
+        print(len(set(groupby)))
 
         # print(x,groupby)
         xzs_train = np.concatenate(
@@ -158,12 +160,12 @@ class KdeModelTrainer:
         elif network_size.lower() == "large":
 
             reg = RegMdnGroupBy(b_store_training_data=False).fit(
-                groupby, x, y, n_epoch=20, n_gaussians=3)
+                groupby, x, y, n_epoch=20, n_gaussians=5)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
             density = KdeMdn(b_one_hot=b_one_hot_encoding,
                              b_store_training_data=False)
-            density.fit(groupby[:, np.newaxis], x, num_epoch=200,
+            density.fit(groupby[:, np.newaxis], x, num_epoch=20,
                         num_gaussians=20, n_mdn_layer_node=20, b_grid_search=b_grid_search)
         elif network_size.lower() == "testing":
 
