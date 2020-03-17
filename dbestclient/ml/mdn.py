@@ -27,6 +27,11 @@ from sklearn.preprocessing import OneHotEncoder
 from torch.autograd import Variable
 from torch.distributions import Categorical
 
+# from builtins import None
+# from fnmatch import filter
+# from optparse import Values
+
+
 global DEVICE
 # DEVICE = torch.DEVICE("cuda:0" if torch.cuda.is_available() else "cpu")
 DEVICE = torch.device("cpu")
@@ -202,6 +207,9 @@ class RegMdnGroupBy():
             self.x_points = None  # query range
             self.y_points = None  # aggregate value
             self.z_points = None  # group by balue
+            self.sample_x = None        # used in the score() function
+            self.sample_g = None
+            self.sample_average_y = None
         self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
@@ -343,8 +351,6 @@ class RegMdnGroupBy():
                         else:
                             zs_float.append([(float)(item[0])])
                     z_group = zs_float
-                    # print(zs, type(zs))
-                    # raise Exception
                 except:
                     raise Exception
 
@@ -415,14 +421,37 @@ class RegMdnGroupBy():
             plt.show()
             return samples
 
-        # TODO plot implementation
-        if not b_plot:
-            result = gm(pis, mus, sigmas, x_points, b_plot=False)
-            # scale up the probability, due to normalization of the x axis.
-            result = result / self.widthx * 2
-            return result
+    def score(self):
+        if not self.b_store_training_data:
+            raise ValueError(
+                "b_store_training_data must be set to True to enable the score() function.")
         else:
-            return gm(pis, mus, sigmas, x_points, b_plot=True)
+            # groups = self.enc.categories_[0]
+
+            if self.sample_x is None:
+                df = pd.DataFrame(
+                    {'g': self.z_points, 'x': denormalize(self.x_points, self.meanx, self.widthx), 'y': denormalize(self.y_points, self.meany, self.widthy)})
+                mean_y = df.groupby(['g', 'x'])[
+                    'y'].mean()  # .reset_index()
+                # print(mean_y)
+                # make the same index here
+                df = df.set_index(['g', 'x'])
+                df['mean_y'] = mean_y
+                df = df.reset_index()  # to take the hierarchical index off again
+                # print(self.df.loc[self.df['g'] == 991.0])
+                df = df.sample(
+                    n=min(1000, len(self.x_points)), random_state=1, replace=False)
+                self.sample_x = df["x"].values
+                self.sample_g = df["g"].values
+                self.sample_average_y = df["mean_y"].values
+                # print(self.sample_x)
+                # print(self.sample_g)
+                # print(self.sample_average_y)
+            predictions = self.predict(self.sample_g, self.sample_x)
+            error = sum([abs(pred-tru)
+                         for pred, tru in zip(predictions, self.sample_average_y)])
+            print(error)
+            return error
 
 
 class RegMdn():
@@ -1697,6 +1726,7 @@ def test_RegMdnGroupBy():
     # print(regMdn.predict(pres_train[:5], temp_train[:5], b_plot=False))
     # print("*"*10)
     print(regMdn.predict([1010, 1020], [-2, -2], b_plot=False))
+    regMdn.score()
 
 
 if __name__ == "__main__":
