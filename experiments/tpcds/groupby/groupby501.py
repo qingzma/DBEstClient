@@ -162,8 +162,14 @@ def query(sqlExecutor):
     #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node18.txt")
 
     sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss1t_5m_gg4_integral where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_5m_gg4_integral.txt", n_jobs=1)
+        "select count(ss_sales_price)  from ss1t_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
+        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_ss1t_gg4.txt", n_jobs=1)
+    sqlExecutor.execute(
+        "select count(ss_sales_price)  from ss1t_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
+        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_ss1t_gg4.txt", n_jobs=8)
+    # sqlExecutor.execute(
+    #     "select sum(ss_sales_price)  from ss1t_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
+    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum1_ss1t_gg4.txt", n_jobs=1)
     # sqlExecutor.execute(
     #     "select count(ss_sales_price)  from grid_ss1t_5m_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
     #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/grid_ss1t_5m_gg4.txt")
