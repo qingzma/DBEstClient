@@ -381,6 +381,14 @@ class RegMdnGroupBy():
         print("Finding the best configuration for the network", para)
 
         self.b_store_training_data = False
+        # release space
+        self.x_points = None
+        self.y_points = None
+        self.z_points = None
+        self.sample_x = None
+        self.sample_g = None
+        self.sample_average_y = None
+
         instance = self.fit(z_group, x_points, y_points, n_gaussians=para['gaussian'], n_epoch=20,
                             n_mdn_layer_node=para['node'], lr=para['lr'], n_hidden_layer=para['hidden'], b_grid_search=False)
         print("-"*80)
@@ -1101,6 +1109,13 @@ class KdeMdn:
         print("Finding the best configuration for the network", para)
 
         self.b_store_training_data = False
+        # release space
+        self.x_points = None
+        self.y_points = None
+        self.z_points = None
+        self.sample_x = None
+        self.sample_g = None
+        self.sample_average_y = None
         instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
                             n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
         print("-"*80)
