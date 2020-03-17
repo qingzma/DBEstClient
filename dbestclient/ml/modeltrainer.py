@@ -150,7 +150,7 @@ class KdeModelTrainer:
         if network_size.lower() == "small":
 
             reg = RegMdnGroupBy(b_store_training_data=False).fit(
-                groupby, x, y, n_epoch=10, n_gaussians=3)
+                groupby, x, y, n_epoch=10, n_gaussians=3, b_grid_search=b_grid_search)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
             density = KdeMdn(b_one_hot=b_one_hot_encoding,
@@ -160,7 +160,7 @@ class KdeModelTrainer:
         elif network_size.lower() == "large":
 
             reg = RegMdnGroupBy(b_store_training_data=False).fit(
-                groupby, x, y, n_epoch=20, n_gaussians=5)
+                groupby, x, y, n_epoch=20, n_gaussians=5, b_grid_search=b_grid_search)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
             density = KdeMdn(b_one_hot=b_one_hot_encoding,
@@ -170,7 +170,7 @@ class KdeModelTrainer:
         elif network_size.lower() == "testing":
 
             reg = RegMdnGroupBy(b_store_training_data=False).fit(groupby, x, y, n_epoch=1,
-                                                                 n_gaussians=2)
+                                                                 n_gaussians=2, b_grid_search=b_grid_search)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
             density = KdeMdn(b_one_hot=b_one_hot_encoding,

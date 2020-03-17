@@ -33,7 +33,7 @@ from torch.distributions import Categorical
 
 
 global DEVICE
-# DEVICE = torch.DEVICE("cuda:0" if torch.cuda.is_available() else "cpu")
+# DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 DEVICE = torch.device("cpu")
 
 # https://www.katnoria.com/mdn/
@@ -207,9 +207,9 @@ class RegMdnGroupBy():
             self.x_points = None  # query range
             self.y_points = None  # aggregate value
             self.z_points = None  # group by balue
-            self.sample_x = None        # used in the score() function
-            self.sample_g = None
-            self.sample_average_y = None
+        self.sample_x = None        # used in the score() function
+        self.sample_g = None
+        self.sample_average_y = None
         self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
@@ -226,7 +226,7 @@ class RegMdnGroupBy():
 
     def fit(self, z_group: list, x_points: list, y_points: list,
             n_epoch: int = 100, n_gaussians: int = 5, n_hidden_layer: int = 1,
-            n_mdn_layer_node: int = 10, lr: float = 0.001,):
+            n_mdn_layer_node: int = 10, lr: float = 0.001, b_grid_search=True):
         """fit the MDN regression model.
 
         Args:
@@ -245,93 +245,132 @@ class RegMdnGroupBy():
         Returns:
             RegMdnGroupBy: The regression model.
         """
-        if self.b_one_hot:
-            self.enc = OneHotEncoder(handle_unknown='ignore')
-            zs_onehot = z_group[:, np.newaxis]
-            zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
-        if self.b_normalize_data:
-            self.meanx = (np.max(x_points) + np.min(x_points)) / 2
-            self.widthx = np.max(x_points) - np.min(x_points)
-            self.meany = (np.max(y_points) + np.min(y_points)) / 2
-            self.widthy = np.max(y_points) - np.min(y_points)
+        if not b_grid_search:
+            if self.b_one_hot:
+                self.enc = OneHotEncoder(handle_unknown='ignore')
+                zs_onehot = z_group[:, np.newaxis]
+                zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
+            if self.b_normalize_data:
+                self.meanx = (np.max(x_points) + np.min(x_points)) / 2
+                self.widthx = np.max(x_points) - np.min(x_points)
+                self.meany = (np.max(y_points) + np.min(y_points)) / 2
+                self.widthy = np.max(y_points) - np.min(y_points)
 
-            x_points = np.array([normalize(i, self.meanx, self.widthx)
-                                 for i in x_points])
-            y_points = np.array([normalize(i, self.meany, self.widthy)
-                                 for i in y_points])
-        if self.b_store_training_data:
-            self.x_points = x_points
-            self.y_points = y_points
-            self.z_points = z_group
+                x_points = np.array([normalize(i, self.meanx, self.widthx)
+                                     for i in x_points])
+                y_points = np.array([normalize(i, self.meany, self.widthy)
+                                     for i in y_points])
+            if self.b_store_training_data:
+                self.x_points = x_points
+                self.y_points = y_points
+                self.z_points = z_group
 
-        if self.b_one_hot:
-            xs_onehot = x_points[:, np.newaxis]
-            xzs_onehot = np.concatenate(
-                [xs_onehot, zs_onehot], axis=1).tolist()
-            tensor_xzs = torch.stack([torch.Tensor(i)
-                                      for i in xzs_onehot])  # transform to torch tensors
+            if self.b_one_hot:
+                xs_onehot = x_points[:, np.newaxis]
+                xzs_onehot = np.concatenate(
+                    [xs_onehot, zs_onehot], axis=1).tolist()
+                tensor_xzs = torch.stack([torch.Tensor(i)
+                                          for i in xzs_onehot])  # transform to torch tensors
+            else:
+                xzs = [[x_point, z_point]
+                       for x_point, z_point in zip(x_points, z_group)]
+                tensor_xzs = torch.stack([torch.Tensor(i)
+                                          for i in xzs])  # transform to torch tensors
+            y_points = y_points[:, np.newaxis]
+            tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
+
+            # move variables to cuda
+            tensor_xzs = tensor_xzs.to(DEVICE)
+            tensor_ys = tensor_ys.to(DEVICE)
+
+            my_dataset = torch.utils.data.TensorDataset(
+                tensor_xzs, tensor_ys)  # create your datset
+            # , num_workers=8) # create your dataloader
+            my_dataloader = torch.utils.data.DataLoader(
+                my_dataset, batch_size=1000, shuffle=True)
+
+            input_dim = len(self.enc.categories_[0]) + 1
+            # initialize the model
+            if n_hidden_layer == 1:
+                self.model = nn.Sequential(
+                    nn.Linear(input_dim, n_mdn_layer_node),
+                    nn.Tanh(),
+                    nn.Dropout(0.1),
+                    MDN(n_mdn_layer_node, 1, n_gaussians)
+                )
+            elif n_hidden_layer == 2:
+                self.model = nn.Sequential(
+                    nn.Linear(input_dim, n_mdn_layer_node),
+                    nn.Tanh(),
+                    nn.Linear(n_mdn_layer_node, n_mdn_layer_node),
+                    nn.Tanh(),
+                    nn.Dropout(0.1),
+                    MDN(n_mdn_layer_node, 1, n_gaussians)
+                )
+            else:
+                raise ValueError(
+                    "The hidden layer should be 1 or 2, but you provided "+str(n_hidden_layer))
+
+            self.model = self.model.to(DEVICE)
+
+            optimizer = optim.Adam(self.model.parameters(), lr=lr)
+            decay_rate = 0.96
+            my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+                optimizer=optimizer, gamma=decay_rate)
+            for epoch in range(n_epoch):
+                if epoch % 1 == 0:
+                    print("< Epoch {}".format(epoch))
+                # train the model
+                for minibatch, labels in my_dataloader:
+                    minibatch.to(DEVICE)
+                    labels.to(DEVICE)
+                    self.model.zero_grad()
+                    pi, sigma, mu = self.model(minibatch)
+                    loss = mdn_loss(pi, sigma, mu, labels)
+                    loss.backward()
+                    optimizer.step()
+                my_lr_scheduler.step()
+            self.model.eval()
+            print("Finish regression training.")
+            return self
         else:
-            xzs = [[x_point, z_point]
-                   for x_point, z_point in zip(x_points, z_group)]
-            tensor_xzs = torch.stack([torch.Tensor(i)
-                                      for i in xzs])  # transform to torch tensors
-        y_points = y_points[:, np.newaxis]
-        tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
+            return self.fit_grid_search(z_group, x_points, y_points)
 
-        # move variables to cuda
-        tensor_xzs = tensor_xzs.to(DEVICE)
-        tensor_ys = tensor_ys.to(DEVICE)
+    def fit_grid_search(self, z_group: list, x_points: list, y_points: list):
+        param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
+            5, 10, 20], 'hidden': [1, 2], 'gaussian': [3, 5]}
+        # param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
+        #     5], 'hidden': [1, 2], 'gaussian': [3, 5]}
 
-        my_dataset = torch.utils.data.TensorDataset(
-            tensor_xzs, tensor_ys)  # create your datset
-        # , num_workers=8) # create your dataloader
-        my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=True)
+        errors = []
+        combinations = it.product(*(param_grid[Name] for Name in param_grid))
+        combinations = list(combinations)
+        combs = []
+        for combination in combinations:
+            idx = 0
+            comb = {}
+            # print(combination)
+            for key in param_grid:
+                comb[key] = combination[idx]
+                idx += 1
+            combs.append(comb)
 
-        input_dim = len(self.enc.categories_[0]) + 1
-        # initialize the model
-        if n_hidden_layer == 1:
-            self.model = nn.Sequential(
-                nn.Linear(input_dim, n_mdn_layer_node),
-                nn.Tanh(),
-                nn.Dropout(0.1),
-                MDN(n_mdn_layer_node, 1, n_gaussians)
-            )
-        elif n_hidden_layer == 2:
-            self.model = nn.Sequential(
-                nn.Linear(input_dim, n_mdn_layer_node),
-                nn.Tanh(),
-                nn.Linear(n_mdn_layer_node, n_mdn_layer_node),
-                nn.Tanh(),
-                nn.Dropout(0.1),
-                MDN(n_mdn_layer_node, 1, n_gaussians)
-            )
-        else:
-            raise ValueError(
-                "The hidden layer should be 1 or 2, but you provided "+str(n_hidden_layer))
+        self.b_store_training_data = True
+        for para in combs:
+            print("Grid search for parameter set :", para)
+            instance = self.fit(z_group, x_points, y_points, n_gaussians=para['gaussian'], n_epoch=para['epoch'],
+                                n_mdn_layer_node=para['node'], lr=para['lr'], n_hidden_layer=para['hidden'], b_grid_search=False)
+            errors.append(instance.score())
 
-        self.model = self.model.to(DEVICE)
+        print("errors for grid search ", errors)
+        index = errors.index(min(errors))
+        para = combs[index]
+        print("Finding the best configuration for the network", para)
 
-        optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        decay_rate = 0.96
-        my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer=optimizer, gamma=decay_rate)
-        for epoch in range(n_epoch):
-            if epoch % 1 == 0:
-                print("< Epoch {}".format(epoch))
-            # train the model
-            for minibatch, labels in my_dataloader:
-                minibatch.to(DEVICE)
-                labels.to(DEVICE)
-                self.model.zero_grad()
-                pi, sigma, mu = self.model(minibatch)
-                loss = mdn_loss(pi, sigma, mu, labels)
-                loss.backward()
-                optimizer.step()
-            my_lr_scheduler.step()
-        self.model.eval()
-        print("Finish regression training.")
-        return self
+        self.b_store_training_data = False
+        instance = self.fit(z_group, x_points, y_points, n_gaussians=para['gaussian'], n_epoch=20,
+                            n_mdn_layer_node=para['node'], lr=para['lr'], n_hidden_layer=para['hidden'], b_grid_search=False)
+        return instance
 
     def predict(self, z_group, x_points, b_plot=False):
         # check input data type, and convert to np.array
@@ -448,10 +487,13 @@ class RegMdnGroupBy():
                 # print(self.sample_g)
                 # print(self.sample_average_y)
             predictions = self.predict(self.sample_g, self.sample_x)
-            error = sum([abs(pred-tru)
-                         for pred, tru in zip(predictions, self.sample_average_y)])
-            print(error)
-            return error
+            errors = [abs(pred-tru)
+                      for pred, tru in zip(predictions, self.sample_average_y)]
+            errors = sum(sorted(errors)[10:-10])
+            # print(errors)
+            # error = sum(errors)
+            # print(error)
+            return errors
 
 
 class RegMdn():
@@ -1726,7 +1768,7 @@ def test_RegMdnGroupBy():
     # print(regMdn.predict(pres_train[:5], temp_train[:5], b_plot=False))
     # print("*"*10)
     print(regMdn.predict([1010, 1020], [-2, -2], b_plot=False))
-    regMdn.score()
+    # regMdn.score()
 
 
 if __name__ == "__main__":

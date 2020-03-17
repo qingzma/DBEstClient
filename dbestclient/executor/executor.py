@@ -41,7 +41,7 @@ class SqlExecutor:
         # a dictionary. {total:num, group_1:count_i}
         self.n_total_records = None
         self.use_kde = True
-        self.b_use_gg = False
+        self.b_use_gg = True
         # exit()
 
     def init_model_catalog(self):
@@ -310,11 +310,14 @@ class SqlExecutor:
                         if not self.b_use_gg:
                             qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
                                                 self.config)  # mdl+"_groupby_"+groupby_attribute+".pkl"
+                            print("OK")
+                            qe.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                result2file=result2file, n_jobs=n_jobs)
                         else:
                             qe = self.model_catalog.model_catalog[mdl + ".pkl"]
-                        print("OK")
-                        qe.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                            result2file=result2file, n_jobs=n_jobs)
+                            print("OK")
+                            qe.predicts(func, x_lb=x_lb, x_ub=x_ub,
+                                        result2file=result2file, n_jobs=n_jobs)
 
                     if self.config['verbose']:
                         end = datetime.now()

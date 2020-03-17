@@ -191,7 +191,7 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None, b_print_to_screen=True, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
 
         if func.lower() not in ("count", "sum", "avg"):
             raise ValueError("function not supported: "+func)
@@ -228,14 +228,15 @@ class MdnQueryEngine:
                     # engine = self.enginesContainer[index]
                     print(sub_group)
                     i = pool.apply_async(
-                        self.predict_one_pass, (func, x_lb, x_ub, sub_group))
+                        self.predict_one_pass, (func, x_lb, x_ub, sub_group, False))
                     instances.append(i)
 
                 for i in instances:
                     result = i.get()
                     results.update(result)
-        for key in results:
-            print(key + "," + str(results[key]))
+        if b_print_to_screen:
+            for key in results:
+                print(key + "," + str(results[key]))
 
         if result2file is not None:
             with open(result2file, 'w') as f:
@@ -314,29 +315,28 @@ class MdnQueryEngineBundle():
     def predicts(self, func, x_lb, x_ub, n_jobs=4, result2file=None):
         instances = []
         predictions = {}
-        times = {}
+        # times = {}
         with Pool(processes=n_jobs) as pool:
             # print(self.group_keys_chunk)
             for index, sub_group in enumerate(self.group_keys_chunk):
                 # print(sub_group)
                 engine = self.enginesContainer[index]
-                i = pool.apply_async(query_partial_group,
-                                     (engine, sub_group, func, x_lb, x_ub))
+                i = pool.apply_async(
+                    engine.predict_one_pass, (func, x_lb, x_ub, sub_group))
                 instances.append(i)
-                # print(i.get())
-                # print(instances[0].get(timeout=1))
+
             for i in instances:
                 result = i.get()
-                pred = result[0]
-                t = result[1]
-                predictions.update(pred)
-                times.update(t)
+                # pred = result[0]
+                # t = result[1]
+                predictions.update(result)
+                # times.update(t)
         if result2file is not None:
             # print(predictions)
             with open(result2file, 'w') as f:
                 for key in predictions:
                     f.write(str(key) + "," + str(predictions[key]) + "\n")
-        return predictions, times
+        return predictions
 
     def init_pickle_file_name(self):
         # self.pickle_file_name = self.pickle_file_name

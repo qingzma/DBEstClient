@@ -86,7 +86,7 @@ def prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: 
 
 
 def approx_count(pred_density, step: float):
-    # TODO the integral only use the left point in the interval, not the central point, need improvement
+    #  the integral only use the left point in the interval, not the central point, need improvement
     # return np.sum(pred_density[:, :-1], axis=1)*step
     result = np.sum(pred_density[:, 1:-1], axis=1)
     result = np.add(result, pred_density[:, 0]*0.5)
@@ -123,4 +123,4 @@ def sin_(points: list) -> float:
 
 
 if __name__ == "__main__":
-    print(integrate(sin_, 0, 3.1415926, 200))
+    print(approx_integrate(sin_, 0, 3.1415926, 200))
