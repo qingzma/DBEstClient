@@ -9,17 +9,19 @@ Python implementation for
 http://erikerlandson.github.io/blog/2015/11/20/very-fast-reservoir-sampling/
 """
 
-from __future__ import with_statement, print_function, division
+from __future__ import division, print_function, with_statement
+
+from math import log
+from random import random
+from sys import stderr, stdin
+
+import numpy as np
+import pandas as pd
+
 try:
     range = xrange
 except NameError:
     pass
-
-from sys import stderr, stdin
-from random import random
-from math import log
-import pandas as pd
-import numpy as np
 
 
 class ReservoirSampling:
@@ -27,13 +29,14 @@ class ReservoirSampling:
         self.header = headers
         self.n_total_point = None
         self.sampledf = None
-        self.sampledfmean=None
+        self.sampledfmean = None
 
-    def build_reservoir(self, file, R, threshold=None, verbose=False,split_char=",", save2file=None, n_total_point=None,usecols=None):
+    def build_reservoir(self, file, R, threshold=None, verbose=False, split_char=",", save2file=None, n_total_point=None, usecols=None):
 
-        self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(1 for _ in open(file)) - 1
+        self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(
+            1 for _ in open(file)) - 1
 
-        with open(file,'r') as data:
+        with open(file, 'r') as data:
             if verbose:
                 def p(s, *args):
                     print(s.format(*args), file=stderr)
@@ -49,7 +52,7 @@ class ReservoirSampling:
             if self.header is None:
                 # skip the first header row
                 first_row = next(iterator)
-                self.header = first_row.replace("\n",'').split(split_char)
+                self.header = first_row.replace("\n", '').split(split_char)
             try:
                 j = 0
                 # iterator = iter(data)
@@ -57,15 +60,16 @@ class ReservoirSampling:
                     j += 1
                     item = next(iterator)
                     if len(res) < R:
-                        item = item.replace("\n",'').split(split_char)
+                        item = item.replace("\n", '').split(split_char)
                         p('> Adding element nb {0}: {1!r}', len(res), item)
                         res.append(item)
 
                     elif j < threshold:
                         k = int(random() * j)
                         if k < R:
-                            p('> [p={0}/{1:>9}] Swap element nb {2:>5}: {3!r} replaces {4!r}', R, j, k, item, res[k])
-                            item = item.replace("\n",'').split(split_char)
+                            p('> [p={0}/{1:>9}] Swap element nb {2:>5}: {3!r} replaces {4!r}',
+                              R, j, k, item, res[k])
+                            item = item.replace("\n", '').split(split_char)
                             res[k] = item
                     else:
                         gap = int(log(random()) / log(1 - R / j))
@@ -73,8 +77,10 @@ class ReservoirSampling:
                         for _ in range(gap):
                             item = next(iterator)
                         k = int(random() * R)
-                        p('> After skipping {0:>9} lines, swap element nb {1:>5}: {2!r} replaces {3!r}', gap, k, item, res[k])
-                        item = next(iterator).replace("\n", '').split(split_char)
+                        p('> After skipping {0:>9} lines, swap element nb {1:>5}: {2!r} replaces {3!r}',
+                          gap, k, item, res[k])
+                        item = next(iterator).replace(
+                            "\n", '').split(split_char)
                         res[k] = item
 
             except KeyboardInterrupt:
@@ -82,25 +88,27 @@ class ReservoirSampling:
             except StopIteration:
                 pass
 
-
-            self.sampledf =  pd.DataFrame(res, columns=self.header)
+            # print(res)
+            # print(self.header)
+            self.sampledf = pd.DataFrame(res, columns=self.header)
             # print(self.sampledf)
             if usecols is not None:
                 self.sampledf = self.sampledf[usecols]
 
-                for col in usecols[0:2]:#[0:-1]:
-                    self.sampledf[col] = pd.to_numeric(self.sampledf[col], errors='coerce')
+                for col in usecols[0:2]:  # [0:-1]:
+                    self.sampledf[col] = pd.to_numeric(
+                        self.sampledf[col], errors='coerce')
                 # convert the group by column to string
-                if len(usecols)==3:
+                if len(usecols) == 3:
                     # self.sampledf = self.sampledf.dropna(subset=[usecols[-1]])
-                    self.sampledf[usecols[-1]] = self.sampledf[usecols[-1]].astype(str)
+                    self.sampledf[usecols[-1]
+                                  ] = self.sampledf[usecols[-1]].astype(str)
                 self.sampledf = self.sampledf.dropna(subset=usecols)
 
             if save2file is not None:
                 self.sampledf.to_csv(save2file, index=False)
 
-
-    def getyx(self, y, x, dropna=True, b_return_mean=False,groupby=None):
+    def getyx(self, y, x, dropna=True, b_return_mean=False, groupby=None):
         # drop non-numerical values.
         # if dropna:
         #     self.sampledf = self.sampledf.dropna(subset=[y, x])
@@ -110,7 +118,6 @@ class ReservoirSampling:
         # self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
         # self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
 
-
         if b_return_mean:
             gb = self.sampledf.groupby(x)
             means = gb.mean()
@@ -119,7 +126,7 @@ class ReservoirSampling:
             means = means.values.reshape(-1)
             # print("keys",keys)
             # print("means",means)
-            self.sampledfmean = pd.DataFrame({x:keys,y:means})
+            self.sampledfmean = pd.DataFrame({x: keys, y: means})
             return self.sampledfmean, self.sampledf
         else:
             return self.sampledf
@@ -131,12 +138,14 @@ class ReservoirSampling:
         #         xyvalues[name]=group
         #     return xyvalues
 
-    def get_frequency(self,y, x, dropna=True):
+    def get_frequency(self, y, x, dropna=True):
         # drop non-numerical values.
         if dropna:
             self.sampledf = self.sampledf.dropna(subset=[y, x])
-        self.sampledf[x] = pd.to_numeric(self.sampledf[x], errors='coerce').fillna(0)
-        self.sampledf[y] = pd.to_numeric(self.sampledf[y], errors='coerce').fillna(0)
+        self.sampledf[x] = pd.to_numeric(
+            self.sampledf[x], errors='coerce').fillna(0)
+        self.sampledf[y] = pd.to_numeric(
+            self.sampledf[y], errors='coerce').fillna(0)
 
         gb = self.sampledf.groupby(x)
         counts = gb.count()[y]
@@ -147,27 +156,22 @@ class ReservoirSampling:
         # print("keys",keys)
         # print("counts",counts)
         ft = {}
-        for key, count in zip(keys,counts):
-            ft[key]=count
+        for key, count in zip(keys, counts):
+            ft[key] = count
         return ft
-
-
-
-
 
 
 if __name__ == '__main__':
     file = '/home/u1796377/Programs/dbestwarehouse/pm25.csv'
     # with open(file, 'r') as f:
     sampler = ReservoirSampling()
-    sampler.build_reservoir(file,10000, verbose=False)
-    xy = sampler.getyx('pm25','PRES')
-    ft = sampler.get_frequency('pm25','PRES')
+    sampler.build_reservoir(file, 10000, verbose=False)
+    xy = sampler.getyx('pm25', 'PRES')
+    ft = sampler.get_frequency('pm25', 'PRES')
     print(ft)
     # print(xy)
     #
     # print(xy.values)
-
 
     #
     # import pandas as pd

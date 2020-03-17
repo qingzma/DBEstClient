@@ -4,6 +4,7 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 import numpy as np
+import torch
 
 from dbestclient.ml.density import DBEstDensity
 from dbestclient.ml.mdn import KdeMdn, RegMdn, RegMdnGroupBy
@@ -76,7 +77,7 @@ class GroupByModelTrainer:
 
 class KdeModelTrainer:
     def __init__(self, mdl, tbl, xheader, yheader, groupby_attribute, groupby_values, n_total_point, n_sample_point,
-                 x_min_value=-np.inf, x_max_value=np.inf, config=None):
+                 x_min_value=-np.inf, x_max_value=np.inf, config=None, device="cpu"):
         self.kde_model_wrapper = KdeModelWrapper(mdl, tbl, xheader, yheader, n_total_point, n_sample_point,
                                                  x_min_value=x_min_value, x_max_value=x_max_value,
                                                  groupby_values=groupby_values)
@@ -92,6 +93,19 @@ class KdeModelTrainer:
         self.x_max_value = x_max_value
         self.config = config
 
+        if device.lower() not in ("cup", "gpu"):
+            raise ValueError("unexpected device type.")
+        if device.lower() == "cpu":
+            # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            device = torch.device("cpu")
+        if device.lower() == "gpu":
+            if torch.cuda.is_available():
+                print("No GPU available, use CPU instead.")
+                device = torch.device("cuda:0")
+            else:
+                device = torch.device("cpu")
+        self.device = device
+
     def fit_from_df(self, df, network_size="small", n_mdn_layer_node=10, b_one_hot_encoding=True, b_shuffle_data=True, b_grid_search=True):
         print("Starting training kde models for model " + self.mdl)
 
@@ -102,11 +116,7 @@ class KdeModelTrainer:
         x = df[self.xheader].values  # .reshape(-1,1)
         y = df[self.yheader].values
         groupby = df[self.groupby_attribute].values
-        print("*"*20)
-        print(set(groupby))
-        print(len(set(groupby)))
 
-        # print(x,groupby)
         xzs_train = np.concatenate(
             (x[:, np.newaxis], groupby[:, np.newaxis]), axis=1)
         # print(xzs_train)
@@ -149,31 +159,31 @@ class KdeModelTrainer:
         print("training regression...")
         if network_size.lower() == "small":
 
-            reg = RegMdnGroupBy(b_store_training_data=False).fit(
+            reg = RegMdnGroupBy(self.device, b_store_training_data=False).fit(
                 groupby, x, y, n_epoch=10, n_gaussians=3, b_grid_search=b_grid_search)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-            density = KdeMdn(b_one_hot=b_one_hot_encoding,
+            density = KdeMdn(self.device, b_one_hot=b_one_hot_encoding,
                              b_store_training_data=False)
             density.fit(groupby[:, np.newaxis], x, num_epoch=20, num_gaussians=10,
                         n_mdn_layer_node=n_mdn_layer_node, b_grid_search=b_grid_search)
         elif network_size.lower() == "large":
 
-            reg = RegMdnGroupBy(b_store_training_data=False).fit(
+            reg = RegMdnGroupBy(self.device, b_store_training_data=False).fit(
                 groupby, x, y, n_epoch=20, n_gaussians=5, b_grid_search=b_grid_search)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-            density = KdeMdn(b_one_hot=b_one_hot_encoding,
+            density = KdeMdn(self.device, b_one_hot=b_one_hot_encoding,
                              b_store_training_data=False)
             density.fit(groupby[:, np.newaxis], x, num_epoch=20,
                         num_gaussians=20, n_mdn_layer_node=20, b_grid_search=b_grid_search)
         elif network_size.lower() == "testing":
 
-            reg = RegMdnGroupBy(b_store_training_data=False).fit(groupby, x, y, n_epoch=1,
-                                                                 n_gaussians=2, b_grid_search=b_grid_search)
+            reg = RegMdnGroupBy(self.device, b_store_training_data=False).fit(groupby, x, y, n_epoch=1,
+                                                                              n_gaussians=2, b_grid_search=b_grid_search)
             print("training density...")
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-            density = KdeMdn(b_one_hot=b_one_hot_encoding,
+            density = KdeMdn(self.device, b_one_hot=b_one_hot_encoding,
                              b_store_training_data=False)
             density.fit(groupby[:, np.newaxis], x, num_epoch=2,
                         num_gaussians=8, n_mdn_layer_node=10, b_grid_search=False)

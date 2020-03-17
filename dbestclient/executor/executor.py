@@ -41,7 +41,7 @@ class SqlExecutor:
         # a dictionary. {total:num, group_1:count_i}
         self.n_total_records = None
         self.use_kde = True
-        self.b_use_gg = True
+        # self.b_use_gg = True
         # exit()
 
     def init_model_catalog(self):
@@ -87,7 +87,7 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True, n_jobs=4, b_grid_search=True):
+    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True, n_jobs=4, b_grid_search=True, b_use_gg=True, device="cpu"):
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -211,7 +211,7 @@ class SqlExecutor:
                         n_sample_point = {}  # get_group_count_from_df(
                         # xys, groupby_attribute)
 
-                        if not self.b_use_gg:
+                        if not b_use_gg:
                             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader,
                                                               groupby_attribute=groupby_attribute,
                                                               groupby_values=list(
@@ -219,21 +219,21 @@ class SqlExecutor:
                                                               n_total_point=n_total_point,
                                                               n_sample_point=n_sample_point,
                                                               x_min_value=-np.inf, x_max_value=np.inf,
-                                                              config=self.config).fit_from_df(
-                                xys, b_one_hot_encoding=b_one_hot_encoding, network_size="large", b_grid_search=b_grid_search)
+                                                              config=self.config, device=device).fit_from_df(
+                                xys, b_one_hot_encoding=b_one_hot_encoding, network_size="large", b_grid_search=b_grid_search, )
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
                             self.model_catalog.add_model_wrapper(
                                 kdeModelWrapper)
                         else:
 
-                            queryEngineBundle = MdnQueryEngineBundle(config=self.config).fit(xys, groupby_attribute,
-                                                                                             n_total_point, mdl, tbl,
-                                                                                             xheader, yheader,
-                                                                                             n_per_group=n_per_gg,
-                                                                                             n_mdn_layer_node=n_mdn_layer_node,
-                                                                                             b_one_hot_encoding=b_one_hot_encoding,
-                                                                                             b_grid_search=b_grid_search)
+                            queryEngineBundle = MdnQueryEngineBundle(config=self.config, device=device).fit(xys, groupby_attribute,
+                                                                                                            n_total_point, mdl, tbl,
+                                                                                                            xheader, yheader,
+                                                                                                            n_per_group=n_per_gg,
+                                                                                                            n_mdn_layer_node=n_mdn_layer_node,
+                                                                                                            b_one_hot_encoding=b_one_hot_encoding,
+                                                                                                            b_grid_search=b_grid_search)
 
                             self.model_catalog.add_model_wrapper(
                                 queryEngineBundle)
@@ -307,7 +307,7 @@ class SqlExecutor:
                         start = datetime.now()
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
-                        if not self.b_use_gg:
+                        if not b_use_gg:
                             qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
                                                 self.config)  # mdl+"_groupby_"+groupby_attribute+".pkl"
                             print("OK")
@@ -325,11 +325,11 @@ class SqlExecutor:
                         print("Time cost: %.4fs." % time_cost)
                     print("------------------------")
 
-    def set_table_headers(self, str, split_char=","):
-        if str is None:
+    def set_table_headers(self, strs, split_char=","):
+        if strs is None:
             self.table_header = None
         else:
-            self.table_header = str.split(split_char)
+            self.table_header = strs.split(split_char)
 
     def set_table_counts(self, dic):
         self.n_total_records = dic

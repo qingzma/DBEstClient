@@ -251,13 +251,14 @@ def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
 
 
 class MdnQueryEngineBundle():
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, device):
         self.enginesContainer = {}
         self.config = config
         self.n_total_point = None
         self.group_keys_chunk = None
         self.group_keys = None
         self.pickle_file_name = None
+        self.device = device
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
             mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10,
@@ -304,7 +305,7 @@ class MdnQueryEngineBundle():
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
                                               n_total_point=n_total_point_chunk, n_sample_point={},
-                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config, device=self.device).fit_from_df(
                 chunk_group, network_size="small", n_mdn_layer_node=n_mdn_layer_node,
                 b_one_hot_encoding=b_one_hot_encoding, b_grid_search=b_grid_search)
 
@@ -388,7 +389,7 @@ if __name__ == "__main__":
     n_total_point = get_group_count_from_summary_file(
         config['warehousedir'] + "/num_of_points57.txt", sep=',')
 
-    bundles = MdnQueryEngineBundle(config=config)
+    bundles = MdnQueryEngineBundle(config=config, device="cpu")
     bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl",
                 xheader, yheader, n_per_group=30, b_grid_search=False,)
 
