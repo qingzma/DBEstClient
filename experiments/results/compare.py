@@ -76,7 +76,7 @@ def compare_dicts(true: dict, pred: dict) -> dict:
 def plot_count():
     """ plot count
     """
-    mdn = read_results("mdn40/count1gg20.txt", split_char=",")
+    mdn = read_results("mdn40/count1_ss1t_gg4.txt", split_char=",")
     truth = read_results("mdn40/count1truth.txt")
     kde = read_results("mdn40/count1gg10.txt")
     res0 = compare_dicts(truth, mdn)
@@ -102,9 +102,9 @@ def plot_count():
 def plt501():
     """ plot for 501 group.
     """
-    mdn = read_results("mdn501/ss1t_5m_gg4_integral.txt", split_char=",")
-    truth = read_results("groundtruth/count1.result")
-    kde = read_results("DBEst/count1.txt")
+    mdn = read_results("mdn501/sum1_ss1t_gg4.txt", split_char=",")
+    truth = read_results("groundtruth/sum1.result")
+    kde = read_results("DBEst/sum1.txt")
     res0 = compare_dicts(truth, mdn)
     res1 = compare_dicts(truth, kde)
     res0 = [res * 100 for res in res0]
@@ -127,8 +127,6 @@ def plt501():
     print("DBEst error " + str(sum(res1) / len(res1)) + "%")
 
     plt.show()
-
-
 
 
 if __name__ == "__main__":
