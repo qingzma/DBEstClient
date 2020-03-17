@@ -33,20 +33,15 @@ class SqlExecutor:
     def __init__(self, config):
         self.parser = None
         self.config = config
-
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
         self.save_sample = False
         self.table_header = None
-        # a dictionary. {total:num, group_1:count_i}
         self.n_total_records = None
         self.use_kde = True
-        # self.b_use_gg = True
-        # exit()
 
     def init_model_catalog(self):
         # search the warehouse, and add all available models.
-        # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
         n_model = 0
         for file_name in os.listdir(self.config['warehousedir']):
 
@@ -130,13 +125,15 @@ class SqlExecutor:
                 # print(self.config)
                 if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
                     print(
-                        "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                        "Model {0} exists in the warehouse, please use"
+                        " another model name to train it.".format(mdl))
                     return
                 if self.parser.if_contain_groupby():
                     groupby_attribute = self.parser.get_groupby_value()
                     if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
                         print(
-                            "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
+                            "Model {0} exists in the warehouse, please use"
+                            " another model name to train it.".format(mdl))
                         return
                 print("Start creating model " + mdl)
                 time1 = datetime.now()
@@ -212,28 +209,31 @@ class SqlExecutor:
                         # xys, groupby_attribute)
 
                         if not b_use_gg:
-                            kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader,
-                                                              groupby_attribute=groupby_attribute,
-                                                              groupby_values=list(
-                                                                  n_total_point.keys()),
-                                                              n_total_point=n_total_point,
-                                                              n_sample_point=n_sample_point,
-                                                              x_min_value=-np.inf, x_max_value=np.inf,
-                                                              config=self.config, device=device).fit_from_df(
+                            kdeModelWrapper = KdeModelTrainer(
+                                mdl, tbl, xheader, yheader,
+                                groupby_attribute=groupby_attribute,
+                                groupby_values=list(
+                                    n_total_point.keys()),
+                                n_total_point=n_total_point,
+                                n_sample_point=n_sample_point,
+                                x_min_value=-np.inf, x_max_value=np.inf,
+                                config=self.config, device=device).fit_from_df(
                                 xys, b_one_hot_encoding=b_one_hot_encoding, network_size="large", b_grid_search=b_grid_search, )
+
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
                             self.model_catalog.add_model_wrapper(
                                 kdeModelWrapper)
                         else:
 
-                            queryEngineBundle = MdnQueryEngineBundle(config=self.config, device=device).fit(xys, groupby_attribute,
-                                                                                                            n_total_point, mdl, tbl,
-                                                                                                            xheader, yheader,
-                                                                                                            n_per_group=n_per_gg,
-                                                                                                            n_mdn_layer_node=n_mdn_layer_node,
-                                                                                                            b_one_hot_encoding=b_one_hot_encoding,
-                                                                                                            b_grid_search=b_grid_search)
+                            queryEngineBundle = MdnQueryEngineBundle(
+                                config=self.config, device=device).fit(xys, groupby_attribute,
+                                                                       n_total_point, mdl, tbl,
+                                                                       xheader, yheader,
+                                                                       n_per_group=n_per_gg,
+                                                                       n_mdn_layer_node=n_mdn_layer_node,
+                                                                       b_one_hot_encoding=b_one_hot_encoding,
+                                                                       b_grid_search=b_grid_search)
 
                             self.model_catalog.add_model_wrapper(
                                 queryEngineBundle)
@@ -262,14 +262,14 @@ class SqlExecutor:
                     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
                         mdl)]
                     reg = simple_model_wrapper.reg
-                    # print("in executor",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
-                    # print("in executor", reg.predict([1000, 1005, 1010, 1015, 1020, 1025, 1030, 1035]))
+
                     density = simple_model_wrapper.density
                     n_sample_point = int(simple_model_wrapper.n_sample_point)
                     n_total_point = int(simple_model_wrapper.n_total_point)
                     x_min_value = float(simple_model_wrapper.x_min_value)
                     x_max_value = float(simple_model_wrapper.x_max_value)
-                    query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value, x_max_value,
+                    query_engine = QueryEngine(reg, density, n_sample_point,
+                                               n_total_point, x_min_value, x_max_value,
                                                self.config)
                     p, t = query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)
                     print("OK")
@@ -308,16 +308,16 @@ class SqlExecutor:
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
                         if not b_use_gg:
-                            qe = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
-                                                self.config)  # mdl+"_groupby_"+groupby_attribute+".pkl"
+                            qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
+                                                    self.config)
                             print("OK")
-                            qe.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                            qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                    result2file=result2file, n_jobs=n_jobs, n_division=n_division)
                         else:
-                            qe = self.model_catalog.model_catalog[mdl + ".pkl"]
+                            qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
                             print("OK")
-                            qe.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                        result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                            qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
+                                            result2file=result2file, n_jobs=n_jobs, n_division=n_division)
 
                     if self.config['verbose']:
                         end = datetime.now()

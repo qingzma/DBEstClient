@@ -1,8 +1,8 @@
-# # Created by Qingzhi Ma
-# # All right reserved
-# # Department of Computer Science
-# # the University of Warwick
-# # Q.Ma.2@warwick.ac.uk
+# Created by Qingzhi Ma
+# All right reserved
+# Department of Computer Science
+# the University of Warwick
+# Q.Ma.2@warwick.ac.uk
 
 
 import itertools as it
