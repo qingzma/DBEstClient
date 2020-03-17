@@ -82,7 +82,10 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True, n_jobs=4, b_grid_search=True, b_use_gg=True, device="cpu", n_division=20):
+    def execute(self, sql, n_per_gg=10, result2file=None,
+                n_mdn_layer_node=10, b_one_hot_encoding=True,
+                n_jobs=4, b_grid_search=True, b_use_gg=True,
+                device="cpu", n_division=20):
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -158,18 +161,10 @@ class SqlExecutor:
 
                     n_total_point = sampler.n_total_point
                     xys = sampler.getyx(yheader, xheader)
-                    # print(xys)
-                    # print(len(xys_kde))
 
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
                                                               n_total_point, ratio, config=self.config).fit_from_df(
                         xys)
-
-                    # reg = DBEstReg().fit(x, y)
-                    # density = DBEstDensity().fit(x)
-                    # simpleWrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader,n_total_point=n_total_point,
-                    #                                    n_sample_point=ratio)
-                    # simpleWrapper.load_model(density, reg)
 
                     simple_model_wrapper.serialize2warehouse(
                         self.config['warehousedir'])
@@ -178,11 +173,10 @@ class SqlExecutor:
                 else:  # if group by is involved in the query
                     if self.config['reg_type'] == "qreg":
                         xys = sampler.getyx(yheader, xheader)
-                        # print(xys[groupby_attribute])
                         n_total_point = get_group_count_from_table(
                             original_data_file, groupby_attribute, sep=self.config['csv_split_char'],
                             headers=self.table_header)
-                        # print(xys)
+
                         n_sample_point = get_group_count_from_df(
                             xys, groupby_attribute)
                         groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
@@ -204,7 +198,6 @@ class SqlExecutor:
                         #     headers=self.table_header)
                         n_total_point = get_group_count_from_summary_file(
                             self.config['warehousedir'] + "/num_of_points.txt", sep=',')
-                        # print(xys)
                         n_sample_point = {}  # get_group_count_from_df(
                         # xys, groupby_attribute)
 
