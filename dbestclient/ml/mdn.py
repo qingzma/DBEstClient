@@ -11,8 +11,6 @@ import random
 import sys
 
 import dill
-# import matplotlib
-# ##### matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,20 +19,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from matplotlib.widgets import Slider
-# from torch.utils.data import Dataset
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn.preprocessing import OneHotEncoder
 from torch.autograd import Variable
 from torch.distributions import Categorical
 
-# from builtins import None
-# from fnmatch import filter
-# from optparse import Values
-
-
 # global DEVICE
 # # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # DEVICE = torch.device("cpu")
+
 
 # https://www.katnoria.com/mdn/
 # https://github.com/sagelywizard/pytorch-mdn
@@ -87,7 +80,7 @@ class MDN(nn.Module):
         return pi, sigma, mu
 
 
-ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
+# ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 
 
 def gaussian_probability(sigma, mu, data):
@@ -106,7 +99,8 @@ def gaussian_probability(sigma, mu, data):
             of the distribution in the corresponding sigma/mu index.
     """
     data = data.unsqueeze(1).expand_as(sigma)
-    ret = ONEOVERSQRT2PI * torch.exp(-0.5 * ((data - mu) / sigma) ** 2) / sigma
+    ret = 1.0 / math.sqrt(2 * math.pi) * torch.exp(-0.5 *
+                                                   ((data - mu) / sigma) ** 2) / sigma
     return torch.prod(ret, 2)
 
 
@@ -150,9 +144,6 @@ def gm(weights: list, mus: list, vars: list, x: list, b_plot=False, n_division=1
         result = [stats.norm(mu_i, vars_i).pdf(
             x)*weights_i for mu_i, vars_i, weights_i in zip(mus, vars, weights)]
         result = sum(result)
-        # print(result)
-        # print("*"*10)
-
         # result = 0
         # for index in range(len(weights)):
         #     result += stats.norm(mus[index], vars[index]
@@ -166,8 +157,6 @@ def gm(weights: list, mus: list, vars: list, x: list, b_plot=False, n_division=1
         return xs, ys
         # plt.plot(xs, ys)
         # plt.show()
-
-# TODO grid search for paramteters.
 
 
 def normalize(x_point: float, mean: float, width: float) -> float:
@@ -196,6 +185,19 @@ def denormalize(x_point: float, mean: float, width: float) -> float:
         float: the de-normalized value
     """
     return 0.5 * width * x_point + mean
+
+
+def de_serialize(file: str):
+    """de-serialize the model from a file.
+
+    Args:
+        file (str): the file path.
+
+    Returns:
+        Callable: the model.
+    """
+    with open(file, 'rb') as f:
+        return dill.load(f)
 
 
 class RegMdnGroupBy():
@@ -338,6 +340,16 @@ class RegMdnGroupBy():
             return self.fit_grid_search(z_group, x_points, y_points)
 
     def fit_grid_search(self, z_group: list, x_points: list, y_points: list):
+        """use grid search to tune the hyper parameters.
+
+        Args:
+            z_group (list): group by values
+            x_points (list): independent values
+            y_points (list): dependent values
+
+        Returns:
+            RegMdnGroupBy: the fitted model
+        """
         param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
             5, 10, 20], 'hidden': [1, 2], 'gaussian': [3, 5]}
         # param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
@@ -374,7 +386,20 @@ class RegMdnGroupBy():
         print("-"*80)
         return instance
 
-    def predict(self, z_group, x_points, b_plot=False):
+    def predict(self, z_group: list, x_points: list, b_plot=False) -> list:
+        """provide predictions for given groups and points.
+
+        Args:
+            z_group (list): the group by values
+            x_points (list): the corresponding x points
+            b_plot (bool, optional): to plot the data or not.. Defaults to False.
+
+        Raises:
+            Exception: [description]
+
+        Returns:
+            list: the predictions.
+        """
         # check input data type, and convert to np.array
         if type(z_group) is list:
             z_group = np.array(z_group)
@@ -462,7 +487,16 @@ class RegMdnGroupBy():
             plt.show()
             return samples
 
-    def score(self):
+    def score(self) -> float:
+        """ evaluate the error for this model. currenltly, 
+        it is the sum of all absolute errors, for a random sample of points.
+
+        Raises:
+            ValueError: b_store_training_data must be set to True to enable the score() function.
+
+        Returns:
+            float: the absolute error
+        """
         if not self.b_store_training_data:
             raise ValueError(
                 "b_store_training_data must be set to True to enable the score() function.")
@@ -474,27 +508,22 @@ class RegMdnGroupBy():
                     {'g': self.z_points, 'x': denormalize(self.x_points, self.meanx, self.widthx), 'y': denormalize(self.y_points, self.meany, self.widthy)})
                 mean_y = df.groupby(['g', 'x'])[
                     'y'].mean()  # .reset_index()
-                # print(mean_y)
+
                 # make the same index here
                 df = df.set_index(['g', 'x'])
                 df['mean_y'] = mean_y
                 df = df.reset_index()  # to take the hierarchical index off again
-                # print(self.df.loc[self.df['g'] == 991.0])
+
                 df = df.sample(
                     n=min(1000, len(self.x_points)), random_state=1, replace=False)
                 self.sample_x = df["x"].values
                 self.sample_g = df["g"].values
                 self.sample_average_y = df["mean_y"].values
-                # print(self.sample_x)
-                # print(self.sample_g)
-                # print(self.sample_average_y)
+
             predictions = self.predict(self.sample_g, self.sample_x)
             errors = [abs(pred-tru)
                       for pred, tru in zip(predictions, self.sample_average_y)]
             errors = sum(sorted(errors)[10:-10])
-            # print(errors)
-            # error = sum(errors)
-            # print(error)
             return errors
 
 
@@ -544,7 +573,6 @@ class RegMdn():
     def predict(self, xs, b_show_plot=False):
         """ make predictions"""
         if self.dim_input == 1:
-            # print(self.predict2d(xs, b_show_plot=b_show_plot))
             return self.predict2d(xs, b_show_plot=b_show_plot)
         elif self.dim_input == 2:
             return self.predict3d(xs[:, 0], xs[:, 1], b_show_plot=b_show_plot)
@@ -564,9 +592,7 @@ class RegMdn():
         if self.b_one_hot:
             self.enc = OneHotEncoder(handle_unknown='ignore')
             zs_onehot = zs[:, np.newaxis]
-            # print(zs_onehot)
             zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
-            # print(zs_onehot)
 
         if b_normalize:
             self.meanx = (np.max(xs) + np.min(xs)) / 2
@@ -672,12 +698,10 @@ class RegMdn():
         for combination in combinations:
             idx = 0
             comb = {}
-            # print(combination)
             for key in param_grid:
                 comb[key] = combination[idx]
                 idx += 1
             combs.append(comb)
-            # print(comb)
 
         self.b_store_training_data = True
         # for para in combs:
@@ -767,29 +791,6 @@ class RegMdn():
                 loss.backward()
                 optimizer.step()
 
-        # if b_show_density_plot:
-        #     xxs, yys = self.kde_predict([[112]], 2451119, b_plot=True)
-
-        #     # xxs, yys = regMdn.kde_predict([[1]], 2451119, b_plot=True)
-        #     xxs = [self.denormalize(xi, self.meany, self.widthy) for xi in xxs]
-        #     # print(xxs, yys)
-        #     # yys = [regMdn.denormalize(yi, regMdn.meany, regMdn.widthy) for yi in yys]
-        #     plt.plot(xxs, yys)
-        #     plt.show()
-
-        #     # tensor_xs = torch.stack([torch.Tensor(i)
-        #     #                          for i in xs])
-        #     # tensor_xs = torch.stack([torch.Tensor(1)])
-        #     # self.kde_predict()
-        #     # pi, sigma, mu = self.model(tensor_xs)
-        #     #
-        #     # xxs = np.linspace(-1, 1, 1000)
-        #     # yys = [gm(pi, mu, sigma, xxi, b_plot=False) for xxi in xxs]
-        #     # if b_normalize:
-        #     #     xxs =[self.denormalize(xxi, self.meany, self.widthy) for xxi in xxs]
-        #     # plt.plot(xxs,yys)
-        #     # plt.show()
-
         return self
 
     def predict3d(self, xs, zs, b_show_plot=True, num_points=10, b_generate_samples=False):
@@ -800,21 +801,15 @@ class RegMdn():
             #                for i in zs])
 
         zs_onehot = zs[:, np.newaxis]
-        # print(zs_onehot)
         zs_onehot = self.enc.transform(zs_onehot).toarray()
-        # print(zs_onehot)
 
         xs_onehot = xs[:, np.newaxis]
         xzs_onehot = np.concatenate([xs_onehot, zs_onehot], axis=1).tolist()
-        # xzs = np.array([[xs[i], zs[i]] for i in range(len(xs))])
-        # print(xzs_onehot)
+
         tensor_xzs = torch.stack([torch.Tensor(i)
                                   for i in xzs_onehot])
-        # xzs_data = torch.from_numpy(xzs)
 
         pi, sigma, mu = self.model(tensor_xzs)
-        # print("mu,", mu)
-        # print("sigma", sigma)
 
         if b_generate_samples:
             samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
@@ -827,8 +822,6 @@ class RegMdn():
             pi = pi.detach().numpy()  # .reshape(-1,2)
             samples = np.sum(np.multiply(pi, mu), axis=1)
 
-        # print(samples.data.numpy().reshape(-1))
-
         if self.is_normalized:
             # de-normalize the data
             samples = [self.denormalize(
@@ -837,7 +830,7 @@ class RegMdn():
                            for i in xs])
             # zs = np.array([self.denormalize(i, self.meanz, self.widthz)
             #                for i in zs])
-        # print(x_test)
+
         if b_show_plot:
 
             if not self.is_training_data_denormalized and self.b_store_training_data:
@@ -873,10 +866,8 @@ class RegMdn():
             xs = np.array([self.normalize(i, self.meanx, self.widthx)
                            for i in xs])
 
-        # xs = xs[:, np.newaxis]
         tensor_xs = torch.stack([torch.Tensor(i)
                                  for i in xs])
-        # xzs_data = torch.from_numpy(xzs)
 
         pi, sigma, mu = self.model(tensor_xs)
         if b_generate_samples:
@@ -886,21 +877,10 @@ class RegMdn():
                     (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
             samples = np.mean(samples, axis=0)
         else:
-            # print("len",len(xs))
-            # mu1 = mu.detach().numpy()
-            # pi1 = pi.detach().numpy()
-            # print("mu", mu1)
-            # print("weight", pi1)
-
             mu = mu.detach().numpy().reshape(len(xs), -1)
             pi = pi.detach().numpy()  # .reshape(-1,2)
-            # print("mu",mu)
-            # print("weight",pi)
-            # xymul=
-            # print(xymul)
-            samples = np.sum(np.multiply(pi, mu), axis=1)
 
-        # print("small",samples)
+            samples = np.sum(np.multiply(pi, mu), axis=1)
 
         if self.is_normalized:
             # de-normalize the data
@@ -908,7 +888,6 @@ class RegMdn():
                 i, self.meany, self.widthy) for i in samples]
             xs = np.array([self.denormalize(i, self.meanx, self.widthx)
                            for i in xs])
-            # print("large",samples)
 
         if b_show_plot:
             if not self.is_training_data_denormalized:
@@ -927,43 +906,6 @@ class RegMdn():
 
         samples = list(samples)
         return samples
-
-    # def kde_predict(self, xs, y, b_plot=False):
-
-    #     if self.is_normalized:
-    #         xs = np.array([self.normalize(i, self.meanx, self.widthx)
-    #                        for i in xs])
-    #         y = self.normalize(y, self.meany, self.widthy)
-    #         # print(", normalized to " + str(y))
-
-    #     if xs != self.last_xs:
-    #         self.last_xs = xs
-    #         # print("y is " + str(y)  )
-
-    #         # xs = xs[:, np.newaxis]
-    #         tensor_xs = torch.stack([torch.Tensor(i)
-    #                                  for i in xs])
-    #         # xzs_data = torch.from_numpy(xzs)
-
-    #         pi, sigma, mu = self.model(tensor_xs)
-    #         # print(tensor_xs)
-    #         # print(pi, sigma, mu)
-    #         self.last_mu = mu.detach().numpy().reshape(len(xs), -1)[0]
-    #         self.last_pi = pi.detach().numpy()[0]  # .reshape(-1,2)
-    #         self.last_sigma = sigma.detach().numpy().reshape(len(sigma), -1)[0]
-    #     # sigmas = [sig**0.5 for sig in sigma]
-    #     # if b_plot:
-    #     #     xs,ys= gm(self.last_pi,self.last_mu,self.last_sigma,y, b_plot=b_plot)
-    #     #     print("printing the mdn density estimation...")
-    #     #     plt.plot(xs, ys)
-    #     #     plt.show()
-    #     #     sys.exit(0)
-
-    #     result = gm(self.last_pi, self.last_mu,
-    #                 self.last_sigma, y, b_plot=b_plot)
-    #     result = result / self.widthy * 2
-    #     # print("kde predict for "+str(y)+": "+ str(result))
-    #     return result
 
     def normalize(self, x, mean, width):
         """normalize x
@@ -992,21 +934,32 @@ class KdeMdn:
         self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
-        # self.last_zs = None
-        # self.last_pi = None
-        # self.last_mu = None
-        # self.last_sigma = None
         self.enc = None
-        # self.is_normalized = False
         self.b_one_hot = b_one_hot
         self.device = device
 
-    def fit(self, zs, xs, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True):
+    def fit(self, zs: list, xs: list, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True):
+        """ fit the density for the data, to support group by queries.
+
+        Args:
+            zs (list): the group values
+            xs (list): the independent variables.
+            b_normalize (bool, optional): normalize the data before training the MDN network. Defaults to True.
+            num_gaussians (int, optional): the number of gaussions in the MDN network. Defaults to 20.
+            num_epoch (int, optional): number of epoches for training. Defaults to 20.
+            n_mdn_layer_node (int, optional): the node number in the hidden layer. Defaults to 20.
+            lr (float, optional): learning rate. Defaults to 0.001.
+            hidden (int, optional): the number of hidden layers before the MDN layer. Defaults to 1.
+            b_grid_search (bool, optional): use grid search to tune hyper parameters. Defaults to True.
+
+        Raises:
+            Exception: [description]
+            ValueError: "hidden layers must be 1 or 2."
+
+        Returns:
+            KdeMdn: the fitted model.
         """
-        Fit the density estimation model.
-        : param zs: group by attribute
-        : param xs: range attribute
-        """
+
         if not b_grid_search:
             if self.b_store_training_data:
                 self.zs = zs
@@ -1041,12 +994,8 @@ class KdeMdn:
 
             if self.b_one_hot:
                 self.enc = OneHotEncoder(handle_unknown='ignore')
-                # zs_onehot = zs#[:, np.newaxis]
-                # print(zs_onehot)
                 zs_onehot = self.enc.fit_transform(zs).toarray()
-
                 input_dim = len(self.enc.categories_[0])
-
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_onehot])  # transform to torch tensors
             else:
@@ -1078,14 +1027,13 @@ class KdeMdn:
                 self.model = nn.Sequential(
                     nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
                     nn.Tanh(),
-                    # self.dim_input
                     nn.Linear(n_mdn_layer_node, n_mdn_layer_node),
                     nn.Tanh(),
                     nn.Dropout(0.1),
                     MDN(n_mdn_layer_node, 1, num_gaussians, self.device)
                 )
             else:
-                raise ValueError("hidden layers must be 1 or 2, in "+__file__)
+                raise ValueError("hidden layers must be 1 or 2.")
 
             self.model = self.model.to(self.device)
 
@@ -1114,7 +1062,18 @@ class KdeMdn:
         else:  # grid search
             return self.fit_grid_search(zs, xs, b_normalize=b_normalize)
 
-    def fit_grid_search(self, zs, xs, b_normalize=True):
+    def fit_grid_search(self, zs: list, xs: list, b_normalize=True):
+        """ use grid search to tune the hyper parameters.
+
+        Args:
+            zs (list): the group by values.
+            xs (list): the independent variables.
+            b_normalize (bool, optional): normalize the independent variables before training the MDN model. Defaults to True.
+
+        Returns:
+            KdeMdn: the fitted model.
+        """
+
         param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
             5, 10, 20], 'hidden': [1, 2], 'gaussian': [10]}
         # param_grid = {'epoch': [2], 'lr': [0.001], 'node': [4,  12], 'hidden': [1, 2], 'gaussian': [10]}
@@ -1125,12 +1084,10 @@ class KdeMdn:
         for combination in combinations:
             idx = 0
             comb = {}
-            # print(combination)
             for key in param_grid:
                 comb[key] = combination[idx]
                 idx += 1
             combs.append(comb)
-            # print(comb)
 
         self.b_store_training_data = True
         for para in combs:
@@ -1149,10 +1106,23 @@ class KdeMdn:
         print("-"*80)
         return instance
 
-    def predict(self, zs, xs, b_plot=False, n_division=100):
+    def predict(self, zs: list, xs: list, b_plot=False, n_division=100):
+        """ provide density estimations for given points. zs and xs must of the same size.
+
+        Args:
+            zs (list): the group by values.
+            xs (list): the independent variables.
+            b_plot (bool, optional): plot the predictions along with the training data. Defaults to False.
+            n_division (int, optional): the number of divisions for predictions. Defaults to 100.
+
+        Raises:
+            Exception: [description]
+
+        Returns:
+            list: the predictions.
+        """
         # convert group zs from string to int
         if not self.b_one_hot:
-            # print(zs, type(zs))
             convert2float = True
             if convert2float:
                 try:
@@ -1163,25 +1133,16 @@ class KdeMdn:
                         else:
                             zs_float.append([(float)(item[0])])
                     zs = zs_float
-                    # print(zs, type(zs))
-                    # raise Exception
                 except:
                     raise Exception
 
         if self.is_normalized:
             xs = self.normalize(xs, self.meanx, self.widthx)
 
-            # y = self.normalize(y, self.meany, self.widthy)
-            # print("x is normalized to " + str(xs))
-
-        # if zs != self.last_zs:
-        # self.last_zs = zs
         zs = np.array(zs)[:, np.newaxis]
-        # print("zs", zs)
+
         if self.b_one_hot:
-            # print(zs)
             zs_onehot = self.enc.transform(zs).toarray()
-            # print(zs_onehot)
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_onehot])
         else:
@@ -1205,18 +1166,45 @@ class KdeMdn:
                          sigma, xs, b_plot=False) for pi, mu, sigma in zip(pis, mus, sigmas)]
             # scale up the probability, due to normalization of the x axis.
             result = result / self.widthx * 2
-            # print("kde predict for "+str(y)+": "+ str(result))
             return result
         else:
             return gm(pis[0], mus[0], sigmas[0], xs, b_plot=b_plot, n_division=n_division)
 
-    def normalize(self, x, mean, width):
+    def normalize(self, x: list, mean: float, width: float):
+        """normalize the data
+
+        Args:
+            x (list): the data points to be normalized.
+            mean (float): the mean value of x.
+            width (float): the range of x.
+
+        Returns:
+            list: the normalized data.
+        """
         return (x - mean) / width * 2
 
     def denormalize(self, x, mean, width):
+        """de-normalize the data
+
+        Args:
+            x (list): the data points to be de-normalized.
+            mean (float): the mean value of x.
+            width (float): the range of x.
+
+        Returns:
+            list: the de-normalized data.
+        """
         return 0.5 * width * x + mean
 
     def plot_density_3d(self, n_division=20):
+        """plot the 3d density curves.
+
+        Args:
+            n_division (int, optional): the number of divisions. Defaults to 20.
+
+        Raises:
+            ValueError:  "b_store_training_data must be set to True to enable the plotting function."
+        """
         if not self.b_store_training_data:
             raise ValueError(
                 "b_store_training_data must be set to True to enable the plotting function.")
@@ -1260,6 +1248,14 @@ class KdeMdn:
             plt.show()
 
     def plot_density_per_group(self, n_division=100):
+        """ plot the density for a specific group.
+
+        Args:
+            n_division (int, optional): the number of division in each group. Defaults to 100.
+
+        Raises:
+            ValueError: "b_store_training_data must be set to True to enable the plotting function."
+        """
         if not self.b_store_training_data:
             raise ValueError(
                 "b_store_training_data must be set to True to enable the plotting function.")
@@ -1267,11 +1263,9 @@ class KdeMdn:
 
             zs_plot = self.zs.reshape(1, -1)[0]
             df = pd.DataFrame({"z": zs_plot, "x": self.xs})
-            # print(df)
+
             df = df.dropna(subset=["z", "x"])
             gp = df.groupby(["z"])
-            # for group, values in gp:
-            #     print(group)
 
             zs_set = list(gp.groups.keys())
             # zs_set = list(set(zs_plot)).sort()
@@ -1281,8 +1275,6 @@ class KdeMdn:
             z_init = zs_set[5]
 
             self.fig = plt.figure(figsize=(8, 8))
-            # self.fig, self.ax = plt.subplots()
-            # self.fig.set
 
             # first we create the general layount of the figure
             # with two axes objects: one for the plot of the function
@@ -1295,9 +1287,7 @@ class KdeMdn:
 
             x_plot = one_group['x']
             z_plot = one_group["z"]
-            # print(one_group)
-            # raise Exception()
-            # group_x =0
+
             plt.axes(plot_ax)  # select sin_ax
             plt.title('Density Estimation')
             plt.xlabel("Query range attribute")
@@ -1364,7 +1354,12 @@ class KdeMdn:
 
             plt.show()
 
-    def serialize(self, file):
+    def serialize(self, file: str):
+        """serialize the model to file, using dill.
+
+        Args:
+            file (str): the path to store the model.
+        """
         with open(file, 'wb') as f:
             dill.dump(self, f)
 
@@ -1417,13 +1412,10 @@ class KdeMdn:
             total = sum(main_plot)
             for patch in patches:
                 left, right, frequency = patch._x0, patch._x1, patch._y1/total
-
                 approx = integrate.quad(predict_func, left, right)[0]
-                # print(frequency,approx)
                 frequencies.append(frequency)
                 approxs.append(approx)
-            # print(sum(frequencies),sum(approxs))
-            # print(integrate.quad(predict_func, bins[0],bins[-1]))
+
             errors = [abs(f-p) for f, p in zip(frequencies, approxs)]
 
             if b_show_plot:
@@ -1433,7 +1425,14 @@ class KdeMdn:
             return sum(errors)
 
     def score(self):
+        """evaluate the model, based on training data.
 
+        Raises:
+            ValueError: "b_store_training_data must be set to True to enable the score() function."
+
+        Returns:
+            float: the total error from a random sample of points.
+        """
         if not self.b_store_training_data:
             raise ValueError(
                 "b_store_training_data must be set to True to enable the score() function.")
@@ -1447,18 +1446,12 @@ class KdeMdn:
             # random choose
             random.seed(0)
             zs_set = random.sample(zs_set, min(len(zs_set), 20))
-            print(zs_set)
+
             errors = []
             for g in zs_set:
                 errors.append(self.bin_wise_error(
                     g, n_division=10, b_show_plot=False))
-            # print("score: ", errors)
             return sum(errors)
-
-
-def de_serialize(file):
-    with open(file, 'rb') as f:
-        return dill.load(f)
 
 
 def test1():
