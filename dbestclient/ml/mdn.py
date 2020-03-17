@@ -1408,7 +1408,7 @@ class KdeMdn:
             main_plot, bins, patches = plt.hist(x_plot, bins=n_division)
 
             def predict_func(x):
-                return self.predict([[z_init]], x)
+                return self.predict([z_init], x)
 
             frequencies = []
             approxs = []
