@@ -49,7 +49,7 @@ def build_models(sqlExecutor):
 
 def query(sqlExecutor):
     sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
+        "select count(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1, n_division=20)
     sqlExecutor.execute(
         "select sum(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
     sqlExecutor.execute(

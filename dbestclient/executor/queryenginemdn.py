@@ -156,7 +156,7 @@ class MdnQueryEngine:
                 pre, t = self.predict(func, x_lb, x_ub, groupby_value)
                 predictions[groupby_value] = pre
                 times[groupby_value] = t
-                print(groupby_value, pre)
+                # print(groupby_value, pre)
         else:  # multiple threads implementation
 
             width = int(len(self.groupby_values) / n_jobs)
@@ -226,9 +226,9 @@ class MdnQueryEngine:
                 for sub_group in group_chunks:
                     # print(sub_group)
                     # engine = self.enginesContainer[index]
-                    print(sub_group)
+                    # print(sub_group)
                     i = pool.apply_async(
-                        self.predict_one_pass, (func, x_lb, x_ub, sub_group, False))
+                        self.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
                     instances.append(i)
 
                 for i in instances:
@@ -313,7 +313,7 @@ class MdnQueryEngineBundle():
             self.enginesContainer[index] = engine
         return self
 
-    def predicts(self, func, x_lb, x_ub, n_jobs=4, result2file=None):
+    def predicts(self, func, x_lb, x_ub, n_jobs=4, result2file=None, n_division=20, b_print_to_screen=True):
         instances = []
         predictions = {}
         # times = {}
@@ -323,7 +323,7 @@ class MdnQueryEngineBundle():
                 # print(sub_group)
                 engine = self.enginesContainer[index]
                 i = pool.apply_async(
-                    engine.predict_one_pass, (func, x_lb, x_ub, sub_group))
+                    engine.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
                 instances.append(i)
 
             for i in instances:
@@ -332,6 +332,9 @@ class MdnQueryEngineBundle():
                 # t = result[1]
                 predictions.update(result)
                 # times.update(t)
+        if b_print_to_screen:
+            for key in predictions:
+                print(key + "," + str(predictions[key]))
         if result2file is not None:
             # print(predictions)
             with open(result2file, 'w') as f:

@@ -87,7 +87,7 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True, n_jobs=4, b_grid_search=True, b_use_gg=True, device="cpu"):
+    def execute(self, sql, n_per_gg=10, result2file=None, n_mdn_layer_node=10, b_one_hot_encoding=True, n_jobs=4, b_grid_search=True, b_use_gg=True, device="cpu", n_division=20):
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -312,12 +312,12 @@ class SqlExecutor:
                                                 self.config)  # mdl+"_groupby_"+groupby_attribute+".pkl"
                             print("OK")
                             qe.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                result2file=result2file, n_jobs=n_jobs)
+                                                result2file=result2file, n_jobs=n_jobs, n_division=n_division)
                         else:
                             qe = self.model_catalog.model_catalog[mdl + ".pkl"]
                             print("OK")
                             qe.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                        result2file=result2file, n_jobs=n_jobs)
+                                        result2file=result2file, n_jobs=n_jobs, n_division=n_division)
 
                     if self.config['verbose']:
                         end = datetime.now()

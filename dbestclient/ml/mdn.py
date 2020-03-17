@@ -371,6 +371,7 @@ class RegMdnGroupBy():
         self.b_store_training_data = False
         instance = self.fit(z_group, x_points, y_points, n_gaussians=para['gaussian'], n_epoch=20,
                             n_mdn_layer_node=para['node'], lr=para['lr'], n_hidden_layer=para['hidden'], b_grid_search=False)
+        print("-"*80)
         return instance
 
     def predict(self, z_group, x_points, b_plot=False):
@@ -1145,6 +1146,7 @@ class KdeMdn:
         self.b_store_training_data = False
         instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
                             n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
+        print("-"*80)
         return instance
 
     def predict(self, zs, xs, b_plot=False, n_division=100):
