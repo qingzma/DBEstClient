@@ -93,12 +93,12 @@ class KdeModelTrainer:
         self.x_max_value = x_max_value
         self.config = config
 
-        if device.lower() not in ("cup", "gpu"):
+        if device.lower() not in ("cpu", "gpu"):
             raise ValueError("unexpected device type.")
         if device.lower() == "cpu":
             # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             device = torch.device("cpu")
-        if device.lower() == "gpu":
+        else:
             if torch.cuda.is_available():
                 print("No GPU available, use CPU instead.")
                 device = torch.device("cuda:0")

@@ -88,8 +88,7 @@ def build_models(sqlExecutor):
     #     n_per_gg=254)
 
     sqlExecutor.execute(
-        "create table ss1t_5m_gg4_integral(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000",
-        n_per_gg=127, n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True)
+        "create table ss1t_gg4(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=127)
     #
     # sqlExecutor.execute(
     #     "create table grid_ss1t_5m_gg4(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000",
@@ -164,7 +163,7 @@ def query(sqlExecutor):
 
     sqlExecutor.execute(
         "select count(ss_sales_price)  from ss1t_5m_gg4_integral where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_5m_gg4_integral.txt",n_jobs=1)
+        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_5m_gg4_integral.txt", n_jobs=1)
     # sqlExecutor.execute(
     #     "select count(ss_sales_price)  from grid_ss1t_5m_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
     #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/grid_ss1t_5m_gg4.txt")
@@ -181,6 +180,7 @@ def query(sqlExecutor):
     # sqlExecutor.execute(
     #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node12_3hidden where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
     #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_1m_gg_64_node12_3hidden.txt")
+
 
 def run_dbest1():
     config = {
@@ -205,11 +205,13 @@ def run_dbest1():
                                   "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
                                   "ss_ext_wholesale_cost,ss_ext_list_price,ss_ext_tax,ss_coupon_amt,ss_net_paid," +
                                   "ss_net_paid_inc_tax,ss_net_profit,none")
-    sqlExecutor.execute("create table ss1t_5m_qreg(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000")
+    sqlExecutor.execute(
+        "create table ss1t_5m_qreg(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000")
     sqlExecutor.execute("select count(ss_sales_price)  from ss1t_5m_qreg where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_5m_qreg.txt")
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_5m_qreg.txt")
     # build_models(sqlExecutor)
     # query(sqlExecutor)
+
 
 if __name__ == "__main__":
     run()
