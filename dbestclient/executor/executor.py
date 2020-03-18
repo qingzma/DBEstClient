@@ -310,7 +310,7 @@ class SqlExecutor:
                             qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
                             print("OK")
                             qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                            result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                                            result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=False)
 
                     if self.config['verbose']:
                         end = datetime.now()

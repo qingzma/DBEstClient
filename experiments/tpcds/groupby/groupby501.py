@@ -120,7 +120,7 @@ def query(sqlExecutor):
 
 def run_dbest1():
     config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouseqreg',
+        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
         'verbose': 'True',
         'b_show_latency': 'True',
         'backend_server': 'None',
@@ -150,5 +150,5 @@ def run_dbest1():
 
 
 if __name__ == "__main__":
-    run()
-    # run_dbest1()
+    # run()
+    run_dbest1()

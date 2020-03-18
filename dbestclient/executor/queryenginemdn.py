@@ -249,6 +249,8 @@ def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
     mdnQueryEngine.groupby_values = group
     return mdnQueryEngine.predicts(func, x_lb, x_ub, b_parallel=False, n_jobs=1)
 
+# TODO need to release space further.
+
 
 class MdnQueryEngineBundle():
     def __init__(self, config: dict, device):

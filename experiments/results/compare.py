@@ -4,6 +4,7 @@
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
 import re
+from itertools import chain
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
@@ -131,7 +132,7 @@ def plt501():
     plt.show()
 
 
-def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt.txt", b_plot=True):
+def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt.txt", b_plot=True, b_merge_result_for_group=False):
     mdn_errors = []
     kde_errors = []
     # prapare the files.
@@ -144,12 +145,19 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt.txt", b_plot=True):
         kde_error = compare_dicts(truth, kde)
         mdn_errors.append(mdn_error)
         kde_errors.append(kde_error)
-    mdn_errors = np.array(mdn_errors)
-    kde_errors = np.array(kde_errors)
 
     if b_plot:
-        mdn_errors = np.mean(mdn_errors, axis=0)*100
-        kde_errors = np.mean(kde_errors, axis=0)*100
+        if b_merge_result_for_group:
+            mdn_errors = np.array(mdn_errors)
+            kde_errors = np.array(kde_errors)
+            mdn_errors = np.mean(mdn_errors, axis=0)
+            kde_errors = np.mean(kde_errors, axis=0)
+        else:
+            mdn_errors = np.array(list(chain.from_iterable(mdn_errors)))
+            kde_errors = np.array(list(chain.from_iterable(kde_errors)))
+
+        mdn_errors = mdn_errors*100
+        kde_errors = kde_errors*100
 
         plt.hist(mdn_errors, bins=50, color="r", alpha=0.2, label="DBEst-MDN")
         plt.hist(kde_errors, bins=50, color="b", alpha=0.6, label="DBEst")
@@ -162,9 +170,9 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt.txt", b_plot=True):
         plt.gca().xaxis.set_major_formatter(xticks)
         # plt.gca().xaxis.set_major_formatter(mtick.PercentFormatter())
 
-        plt.text(6, 12, "DBEst-MDN error " +
+        plt.text(10, 150, "DBEst-MDN error " +
                  "{0:.2f}".format(np.mean(mdn_errors)) + "%")
-        plt.text(6, 10, "DBEst error " +
+        plt.text(10, 180, "DBEst error " +
                  "{0:.2f}".format(np.mean(kde_errors)) + "%")
 
         plt.show()
@@ -225,4 +233,4 @@ def autolabel(rects, ax):
 
 if __name__ == "__main__":
     # plt_501_bar_chart_error()
-    plt501_workload(agg_func="avg")
+    plt501_workload(agg_func="sum")
