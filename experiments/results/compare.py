@@ -7,6 +7,8 @@ import re
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+import numpy as np
+from matplotlib.pyplot import axis, legend
 
 
 def read_results(file, b_remove_null=True, split_char="\s"):
@@ -129,5 +131,98 @@ def plt501():
     plt.show()
 
 
+def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt.txt", b_plot=True):
+    mdn_errors = []
+    kde_errors = []
+    # prapare the files.
+    for i in range(1, 11):
+        prefix = agg_func+str(i)
+        mdn = read_results("mdn501/"+prefix+suffix, split_char=",")
+        truth = read_results("groundtruth/"+prefix+".result")
+        kde = read_results("DBEst/"+prefix+".txt")
+        mdn_error = compare_dicts(truth, mdn)
+        kde_error = compare_dicts(truth, kde)
+        mdn_errors.append(mdn_error)
+        kde_errors.append(kde_error)
+    mdn_errors = np.array(mdn_errors)
+    kde_errors = np.array(kde_errors)
+
+    if b_plot:
+        mdn_errors = np.mean(mdn_errors, axis=0)*100
+        kde_errors = np.mean(kde_errors, axis=0)*100
+
+        plt.hist(mdn_errors, bins=50, color="r", alpha=0.2, label="DBEst-MDN")
+        plt.hist(kde_errors, bins=50, color="b", alpha=0.6, label="DBEst")
+        plt.legend()
+        plt.title("Histogram of relative error for " + agg_func.upper())
+        plt.ylabel("Frequency")
+        plt.xlabel("Relative error")
+        fmt = '%.2f%%'
+        xticks = mtick.FormatStrFormatter(fmt)
+        plt.gca().xaxis.set_major_formatter(xticks)
+        # plt.gca().xaxis.set_major_formatter(mtick.PercentFormatter())
+
+        plt.text(6, 12, "DBEst-MDN error " +
+                 "{0:.2f}".format(np.mean(mdn_errors)) + "%")
+        plt.text(6, 10, "DBEst error " +
+                 "{0:.2f}".format(np.mean(kde_errors)) + "%")
+
+        plt.show()
+    print(agg_func)
+    print("MDN error " + str(np.mean(mdn_errors)) + "%")
+    print("DBEst error " + str(np.mean(kde_errors)) + "%")
+    return np.mean(mdn_errors), np.mean(kde_errors)
+
+
+def plt_501_bar_chart_error(suffix="_ss1t_gg4.txt.txt"):
+    fontsize = 10
+    mdn_count, kde_count = plt501_workload(
+        agg_func="count", suffix=suffix, b_plot=False)
+    mdn_sum, kde_sum = plt501_workload(
+        agg_func="sum", suffix=suffix, b_plot=False)
+    mdn_avg, kde_avg = plt501_workload(
+        agg_func="avg", suffix=suffix, b_plot=False)
+    labels = ["COUNT", "SUM", "AVG", "OVERALL"]
+
+    mdn = [mdn_count, mdn_sum, mdn_avg]
+    kde = [kde_count, kde_sum, kde_avg]
+    mdn.append(sum(mdn)/3.0)
+    kde.append(sum(kde)/3.0)
+    mdn = np.array(mdn)*100
+    kde = np.array(kde)*100
+
+    x_points = np.arange(len(labels))
+    width = 0.35
+    fig, ax = plt.subplots(figsize=(4.5, 3.5))
+    rect_mdn = ax.bar(x_points-width/2, mdn, width,
+                      label="DBEst-MDN", alpha=0.5)
+    rect_kde = ax.bar(x_points+width/2, kde, width, label="DBEst", alpha=0.8)
+    ax.set_xticks(x_points)
+    ax.set_xticklabels(labels)
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=1))
+    ax.set_ylabel("Relative Error (%)", fontsize=fontsize)
+    ax.set_xlabel("Aggregate function", fontsize=fontsize)
+    ax.legend(loc="lower left", fontsize=fontsize)
+    autolabel(rect_kde, ax)
+    autolabel(rect_mdn, ax)
+
+    ax.set_ylim(0, 5)
+
+    fig.tight_layout()
+    plt.show()
+
+
+def autolabel(rects, ax):
+    """Attach a text label above each bar in *rects*, displaying its height."""
+    for rect in rects:
+        height = rect.get_height()
+        ax.annotate('{0:.2f}'.format(height),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),  # 3 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+
+
 if __name__ == "__main__":
-    plt501()
+    # plt_501_bar_chart_error()
+    plt501_workload(agg_func="avg")

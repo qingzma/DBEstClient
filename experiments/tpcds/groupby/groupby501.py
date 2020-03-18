@@ -39,163 +39,83 @@ def run():
 
 
 def build_models(sqlExecutor):
-    # 10k
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8,n_mdn_layer_node=2)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node4(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=4)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node6(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=6)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node8(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=8)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node10(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=10)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node12(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=12)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node14(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=14)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node16(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=16)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node18(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=18)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_64_node20(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=8, n_mdn_layer_node=20)
 
     # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_32(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=16)
+    #     "create table ss1t_gg4_no_data(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=127)
     # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_16(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=32)
+    #     "create table ss1t_gg8(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=64)
     # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_8(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=64)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_4(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=127)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=254)
-
-    sqlExecutor.execute(
-        "create table ss1t_gg4_no_data(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=127)
-    sqlExecutor.execute(
-        "create table ss1t_gg8(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=64)
-    sqlExecutor.execute(
-        "create table ss1t_gg16(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=32)
+    #     "create table ss1t_gg16(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=32)
     sqlExecutor.execute(
         "create table ss1t_gg4_gpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=127)
-    sqlExecutor.execute(
-        "create table ss1t_gg2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=254)
-    sqlExecutor.execute(
-        "create table ss1t_no_gg(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=False, n_per_gg=254)
-    #
     # sqlExecutor.execute(
-    #     "create table grid_ss1t_5m_gg4(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000",
-    #     n_per_gg=127,n_mdn_layer_node=8,b_one_hot_encoding=True,b_grid_search=True)
-
+    #     "create table ss1t_gg2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=254)
     # sqlExecutor.execute(
-    #     "create table grid_ss1t_5m_gg8(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000",
-    #     n_per_gg=64, n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True)
-
-    # sqlExecutor.execute(
-    #     "create table grid_ss1t_5m_gg64(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000",
-    #     n_per_gg=8, n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True)
-
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_4_node4_3hidden(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=127, n_mdn_layer_node=8)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_1_node8_3hidden(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=508, n_mdn_layer_node=8)
-    # sqlExecutor.execute(
-    #     "create table ss1t_1m_gg_1_node12_3hidden(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_1m.csv' GROUP BY ss_store_sk method uniform size 1000000",
-    #     n_per_gg=508, n_mdn_layer_node=12)
+    #     "create table ss1t_no_gg(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=False, n_per_gg=254)
 
 
 def query(sqlExecutor):
-    # sqlExecutor.execute(
-        # "select count(ss_sales_price)  from ss1t_1m_gg_64_node2 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-        # result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_32 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg32.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_16 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg16.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_8 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg8.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg4.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_2 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg2.txt")
 
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node2 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node2.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node4.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node6 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node6.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node8 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node8.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node10 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node10.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node12 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node12.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node14 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node14.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node16 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node16.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node18 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_gg64_node18.txt")
-
-    sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss1t_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_ss1t_gg4.txt", n_jobs=1)
-    sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss1t_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_ss1t_gg4.txt", n_jobs=8)
-    # sqlExecutor.execute(
-    #     "select sum(ss_sales_price)  from ss1t_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum1_ss1t_gg4.txt", n_jobs=1)
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from grid_ss1t_5m_gg4 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/grid_ss1t_5m_gg4.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from grid_ss1t_5m_gg8 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/grid_ss1t_5m_gg8.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from grid_ss1t_5m_gg64 where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/grid_ss1t_5m_gg64.txt")
-
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node8_3hidden where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_1m_gg_64_node8_3hidden.txt")
-    # sqlExecutor.execute(
-    #     "select count(ss_sales_price)  from ss1t_1m_gg_64_node12_3hidden where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk",
-    #     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_1m_gg_64_node12_3hidden.txt")
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum1_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum2_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum3_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum4_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum5_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum6_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum7_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum8_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum9_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum10_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count2_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count3_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count4_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count5_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count6_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count7_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count8_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count9_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count10_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg1_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg2_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg3_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg4_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg5_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg6_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg7_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg8_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg9_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg10_ss1t_gg4.txt.txt", n_jobs=1)
 
 
 def run_dbest1():
