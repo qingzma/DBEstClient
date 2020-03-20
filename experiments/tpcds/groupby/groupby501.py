@@ -52,9 +52,35 @@ def build_models(sqlExecutor):
     #     "create table ss1t_gg2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=254)
     # sqlExecutor.execute(
     #     "create table ss1t_no_gg(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=False, n_per_gg=254)
+    sqlExecutor.execute(
+        "create table ss1t_gg32_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=16)
+    sqlExecutor.execute(
+        "create table ss1t_gg64_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=8)
+    sqlExecutor.execute(
+        "create table ss1t_gg32_gpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=16)
+    sqlExecutor.execute(
+        "create table ss1t_gg64_gpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=8)
 
 
 def query(sqlExecutor):
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=1)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=2)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=4)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=8)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=16)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=32)
+
+    # sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+    #                     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_gg32_cpu.txt", n_jobs=1)
+
+
+def query_query1(sqlExecutor):
 
     sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
                         result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum1_ss1t_gg4.txt.txt", n_jobs=1)
@@ -150,5 +176,5 @@ def run_dbest1():
 
 
 if __name__ == "__main__":
-    # run()
-    run_dbest1()
+    run()
+    # run_dbest1()

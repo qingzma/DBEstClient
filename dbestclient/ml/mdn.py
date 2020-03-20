@@ -267,6 +267,11 @@ class RegMdnGroupBy():
                 self.x_points = x_points
                 self.y_points = y_points
                 self.z_points = z_group
+            else:
+                # delete the previous stored data in grid search, to save space.
+                self.x_points = None
+                self.y_points = None
+                self.z_points = None
 
             if self.b_one_hot:
                 xs_onehot = x_points[:, np.newaxis]
@@ -353,7 +358,7 @@ class RegMdnGroupBy():
         param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
             5, 10, 20], 'hidden': [1, 2], 'gaussian': [3, 5]}
         # param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
-        #     5], 'hidden': [1, 2], 'gaussian': [3, 5]}
+        #     5], 'hidden': [1], 'gaussian': [3]}
 
         errors = []
         combinations = it.product(*(param_grid[Name] for Name in param_grid))
@@ -972,6 +977,9 @@ class KdeMdn:
             if self.b_store_training_data:
                 self.zs = zs
                 self.xs = xs
+            else:
+                self.zs = None
+                self.xs = None
 
             if b_normalize:
                 self.meanx = (np.max(xs) + np.min(xs)) / 2
@@ -1084,7 +1092,8 @@ class KdeMdn:
 
         param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
             5, 10, 20], 'hidden': [1, 2], 'gaussian': [10]}
-        # param_grid = {'epoch': [2], 'lr': [0.001], 'node': [4,  12], 'hidden': [1, 2], 'gaussian': [10]}
+        # param_grid = {'epoch': [2], 'lr': [0.001],
+        #               'node': [4], 'hidden': [1], 'gaussian': [10]}
         errors = []
         combinations = it.product(*(param_grid[Name] for Name in param_grid))
         combinations = list(combinations)

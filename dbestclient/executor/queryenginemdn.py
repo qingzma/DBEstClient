@@ -20,12 +20,12 @@ from dbestclient.ml.integral import (approx_avg, approx_count,
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.tools.dftools import get_group_count_from_summary_file
 
-try:
-    set_start_method('spawn')
-except RuntimeError:
-    print("Fail to set start method as spawn for pytorch multiprocessing, " +
-          "use default in advance. (see queryenginemdn "
-          "for more info.)")
+# try:
+#     set_start_method('spawn')
+# except RuntimeError:
+#     print("Fail to set start method as spawn for pytorch multiprocessing, " +
+#           "use default in advance. (see queryenginemdn "
+#           "for more info.)")
 
 
 class MdnQueryEngine:
@@ -248,8 +248,6 @@ class MdnQueryEngine:
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
     mdnQueryEngine.groupby_values = group
     return mdnQueryEngine.predicts(func, x_lb, x_ub, b_parallel=False, n_jobs=1)
-
-# TODO need to release space further.
 
 
 class MdnQueryEngineBundle():
