@@ -35,7 +35,28 @@ def run():
                                   "ss_ext_wholesale_cost,ss_ext_list_price,ss_ext_tax,ss_coupon_amt,ss_net_paid," +
                                   "ss_net_paid_inc_tax,ss_net_profit,none")
     build_models(sqlExecutor)
-    query(sqlExecutor)
+    # query(sqlExecutor)
+    query_workload(sqlExecutor, "ss1t_gg32_cpu", 1)
+    query_workload(sqlExecutor, "ss1t_gg32_cpu", 2)
+    query_workload(sqlExecutor, "ss1t_gg32_cpu", 4)
+    query_workload(sqlExecutor, "ss1t_gg32_cpu", 8)
+    query_workload(sqlExecutor, "ss1t_gg32_cpu", 16)
+    query_workload(sqlExecutor, "ss1t_gg32_gpu", 1)
+    query_workload(sqlExecutor, "ss1t_gg32_gpu", 2)
+    query_workload(sqlExecutor, "ss1t_gg32_gpu", 4)
+    query_workload(sqlExecutor, "ss1t_gg32_gpu", 8)
+    query_workload(sqlExecutor, "ss1t_gg32_gpu", 16)
+
+    query_workload(sqlExecutor, "ss1t_gg64_cpu", 1)
+    query_workload(sqlExecutor, "ss1t_gg64_cpu", 2)
+    query_workload(sqlExecutor, "ss1t_gg64_cpu", 4)
+    query_workload(sqlExecutor, "ss1t_gg64_cpu", 8)
+    query_workload(sqlExecutor, "ss1t_gg64_cpu", 16)
+    query_workload(sqlExecutor, "ss1t_gg64_gpu", 1)
+    query_workload(sqlExecutor, "ss1t_gg64_gpu", 2)
+    query_workload(sqlExecutor, "ss1t_gg64_gpu", 4)
+    query_workload(sqlExecutor, "ss1t_gg64_gpu", 8)
+    query_workload(sqlExecutor, "ss1t_gg64_gpu", 16)
 
 
 def build_models(sqlExecutor):
@@ -73,75 +94,84 @@ def query(sqlExecutor):
         'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=8)
     sqlExecutor.execute(
         'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=16)
+
     sqlExecutor.execute(
-        'select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=32)
+        'select sum(ss_sales_price)   from ss1t_gg32_gpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=1)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_gpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=2)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_gpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=4)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_gpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=8)
+    sqlExecutor.execute(
+        'select sum(ss_sales_price)   from ss1t_gg32_gpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk', n_jobs=16)
 
     # sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg32_cpu where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
     #                     result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/ss1t_gg32_cpu.txt", n_jobs=1)
 
 
-def query_query1(sqlExecutor):
+def query_workload(sqlExecutor, model_name, n_jobs):
 
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum1_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum2_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum3_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum4_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum5_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum6_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum7_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum8_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum9_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select sum(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum10_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count2_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count3_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count4_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count5_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count6_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count7_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count8_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count9_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select count(ss_sales_price) from ss1t_gg4 where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count10_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg1_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg2_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg3_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg4_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg5_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg6_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg7_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg8_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg9_ss1t_gg4.txt.txt", n_jobs=1)
-    sqlExecutor.execute('select avg(ss_sales_price)   from ss1t_gg4 where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
-                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg10_ss1t_gg4.txt.txt", n_jobs=1)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum1_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum2_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum3_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum4_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum5_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum6_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum7_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum8_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum9_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select sum(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/sum10_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count1_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count2_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count3_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count4_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count5_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count6_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count7_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count8_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count9_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select count(ss_sales_price) from ' + model_name + '  where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/count10_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451119 and 2451483 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg1_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451300 and 2451665 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg2_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451392 and 2451757 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg3_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451484 and 2451849 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg4_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451545 and 2451910 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg5_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451636 and 2452000 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg6_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451727 and 2452091 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg7_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451850 and 2452214 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg8_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2451911 and 2452275 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg9_' + model_name + '.txt", n_jobs=n_jobs)
+    sqlExecutor.execute('select avg(ss_sales_price)   from ' + model_name + '  where ss_sold_date_sk between 2452031 and 2452395 group by   ss_store_sk',
+                        result2file="/home/u1796377/Projects/DBEstClient/experiments/results/mdn501/avg10_' + model_name + '.txt", n_jobs=n_jobs)
 
 
 def run_dbest1():
