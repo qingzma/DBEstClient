@@ -98,11 +98,14 @@ class KdeModelTrainer:
         if device.lower() == "cpu":
             # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             device = torch.device("cpu")
+            print("CPU is used"+'-'*20)
         else:
             if torch.cuda.is_available():
-                print("No GPU available, use CPU instead.")
+                print("GPU available, use GPU.")
                 device = torch.device("cuda:0")
             else:
+                print("No GPU available, use CPU instead.")
+                print("CPU is used"+'-'*20)
                 device = torch.device("cpu")
         self.device = device
 
