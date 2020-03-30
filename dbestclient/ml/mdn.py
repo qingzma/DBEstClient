@@ -233,7 +233,7 @@ class RegMdnGroupBy():
 
     def fit(self, z_group: list, x_points: list, y_points: list,
             n_epoch: int = 100, n_gaussians: int = 5, n_hidden_layer: int = 1,
-            n_mdn_layer_node: int = 10, lr: float = 0.001, b_grid_search=True):
+            n_mdn_layer_node: int = 10, lr: float = 0.001, b_grid_search=True, n_workers=0):
         """fit the MDN regression model.
 
         Args:
@@ -296,10 +296,9 @@ class RegMdnGroupBy():
             tensor_ys = tensor_ys.to(self.device)
 
             my_dataset = torch.utils.data.TensorDataset(
-                tensor_xzs, tensor_ys)  # create your datset
-            # , num_workers=8) # create your dataloader
+                tensor_xzs, tensor_ys)  # create your dataloader
             my_dataloader = torch.utils.data.DataLoader(
-                my_dataset, batch_size=1000, shuffle=True)
+                my_dataset, batch_size=1000, shuffle=True, num_workers=n_workers)
 
             input_dim = len(self.enc.categories_[0]) + 1
             # initialize the model
@@ -597,7 +596,7 @@ class RegMdn():
             print("dimension mismatch")
             sys.exit(0)
 
-    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5):
+    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5, n_workers=0):
         """ fit a regression y = R(x,z)
 
         Args:
@@ -663,7 +662,7 @@ class RegMdn():
             tensor_xzs, tensor_ys)  # create your datset
         # , num_workers=8) # create your dataloader
         my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False)
+            my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
 
         input_dim = len(self.enc.categories_[0]) + 1
         # initialize the model
@@ -737,7 +736,7 @@ class RegMdn():
         # return instance
 
     def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5,
-              b_show_density_plot=False):
+              b_show_density_plot=False, n_workers=0):
         """ fit a regression y = R(x)
 
         Args:
@@ -786,7 +785,7 @@ class RegMdn():
             tensor_xs, tensor_ys)  # create your datset
         # , num_workers=8) # create your dataloader
         my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False)
+            my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
 
         # initialize the model
         self.model = nn.Sequential(
@@ -955,7 +954,7 @@ class KdeMdn:
         self.b_one_hot = b_one_hot
         self.device = device
 
-    def fit(self, zs: list, xs: list, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True):
+    def fit(self, zs: list, xs: list, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True, n_workers=0):
         """ fit the density for the data, to support group by queries.
 
         Args:
@@ -1030,10 +1029,9 @@ class KdeMdn:
             tensor_zs = tensor_zs.to(self.device)
 
             my_dataset = torch.utils.data.TensorDataset(
-                tensor_zs, tensor_xs)  # create your datset
-            # , num_workers=8) # create your dataloader
+                tensor_zs, tensor_xs)  # create your dataloader
             my_dataloader = torch.utils.data.DataLoader(
-                my_dataset, batch_size=1000, shuffle=False)
+                my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
 
             # initialize the model
             if hidden == 1:
@@ -1517,9 +1515,6 @@ class KdeMdn:
             #     errors.append(self.bin_wise_error(
             #         g, n_division=10, b_show_plot=False))
             # return sum(errors)
-
-        # TODO during fitting, the data should not be modified.
-        # TODO the score() method for KDE must be optimized.
 
 
 def test1():
