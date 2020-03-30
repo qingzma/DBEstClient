@@ -69,12 +69,17 @@ def build_models(sqlExecutor):
     #     "create table ss1t_gg16(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=32)
     # sqlExecutor.execute(
     #     "create table ss1t_gg1_gpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=512)
-    sqlExecutor.execute(
-        "create table ss1t_gg2_gpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=256)
+
     # sqlExecutor.execute(
     #     "create table ss1t_gg1_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=512)
     sqlExecutor.execute(
-        "create table ss1t_gg2_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=256)
+        "create table ss1t_gg1_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=512)
+    sqlExecutor.execute(
+        "create table ss1t_gg2_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=255)
+    sqlExecutor.execute(
+        "create table ss1t_gg4_cpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=127)
+    sqlExecutor.execute(
+        "create table ss1t_gg4_gpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=127)
     # sqlExecutor.execute(
     #     "create table ss1t_gg2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/ss_5m.csv' GROUP BY ss_store_sk method uniform size 5000000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=254)
     # sqlExecutor.execute(
