@@ -9,6 +9,7 @@ import itertools as it
 import math
 import random
 import sys
+from os.path import abspath
 
 import dill
 import matplotlib.pyplot as plt
@@ -18,11 +19,14 @@ import scipy.stats as stats
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from decorator import append
 from matplotlib.widgets import Slider
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.preprocessing import OneHotEncoder
 from torch.autograd import Variable
 from torch.distributions import Categorical
+
+from dbestclient.ml.integral import approx_count, prepare_reg_density_data
 
 # global DEVICE
 # # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -454,9 +458,9 @@ class RegMdnGroupBy():
 
         pis, sigmas, mus = self.model(tensor_xzs)
         if not b_plot:
-            pis = pis.detach().numpy()  # [0]
+            pis = pis.cpu().detach().numpy()  # [0]
             # sigmas = sigmas.detach().numpy().reshape(len(sigmas), -1)[0]
-            mus = mus.detach().numpy().reshape(len(z_group), -1)  # [0]
+            mus = mus.cpu().detach().numpy().reshape(len(z_group), -1)  # [0]
             predictions = np.sum(np.multiply(pis, mus), axis=1)
 
             if self.b_normalize_data:
@@ -1448,7 +1452,7 @@ class KdeMdn:
                 plt.show()
             return sum(errors)
 
-    def score(self):
+    def score(self, n_division=20):
         """evaluate the model, based on training data.
 
         Raises:
@@ -1470,12 +1474,52 @@ class KdeMdn:
             # random choose
             random.seed(0)
             zs_set = random.sample(zs_set, min(len(zs_set), 20))
-
+            # print("zs_set"+__file__, zs_set)
             errors = []
+            # for g in zs_set:
+            #     errors.append(self.bin_wise_error(
+            #         g, n_division=10, b_show_plot=False))
+            # print("finish score")
+            # return sum(errors)
+            freq_all = []
             for g in zs_set:
-                errors.append(self.bin_wise_error(
-                    g, n_division=10, b_show_plot=False))
-            return sum(errors)
+                main_plot, bins, patches = plt.hist(
+                    gp.get_group(g)["x"], bins=n_division)
+                total = sum(main_plot)
+                freq_g = []
+                for patch in patches:
+                    left, right, frequency = patch._x0, patch._x1, patch._y1/total
+                    freq_g.append(frequency)
+                freq_all.append(freq_g)
+            freq_all = np.array(freq_all)
+            freq_all = freq_all.transpose()
+            # print(freq_all)
+            # print(freq_all.shape)
+
+            pred_all = []
+            for patch in patches:
+                left, right = patch._x0, patch._x1
+                pre_density, _, step = prepare_reg_density_data(
+                    self, left, right, groups=zs_set, reg=None, n_division=n_division)
+
+                preds = approx_count(pre_density, step)
+                pred_all.append(list(preds))
+            pred_all = np.array(pred_all)
+            # print(pred_all)
+            # print(pred_all.shape)
+
+            errors = np.absolute(np.subtract(freq_all, pred_all))
+            # print(sum(sum(errors)))
+            return sum(sum(errors))
+
+            # results = dict(zip(groups, preds))
+
+            #     errors.append(self.bin_wise_error(
+            #         g, n_division=10, b_show_plot=False))
+            # return sum(errors)
+
+        # TODO during fitting, the data should not be modified.
+        # TODO the score() method for KDE must be optimized.
 
 
 def test1():
@@ -1746,7 +1790,7 @@ def bin_wise_error_ss():
     df = pd.read_csv(file, sep='|')
     df = df.dropna(subset=['ss_sold_date_sk', 'ss_store_sk', 'ss_sales_price'])
     # df = df.head(10000)
-    df_train = df  # .head(1000)
+    df_train = df.head(1000)
     df_test = df  # .head(1000)
     g_train = df_train.ss_store_sk.values[:, np.newaxis]
     x_train = df_train.ss_sold_date_sk.values  # df_train.pm25.values
@@ -1758,12 +1802,13 @@ def bin_wise_error_ss():
     # plt.show()
     # raise Exception()
 
-    kdeMdn = KdeMdn(b_store_training_data=True, b_one_hot=True)
-    kdeMdn.fit_grid_search(g_train, x_train, num_epoch=5, num_gaussians=10)
+    kdeMdn = KdeMdn("cpu", b_store_training_data=True, b_one_hot=True)
+    kdeMdn.fit(g_train, x_train, b_grid_search=False)
+    # kdeMdn.fit_grid_search(g_train, x_train)
 
     # kdeMdn=de_serialize("/Users/scott/projects/mdn.dill")
 
-    # kdeMdn.score()
+    kdeMdn.score()
 
 
 def test_RegMdnGroupBy():
@@ -1801,6 +1846,6 @@ if __name__ == "__main__":
     # test_ss_3d()
     # test_ss_2d_density()
     # test_gmm()
-    # bin_wise_error_ss()
-    test_RegMdnGroupBy()
+    bin_wise_error_ss()
+    # test_RegMdnGroupBy()
     # test_ss_2d_density()

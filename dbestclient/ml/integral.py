@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy
+# from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy
 
 
 def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) -> float:
@@ -66,7 +66,8 @@ def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) ->
 #     return {}
 
 
-def prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: list, reg: RegMdnGroupBy = None,  n_division: int = 20):
+def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, reg=None,  n_division: int = 20):
+    # prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: list, reg: RegMdnGroupBy = None,  n_division: int = 20):
     x_points, step = np.linspace(x_lb, x_ub, n_division, retstep=True)
 
     reg_x_points = list(x_points)*len(groups)
@@ -79,8 +80,8 @@ def prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: 
         density_g_points, density_x_points, b_plot=False)
 
     pre_reg = None if reg is None else reg.predict(reg_g_points, reg_x_points)
-
-    pre_reg = np.array(pre_reg).reshape(len(groups), n_division)
+    if pre_reg is not None:
+        pre_reg = np.array(pre_reg).reshape(len(groups), n_division)
 
     return pre_density, pre_reg, step
 
