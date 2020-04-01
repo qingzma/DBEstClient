@@ -5,6 +5,7 @@
 # Q.Ma.2@warwick.ac.uk
 
 import os
+import os.path
 from datetime import datetime
 
 import dill
@@ -123,7 +124,7 @@ class SqlExecutor:
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
                     sampler = DBEstSampling(headers=self.table_header, usecols=[
-                                            xheader, yheader, groupby_attribute])
+                                            xheader, yheader] + groupby_attribute)
 
                 # print(self.config)
                 if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
@@ -131,13 +132,13 @@ class SqlExecutor:
                         "Model {0} exists in the warehouse, please use"
                         " another model name to train it.".format(mdl))
                     return
-                if self.parser.if_contain_groupby():
-                    groupby_attribute = self.parser.get_groupby_value()
-                    if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
-                        print(
-                            "Model {0} exists in the warehouse, please use"
-                            " another model name to train it.".format(mdl))
-                        return
+                # if self.parser.if_contain_groupby():
+                #     groupby_attribute = self.parser.get_groupby_value()
+                #     if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
+                #         print(
+                #             "Model {0} exists in the warehouse, please use"
+                #             " another model name to train it.".format(mdl))
+                #         return
                 print("Start creating model " + mdl)
                 time1 = datetime.now()
 
@@ -196,8 +197,19 @@ class SqlExecutor:
                         # n_total_point = get_group_count_from_table(
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
-                        n_total_point = get_group_count_from_summary_file(
-                            self.config['warehousedir'] + "/num_of_points.txt", sep=',')
+                        frequency_file = self.config['warehousedir'] + \
+                            "/num_of_points.txt"
+                        if os.path.exists(frequency_file):
+                            n_total_point = get_group_count_from_summary_file(
+                                frequency_file, sep=',')
+                        else:
+                            print(xys)
+                            n_total_point = get_group_count_from_table(
+                                # self.config['csv_split_char'],
+                                original_data_file, groupby_attribute, sep=',',
+                                headers=self.table_header)
+                            return
+
                         n_sample_point = {}  # get_group_count_from_df(
                         # xys, groupby_attribute)
 

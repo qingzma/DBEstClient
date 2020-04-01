@@ -12,3 +12,4 @@ dbest.sublime-workspace
 .vscode/
 notebook/
 experiments/results/
+experiments/tpcds/groupby/groupby57.py

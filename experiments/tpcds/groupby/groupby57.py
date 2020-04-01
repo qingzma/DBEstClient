@@ -13,7 +13,7 @@ from dbestclient.executor.executor import SqlExecutor
 
 def run():
     config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
+        'warehousedir': '/Users/scott/projects/dbestwarehouse',
         'verbose': 'True',
         'b_show_latency': 'True',
         'backend_server': 'None',
@@ -28,6 +28,7 @@ def run():
         "density_type": "mdn",
         "num_gaussians": 4,
     }
+
     sqlExecutor = SqlExecutor(config)
     sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
                                   "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
@@ -36,24 +37,24 @@ def run():
                                   "ss_net_paid_inc_tax,ss_net_profit,none")
 
     build_models(sqlExecutor)
-    # query(sqlExecutor)
+    query(sqlExecutor)
 
 
 def build_models(sqlExecutor):
     # 10k
     sqlExecutor.execute(
-        "create table ss40g_test_ggpu(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='gpu', b_use_gg=True, n_per_gg=60)
+        "create table ss40g_test_cpu(ss_sales_price real, ss_sold_date_sk real) from 'ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 6000", n_mdn_layer_node=8, b_one_hot_encoding=True, b_grid_search=True, device='cpu', b_use_gg=True, n_per_gg=60)
     # "create table ss40g_600k(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
     # "create table ss_600k(ss_quantity real, ss_sales_price real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
 
 
 def query(sqlExecutor):
     sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss40g_600k_tes where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1, n_division=20)
-    sqlExecutor.execute(
-        "select sum(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
-    sqlExecutor.execute(
-        "select avg(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
+        "select count(ss_sales_price)  from ss40g_test_ggpu where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1, n_division=20)
+    # sqlExecutor.execute(
+    #     "select sum(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
+    # sqlExecutor.execute(
+    #     "select avg(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
 
     # ("select count(ss_quantity)  from ss_600k where ss_sales_price between 1  and 20   group by ss_store_sk")
 

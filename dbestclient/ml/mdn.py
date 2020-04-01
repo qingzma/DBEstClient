@@ -19,7 +19,7 @@ import scipy.stats as stats
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from decorator import append
+# from decorator import append
 from matplotlib.widgets import Slider
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.preprocessing import OneHotEncoder

@@ -1,6 +1,6 @@
 import sqlparse
-from sqlparse.sql import IdentifierList, Identifier, Function
-from sqlparse.tokens import Keyword, DML, DDL
+from sqlparse.sql import Function, Identifier, IdentifierList
+from sqlparse.tokens import DDL, DML, Keyword
 
 
 class DBEstParser:
@@ -13,6 +13,7 @@ class DBEstParser:
         >>> [GROUP BY z]
         >>> [SIZE 0.01]
         >>> [METHOD UNIFROM|HASH]
+        >>> [SCALE FILE|DATA]
 
     - **DML**
         >>> SELECT AF(y)
@@ -24,6 +25,7 @@ class DBEstParser:
         - model name should be ended with **_m** to indicate that it is a model, not a table.
         - AF, or aggregate function, could be COUNT, SUM, AVG, VARIANCE, PERCENTILE, etc.
     """
+
     def __init__(self):
         self.query = ""
         self.parsed = None
@@ -38,6 +40,7 @@ class DBEstParser:
             >>> [GROUP BY z]
             >>> [SIZE 0.01]
             >>> [METHOD UNIFROM|HASH]
+            >>> [SCALE FILE|DATA]
 
         - **DML**
             >>> SELECT AF(y)
@@ -57,8 +60,8 @@ class DBEstParser:
             return False
         for item in self.parsed.tokens:
             if item.ttype is DML and item.value.lower() == 'select':
-                idx +=1
-        if idx >1:
+                idx += 1
+        if idx > 1:
             return True
         return False
 
@@ -67,7 +70,8 @@ class DBEstParser:
             if item.ttype is DML and item.value.lower() == 'select':
                 idx = self.parsed.token_index(item, 0) + 2
                 return self.parsed.tokens[idx].tokens[0].value, \
-                    self.parsed.tokens[idx].tokens[1].value.replace("(", "").replace(")", "")
+                    self.parsed.tokens[idx].tokens[1].value.replace(
+                        "(", "").replace(")", "")
 
     def if_where_exists(self):
         for item in self.parsed.tokens:
@@ -88,11 +92,31 @@ class DBEstParser:
                 return True
         return False
 
+    def if_contain_scaling_factor(self):
+        for item in self.parsed.tokens:
+            if item.ttype is Keyword and item.value.lower() == "scale":
+                return True
+        return False
+
+    def get_scaling_method(self):
+        if not self.if_contain_scaling_factor():
+            return "data"
+        else:
+            for item in self.parsed.tokens:
+                if item.ttype is Keyword and item.value.lower() == "scale":
+                    idx = self.parsed.token_index(item, 0) + 2
+                    if self.parsed.tokens[idx].value.lower() not in ["data", "file"]:
+                        raise ValueError(
+                            "Scaling method is not set properly, wrong argument provided.")
+                    else:
+                        return self.parsed.tokens[idx].value.lower()
+
     def get_groupby_value(self):
         for item in self.parsed.tokens:
             if item.ttype is Keyword and item.value.lower() == "group by":
-                idx = self.parsed.token_index(item,0) + 2
-                return self.parsed.tokens[idx].value
+                idx = self.parsed.token_index(item, 0) + 2
+                groups = self.parsed.tokens[idx].value
+                return groups.replace(" ", "").split(",")
 
     def if_ddl(self):
         for item in self.parsed.tokens:
@@ -102,18 +126,18 @@ class DBEstParser:
 
     def get_ddl_model_name(self):
         for item in self.parsed.tokens:
-            if item.ttype is  None and "(" in item.value.lower():
+            if item.ttype is None and "(" in item.value.lower():
                 return item.tokens[0].value
 
     def get_y(self):
         for item in self.parsed.tokens:
-            if item.ttype is  None and "(" in item.value.lower():
-                return item.tokens[1].tokens[1].value,item.tokens[1].tokens[3].value
+            if item.ttype is None and "(" in item.value.lower():
+                return item.tokens[1].tokens[1].value, item.tokens[1].tokens[3].value
 
     def get_x(self):
         for item in self.parsed.tokens:
-            if item.ttype is  None and "(" in item.value.lower():
-                return item.tokens[1].tokens[6].value,item.tokens[1].tokens[8].value
+            if item.ttype is None and "(" in item.value.lower():
+                return item.tokens[1].tokens[6].value, item.tokens[1].tokens[8].value
 
     def get_from_name(self):
         for item in self.parsed.tokens:
@@ -124,14 +148,14 @@ class DBEstParser:
     def get_sampling_ratio(self):
         for item in self.parsed.tokens:
             if item.ttype is Keyword and item.value.lower() == "size":
-                idx = self.parsed.token_index(item,0) + 2
+                idx = self.parsed.token_index(item, 0) + 2
                 return self.parsed.tokens[idx].value
         return 0.01  # if sampling ratio is not passed, the whole dataset will be used to train the model
 
     def get_sampling_method(self):
         for item in self.parsed.tokens:
             if item.ttype is Keyword and item.value.lower() == "method":
-                idx = self.parsed.token_index(item,0) + 2
+                idx = self.parsed.token_index(item, 0) + 2
                 return self.parsed.tokens[idx].value
         return "uniform"
 
@@ -155,7 +179,12 @@ if __name__ == "__main__":
     #     print(parser.get_sampling_method())
     #     print(parser.get_sampling_ratio())
 
-    parser.parse("select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z")
+    parser.parse(
+        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    print(parser.if_contain_scaling_factor())
+    parser.parse(
+        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform scale data ")
+    print(parser.if_contain_scaling_factor())
     if parser.if_contain_groupby():
         print("yes, group by")
         print(parser.get_groupby_value())
@@ -169,5 +198,6 @@ if __name__ == "__main__":
         print("where exists!")
         print(parser.get_where_name_and_range())
 
+    print("method, ", parser.get_sampling_method())
 
-
+    print("scaling factor ", parser.get_scaling_method())
