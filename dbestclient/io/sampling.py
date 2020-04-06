@@ -45,6 +45,9 @@ class DBEstSampling:
     def getyx(self, y, x, dropna=True, b_return_mean=False, groupby=None):
         return self.sample.getyx(y, x, dropna=dropna, b_return_mean=b_return_mean, groupby=groupby)
 
+    def get_groupby_frequency(self):
+        return self.sample.get_groupby_frequency()
+
 
 if __name__ == '__main__':
     files = '../../resources/pm25.csv'

@@ -434,7 +434,7 @@ class RegMdnGroupBy():
         if type(x_points) is list:
             x_points = np.array(x_points)
 
-        if not self.b_one_hot:
+        if self.encoding == 'no':
             convert2float = True
             if convert2float:
                 try:
@@ -451,14 +451,17 @@ class RegMdnGroupBy():
         if self.b_normalize_data:
             x_points = normalize(x_points, self.meanx, self.widthx)
 
-        if self.b_one_hot:
-            zs_onehot = z_group[:, np.newaxis]
+        if self.encoding == "onehot":
+            zs_onehot = z_group#[:, np.newaxis]
             zs_onehot = self.enc.transform(zs_onehot).toarray()
             x_points = x_points[:, np.newaxis]
             xzs_onehot = np.concatenate(
                 [x_points, zs_onehot], axis=1).tolist()
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_onehot])
+        elif self.encoding == "binary":
+            pass
+            # TODO implement binary
         else:
             xzs = [[x_point, z_point]
                    for x_point, z_point in zip(x_points, z_group)]
@@ -1030,7 +1033,6 @@ class KdeMdn:
 
             if self.encoding == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
-                print(zs)
                 zs_onehot = self.enc.fit_transform(zs).toarray()
                 # len(self.enc.categories_[0])
                 input_dim = sum([len(i) for i in self.enc.categories_]) + 0
@@ -1049,10 +1051,6 @@ class KdeMdn:
             # move variables to device
             tensor_xs = tensor_xs.to(self.device)
             tensor_zs = tensor_zs.to(self.device)
-
-            print("tensor_xs", tensor_xs, list(tensor_xs.size()))
-            print("tensor_zs", tensor_zs, list(tensor_zs.size()))
-            print("input_dim", input_dim)
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_zs, tensor_xs)  # create your dataloader
@@ -1174,7 +1172,7 @@ class KdeMdn:
             list: the predictions.
         """
         # convert group zs from string to int
-        if not self.b_one_hot:
+        if self.encoding == "no":
             convert2float = True
             if convert2float:
                 try:
@@ -1191,12 +1189,15 @@ class KdeMdn:
         if self.is_normalized:
             xs = self.normalize(xs, self.meanx, self.widthx)
 
-        zs = np.array(zs)[:, np.newaxis]
+        zs = np.array(zs)  # [:, np.newaxis]
 
-        if self.b_one_hot:
+        if self.encoding == "onehot":
             zs_onehot = self.enc.transform(zs).toarray()
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_onehot])
+        elif self.encoding == "binary":
+            # TODO implement binary
+            pass
         else:
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs])

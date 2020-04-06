@@ -76,9 +76,9 @@ class GroupByModelTrainer:
 
 
 class KdeModelTrainer:
-    def __init__(self, mdl, tbl, xheader, yheader, groupby_attribute, groupby_values, n_total_point, n_sample_point,
+    def __init__(self, mdl, tbl, xheader, yheader, groupby_attribute, groupby_values, n_total_point,
                  x_min_value=-np.inf, x_max_value=np.inf, config=None, device="cpu"):
-        self.kde_model_wrapper = KdeModelWrapper(mdl, tbl, xheader, yheader, n_total_point, n_sample_point,
+        self.kde_model_wrapper = KdeModelWrapper(mdl, tbl, xheader, yheader, n_total_point,
                                                  x_min_value=x_min_value, x_max_value=x_max_value,
                                                  groupby_values=groupby_values)
         self.groupby_attribute = groupby_attribute
@@ -88,7 +88,6 @@ class KdeModelTrainer:
         self.xheader = xheader
         self.yheader = yheader
         self.n_total_point = n_total_point
-        self.n_sample_point = n_sample_point
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
         self.config = config

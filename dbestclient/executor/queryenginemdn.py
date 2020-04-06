@@ -6,6 +6,7 @@
 
 import math
 from datetime import datetime
+from operator import itemgetter
 
 import dill
 import numpy as np
@@ -30,7 +31,7 @@ from dbestclient.tools.dftools import get_group_count_from_summary_file
 
 class MdnQueryEngine:
     def __init__(self, kdeModelWrapper, config=None, b_use_integral=False):
-        self.n_training_point = kdeModelWrapper.n_sample_point
+        # self.n_training_point = kdeModelWrapper.n_sample_point
         self.n_total_point = kdeModelWrapper.n_total_point
         self.reg = kdeModelWrapper.reg
         self.kde = kdeModelWrapper.density
@@ -236,7 +237,7 @@ class MdnQueryEngine:
                     results.update(result)
         if b_print_to_screen:
             for key in results:
-                print(key + "," + str(results[key]))
+                print(",".join(key.split("-")) + "," + str(results[key]))
 
         if result2file is not None:
             with open(result2file, 'w') as f:
@@ -262,31 +263,59 @@ class MdnQueryEngineBundle():
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
             mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10,
-            b_one_hot_encoding=True, b_grid_search=True):
+            encoding="onehot", b_grid_search=True):
 
         self.pickle_file_name = mdl
         grouped = df.groupby(groupby_attribute)
 
         self.group_keys = list(grouped.groups.keys())
 
+        # print("group_keys", self.group_keys)
+
         # sort the group key by value
-        fakeKey = []
-        for key in self.group_keys:
-            if key == "":
-                k = 0.0
-            else:
-                try:
-                    k = float(key)
-                except ValueError:
-                    raise ValueError(
-                        "ValueError: could not convert string to float in " + __file__)
-            fakeKey.append(k)
+        # fakeKey = []
+        # for key in self.group_keys:
+        #     if key == "":
+        #         k = 0.0
+        #     else:
+        #         try:
+        #             k = float(key)
+        #         except ValueError:
+        #             raise ValueError(
+        #                 "ValueError: could not convert string to float in " + __file__)
+        #     fakeKey.append(k)
 
-        self.group_keys = [k for _, k in sorted(zip(fakeKey, self.group_keys))]
-        # print(self.group_keys)
+        # self.group_keys = [k for _, k in sorted(zip(fakeKey, self.group_keys))]
+        group_keys_float = []
+        for idx, group_key in enumerate(self.group_keys):
+            group_key_float = [idx]
+            for group in group_key:
+                if group == "":
+                    g = 0.0
+                else:
+                    try:
+                        g = float(group)
+                    except ValueError:
+                        raise ValueError(
+                            "ValueError: could not convert string to float in " + __file__)
+                group_key_float.append(g)
+            group_keys_float.append(group_key_float)
+        # print(group_keys_float[:200])
 
-        self.group_keys_chunk = [self.group_keys[i:i + n_per_group] for i in
-                                 range(0, len(self.group_keys), n_per_group)]
+        group_keys_float = sorted(
+            group_keys_float, key=lambda k: [k[1], k[2]])
+        # print(group_keys_float[:200])
+        sorted_keys = [i[0] for i in group_keys_float][:200]
+        # print(sorted_keys)
+
+        sorted_group_keys = list(itemgetter(*sorted_keys)(self.group_keys))
+
+        # print(sorted_group_keys[:200])
+
+        # self.group_keys_chunk = [self.group_keys[i:i + n_per_group] for i in
+        #                          range(0, len(self.group_keys), n_per_group)]
+        self.group_keys_chunk = [sorted_group_keys[i:i + n_per_group] for i in
+                                 range(0, len(sorted_group_keys), n_per_group)]
         # print(self.group_keys_chunk)
 
         groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group])
@@ -307,7 +336,7 @@ class MdnQueryEngineBundle():
                                               n_total_point=n_total_point_chunk, n_sample_point={},
                                               x_min_value=-np.inf, x_max_value=np.inf, config=self.config, device=self.device).fit_from_df(
                 chunk_group, network_size="small", n_mdn_layer_node=n_mdn_layer_node,
-                b_one_hot_encoding=b_one_hot_encoding, b_grid_search=b_grid_search)
+                encoding=encoding, b_grid_search=b_grid_search)
 
             engine = MdnQueryEngine(kdeModelWrapper, config=self.config)
             self.enginesContainer[index] = engine

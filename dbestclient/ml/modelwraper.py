@@ -5,8 +5,9 @@
 # Q.Ma.2@warwick.ac.uk
 # import pickle
 import os
-import numpy as np
+
 import dill
+import numpy as np
 
 
 def deserialize_model_wrapper(file):
@@ -29,7 +30,7 @@ class SimpleModelWrapper:
         self.n_sample_point = n_sample_point
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
-        self.groupby_attribute=groupby_attribute
+        self.groupby_attribute = groupby_attribute
         self.groupby_value = groupby_value
 
         self.reg = None
@@ -89,17 +90,17 @@ class GroupByModelWrapper:
         self.tbl = tbl
         self.x = x
         self.y = y
-        self.n_total_point = {} #n_total_point
-        self.n_sample_point = {} #n_sample_point
+        self.n_total_point = {}  # n_total_point
+        self.n_sample_point = {}  # n_sample_point
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
         self.groupby_attribute = groupby_attribute
 
-        self.models={}
+        self.models = {}
         # generate the pickle file names
         self.dir = self.mdl + "_groupby_" + self.groupby_attribute
 
-    def add_simple_model(self,simple_model):
+    def add_simple_model(self, simple_model):
         self.models[simple_model.init_pickle_file_name()] = simple_model
         self.n_total_point[simple_model.groupby_value] = simple_model.n_total_point
         self.n_sample_point[simple_model.groupby_value] = simple_model.n_sample_point
@@ -115,16 +116,15 @@ class GroupByModelWrapper:
 
 class KdeModelWrapper:
     def __init__(self, mdl, tbl, x, y=None, n_total_point={},
-                 n_sample_point={}, x_min_value=-np.inf, x_max_value=np.inf, groupby_attribute=None, groupby_values={}):
+                 x_min_value=-np.inf, x_max_value=np.inf, groupby_attribute=None, groupby_values={}):
         self.mdl = mdl
         self.tbl = tbl
         self.x = x
         self.y = y
         self.n_total_point = n_total_point
-        self.n_sample_point = n_sample_point
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
-        self.groupby_attribute=groupby_attribute
+        self.groupby_attribute = groupby_attribute
         self.groupby_values = groupby_values
 
         self.reg = None
@@ -164,7 +164,8 @@ if __name__ == "__main__":
     # print(simpleWraper.get_groupby_catalog_prefix())
     # print(get_pickle_file_name("mdl"))
 
-    kdeModelWraper = KdeModelWrapper("mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_value={"1":10,"2":20})
+    kdeModelWraper = KdeModelWrapper(
+        "mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_value={"1": 10, "2": 20})
     print(kdeModelWraper.init_pickle_file_name())
     # print(kdeModelWraper.get_groupby_catalog_prefix())
     print(get_pickle_file_name("mdl"))

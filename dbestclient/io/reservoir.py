@@ -25,14 +25,15 @@ except NameError:
 
 
 class ReservoirSampling:
-    def __init__(self, headers):
+    def __init__(self, headers, usecols=None):
         self.header = headers
         self.n_total_point = None
         self.sampledf = None
         self.sampledfmean = None
+        self.usecols = usecols
 
     def build_reservoir(self, file, R, threshold=None, verbose=False, split_char=",", save2file=None, n_total_point=None, usecols=None):
-
+        self.usecols = usecols
         self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(
             1 for _ in open(file)) - 1
 
@@ -99,10 +100,11 @@ class ReservoirSampling:
                     self.sampledf[col] = pd.to_numeric(
                         self.sampledf[col], errors='coerce')
                 # convert the group by column to string
-                if len(usecols) == 3:
+                if len(usecols) >= 3:
                     # self.sampledf = self.sampledf.dropna(subset=[usecols[-1]])
-                    self.sampledf[usecols[-1]
-                                  ] = self.sampledf[usecols[-1]].astype(str)
+                    for idx in range(2, len(usecols)):
+                        self.sampledf[usecols[idx]
+                                      ] = self.sampledf[usecols[idx]].astype(str)
                 self.sampledf = self.sampledf.dropna(subset=usecols)
 
             if save2file is not None:
@@ -140,12 +142,12 @@ class ReservoirSampling:
 
     def get_frequency(self, y, x, dropna=True):
         # drop non-numerical values.
-        if dropna:
-            self.sampledf = self.sampledf.dropna(subset=[y, x])
-        self.sampledf[x] = pd.to_numeric(
-            self.sampledf[x], errors='coerce').fillna(0)
-        self.sampledf[y] = pd.to_numeric(
-            self.sampledf[y], errors='coerce').fillna(0)
+        # if dropna:
+        #     self.sampledf = self.sampledf.dropna(subset=[y, x])
+        # self.sampledf[x] = pd.to_numeric(
+        #     self.sampledf[x], errors='coerce').fillna(0)
+        # self.sampledf[y] = pd.to_numeric(
+        #     self.sampledf[y], errors='coerce').fillna(0)
 
         gb = self.sampledf.groupby(x)
         counts = gb.count()[y]
@@ -159,6 +161,20 @@ class ReservoirSampling:
         for key, count in zip(keys, counts):
             ft[key] = count
         return ft
+
+    def get_groupby_frequency(self):
+        groupbys = self.usecols[2:]
+        gb = self.sampledf.groupby(groupbys).size().to_frame(
+            name='count').reset_index()
+        frequency = {}
+        for row in gb.itertuples():
+            # print(row)
+            # print(type(row))
+            key = "-".join(list(row[1:-1]))
+            count = row[-1]
+            frequency[key] = count
+            # print(key, count)
+        return frequency
 
 
 if __name__ == '__main__':

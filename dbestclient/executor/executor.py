@@ -84,7 +84,7 @@ class SqlExecutor:
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
     def execute(self, sql, n_per_gg=10, result2file=None,
-                n_mdn_layer_node=10, b_one_hot_encoding=True,
+                n_mdn_layer_node=10, encoding="onehot",
                 n_jobs=4, b_grid_search=True, b_use_gg=True,
                 device="cpu", n_division=20):
         # prepare the parser
@@ -197,20 +197,25 @@ class SqlExecutor:
                         # n_total_point = get_group_count_from_table(
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
-                        frequency_file = self.config['warehousedir'] + \
-                            "/num_of_points.txt"
-                        if os.path.exists(frequency_file):
-                            n_total_point = get_group_count_from_summary_file(
-                                frequency_file, sep=',')
+                        if self.parser.get_scaling_method() == "file":
+                            frequency_file = self.config['warehousedir'] + \
+                                "/num_of_points.txt"
+                            if os.path.exists(frequency_file):
+                                n_total_point = get_group_count_from_summary_file(
+                                    frequency_file, sep=',')
+                            else:
+                                raise FileNotFoundError(
+                                    "scaling factor should come from the file, as"
+                                    " stated in the SQL. However, the file is not found.")
                         else:
-                            print(xys)
-                            n_total_point = get_group_count_from_table(
-                                # self.config['csv_split_char'],
-                                original_data_file, groupby_attribute, sep=',',
-                                headers=self.table_header)
-                            return
+                            n_total_point = sampler.get_groupby_frequency()
+                            print("n_totoal_point", n_total_point)
+                            # n_total_point = get_group_count_from_table(
+                            #     # self.config['csv_split_char'],
+                            #     original_data_file, groupby_attribute, sep=',',
+                            #     headers=self.table_header)
 
-                        n_sample_point = {}  # get_group_count_from_df(
+                        # n_sample_point = {}  # get_group_count_from_df(
                         # xys, groupby_attribute)
 
                         if not b_use_gg:
@@ -220,10 +225,9 @@ class SqlExecutor:
                                 groupby_values=list(
                                     n_total_point.keys()),
                                 n_total_point=n_total_point,
-                                n_sample_point=n_sample_point,
                                 x_min_value=-np.inf, x_max_value=np.inf,
                                 config=self.config, device=device).fit_from_df(
-                                xys, encoding="onehot", network_size="large", b_grid_search=b_grid_search, )
+                                xys, encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
 
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
@@ -237,7 +241,7 @@ class SqlExecutor:
                                                                        xheader, yheader,
                                                                        n_per_group=n_per_gg,
                                                                        n_mdn_layer_node=n_mdn_layer_node,
-                                                                       b_one_hot_encoding=b_one_hot_encoding,
+                                                                       encoding=encoding,
                                                                        b_grid_search=b_grid_search)
 
                             self.model_catalog.add_model_wrapper(
