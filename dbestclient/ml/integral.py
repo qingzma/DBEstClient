@@ -71,9 +71,14 @@ def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, re
     x_points, step = np.linspace(x_lb, x_ub, n_division, retstep=True)
 
     reg_x_points = list(x_points)*len(groups)
-    reg_g_points = [g.split("-") for g in groups for _ in range(n_division)]
+    try:
+        reg_g_points = [g.split("-")
+                        for g in groups for _ in range(n_division)]
+        density_g_points = [i.split("-") for i in groups]
+    except AttributeError:
+        reg_g_points = [list(g) for g in groups for _ in range(n_division)]
+        density_g_points = [list(i) for i in groups]
 
-    density_g_points = [i.split("-") for i in groups]
     # print(density_g_points)
     density_x_points = list(x_points)
 

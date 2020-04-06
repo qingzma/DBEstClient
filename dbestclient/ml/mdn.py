@@ -9,6 +9,7 @@ import itertools as it
 import math
 import random
 import sys
+from os import remove
 from os.path import abspath
 
 import dill
@@ -452,7 +453,7 @@ class RegMdnGroupBy():
             x_points = normalize(x_points, self.meanx, self.widthx)
 
         if self.encoding == "onehot":
-            zs_onehot = z_group#[:, np.newaxis]
+            zs_onehot = z_group  # [:, np.newaxis]
             zs_onehot = self.enc.transform(zs_onehot).toarray()
             x_points = x_points[:, np.newaxis]
             xzs_onehot = np.concatenate(
@@ -528,6 +529,7 @@ class RegMdnGroupBy():
         Returns:
             float: the absolute error
         """
+        gs = ["g1", "g2", "g3", "g4", "g5"]
         if not self.b_store_training_data:
             raise ValueError(
                 "b_store_training_data must be set to True to enable the score() function.")
@@ -535,20 +537,38 @@ class RegMdnGroupBy():
             # groups = self.enc.categories_[0]
 
             if self.sample_x is None:
-                df = pd.DataFrame(
-                    {'g': self.z_points, 'x': denormalize(self.x_points, self.meanx, self.widthx), 'y': denormalize(self.y_points, self.meany, self.widthy)})
-                mean_y = df.groupby(['g', 'x'])[
-                    'y'].mean()  # .reset_index()
+                # process group by values
+                data = {gs[i]: [row[i] for row in self.z_points]
+                        for i in range(len(self.z_points[0]))}
+                # append x y values
+                data['x'] = denormalize(self.x_points, self.meanx, self.widthx)
+                data['y'] = denormalize(self.y_points, self.meany, self.widthy)
+
+                df = pd.DataFrame(data)
+                columns = list(df.columns.values)
+                columns.remove("y")
+
+                # df = pd.DataFrame(
+                #     {'g': self.z_points, 'x': denormalize(self.x_points, self.meanx, self.widthx), 'y': denormalize(self.y_points, self.meany, self.widthy)})
+                # mean_y = df.groupby(['g', 'x'])['y'].mean()  # .reset_index()
+                mean_y = df.groupby(columns)['y'].mean()  # .reset_index()
+                # print(df)
+                # raise Exception
 
                 # make the same index here
-                df = df.set_index(['g', 'x'])
+                df = df.set_index(columns)  # df = df.set_index(['g', 'x'])
                 df['mean_y'] = mean_y
+                # print(df)
                 df = df.reset_index()  # to take the hierarchical index off again
 
                 df = df.sample(
                     n=min(1000, len(self.x_points)), random_state=1, replace=False)
                 self.sample_x = df["x"].values
-                self.sample_g = df["g"].values
+                # for g in columns[:-1]:
+                #     self.sample_g = df["g"].values
+                self.sample_g = df[columns[:-1]].values
+                # raise Exception
+
                 self.sample_average_y = df["mean_y"].values
 
             predictions = self.predict(self.sample_g, self.sample_x)
@@ -1486,16 +1506,23 @@ class KdeMdn:
         Returns:
             float: the total error from a random sample of points.
         """
+        gs = ["g1", "g2", "g3", "g4", "g5"]
         if not self.b_store_training_data:
             raise ValueError(
                 "b_store_training_data must be set to True to enable the score() function.")
         else:
-            zs_plot = self.zs.reshape(1, -1)[0]
-            df = pd.DataFrame({"z": zs_plot, "x": self.xs})
-            df = df.dropna(subset=["z", "x"])
-            gp = df.groupby(["z"])
+            zs_plot = self.zs  # .reshape#(1, -1)[0]
+            # print(zs_plot)
+            data = {gs[i]: [row[i] for row in self.zs]
+                    for i in range(len(self.zs[0]))}
+            data["x"] = self.xs
+            df = pd.DataFrame(data)
+            columns = list(df.columns.values)
+            df = df.dropna(subset=columns)
+            gp = df.groupby(columns[:-1])  # gp = df.groupby(["z"])
 
             zs_set = list(gp.groups.keys())
+            # print(zs_set)
             # random choose
             random.seed(0)
             zs_set = random.sample(zs_set, min(len(zs_set), 20))
@@ -1520,7 +1547,7 @@ class KdeMdn:
             freq_all = freq_all.transpose()
             # print(freq_all)
             # print(freq_all.shape)
-
+            print(zs_set)
             pred_all = []
             for patch in patches:
                 left, right = patch._x0, patch._x1
