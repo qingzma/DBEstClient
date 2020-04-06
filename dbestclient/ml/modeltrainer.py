@@ -109,7 +109,7 @@ class KdeModelTrainer:
                 device = torch.device("cpu")
         self.device = device
 
-    def fit_from_df(self, df, network_size="small", n_mdn_layer_node=10, b_one_hot_encoding=True, b_shuffle_data=True, b_grid_search=True):
+    def fit_from_df(self, df, network_size="small", n_mdn_layer_node=10, encoding="onehot", b_shuffle_data=True, b_grid_search=True):
         print("Starting training kde models for model " + self.mdl)
 
         # shuffle the order in the data
@@ -121,7 +121,7 @@ class KdeModelTrainer:
         groupby = df[self.groupby_attribute].values
 
         xzs_train = np.concatenate(
-            (x[:, np.newaxis], groupby[:, np.newaxis]), axis=1)
+            (x[:, np.newaxis], groupby), axis=1)
         # print(xzs_train)
         # raise Exception()
 
@@ -168,9 +168,9 @@ class KdeModelTrainer:
             print("training density...")
             print("*"*80)
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-            density = KdeMdn(self.device, b_one_hot=b_one_hot_encoding,
+            density = KdeMdn(self.device, encoding=encoding,
                              b_store_training_data=False)
-            density.fit(groupby[:, np.newaxis], x, num_epoch=20, num_gaussians=10,
+            density.fit(groupby, x, num_epoch=20, num_gaussians=10,
                         n_mdn_layer_node=n_mdn_layer_node, b_grid_search=b_grid_search)
 
         elif network_size.lower() == "large":
@@ -181,9 +181,9 @@ class KdeModelTrainer:
             print("training density...")
             print("*"*80)
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-            density = KdeMdn(self.device, b_one_hot=b_one_hot_encoding,
+            density = KdeMdn(self.device, encoding=encoding,
                              b_store_training_data=False)
-            density.fit(groupby[:, np.newaxis], x, num_epoch=20,
+            density.fit(groupby, x, num_epoch=20,
                         num_gaussians=20, n_mdn_layer_node=20, b_grid_search=b_grid_search)
 
         elif network_size.lower() == "testing":
@@ -194,9 +194,9 @@ class KdeModelTrainer:
             print("training density...")
             print("*"*80)
             # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-            density = KdeMdn(self.device, b_one_hot=b_one_hot_encoding,
+            density = KdeMdn(self.device, encoding=encoding,
                              b_store_training_data=False)
-            density.fit(groupby[:, np.newaxis], x, num_epoch=2,
+            density.fit(groupby, x, num_epoch=2,
                         num_gaussians=8, n_mdn_layer_node=10, b_grid_search=False)
 
         else:

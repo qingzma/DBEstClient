@@ -208,7 +208,7 @@ class RegMdnGroupBy():
     """ This class implements the regression using mixture density network for group by queries.
     """
 
-    def __init__(self, device, b_store_training_data=True, b_one_hot=True, b_normalize_data=True):
+    def __init__(self, device, b_store_training_data=True, encoding="onehot", b_normalize_data=True):
         if b_store_training_data:
             self.x_points = None  # query range
             self.y_points = None  # aggregate value
@@ -226,8 +226,13 @@ class RegMdnGroupBy():
         self.last_pi = None
         self.last_mu = None
         self.last_sigma = None
-        self.enc = None
-        self.b_one_hot = b_one_hot
+
+        if encoding.lower() in ["onehot", "binary", "no"]:
+            self.encoding = encoding.lower()
+            self.enc = None
+        else:
+            raise ValueError(
+                "The embeddint type must be onehot, binary or no.")
         self.b_normalize_data = b_normalize_data
         self.device = device
 
@@ -253,10 +258,13 @@ class RegMdnGroupBy():
             RegMdnGroupBy: The regression model.
         """
         if not b_grid_search:
-            if self.b_one_hot:
+            if self.encoding == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
-                zs_onehot = z_group[:, np.newaxis]
+                zs_onehot = z_group
                 zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
+            elif self.encoding == "binary":
+                raise Exception
+                # TODO implement binary
             if self.b_normalize_data:
                 self.meanx = (np.max(x_points) + np.min(x_points)) / 2
                 self.widthx = np.max(x_points) - np.min(x_points)
@@ -277,12 +285,15 @@ class RegMdnGroupBy():
                 self.y_points = None
                 self.z_points = None
 
-            if self.b_one_hot:
+            if self.encoding == "onehot":
                 xs_onehot = x_points[:, np.newaxis]
                 xzs_onehot = np.concatenate(
                     [xs_onehot, zs_onehot], axis=1).tolist()
                 tensor_xzs = torch.stack([torch.Tensor(i)
                                           for i in xzs_onehot])  # transform to torch tensors
+            elif self.encoding == "binary":
+                raise Exception
+                # TODO implement binary
             else:
                 xzs = [[x_point, z_point]
                        for x_point, z_point in zip(x_points, z_group)]
@@ -300,7 +311,8 @@ class RegMdnGroupBy():
             my_dataloader = torch.utils.data.DataLoader(
                 my_dataset, batch_size=1000, shuffle=True, num_workers=n_workers)
 
-            input_dim = len(self.enc.categories_[0]) + 1
+            input_dim = sum([len(i) for i in self.enc.categories_]) + 1
+
             # initialize the model
             if n_hidden_layer == 1:
                 self.model = nn.Sequential(
@@ -943,15 +955,20 @@ class RegMdn():
 class KdeMdn:
     """This is the implementation of density estimation using MDN"""
 
-    def __init__(self, device, b_store_training_data=False, b_one_hot=True):
+    def __init__(self, device, b_store_training_data=False, encoding="onehot"):
         if b_store_training_data:
             self.xs = None  # query range
             self.zs = None  # group by balue
         self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
-        self.enc = None
-        self.b_one_hot = b_one_hot
+
+        if encoding.lower() in ["onehot", "binary", "no"]:
+            self.encoding = encoding.lower()
+            self.enc = None
+        else:
+            raise ValueError(
+                "The embeddint type must be onehot, binary or no.")
         self.device = device
 
     def fit(self, zs: list, xs: list, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True, n_workers=0):
@@ -991,7 +1008,7 @@ class KdeMdn:
                 xs = np.array([self.normalize(i, self.meanx, self.widthx)
                                for i in xs])
                 self.is_normalized = True
-                if not self.b_one_hot:
+                if self.encoding == "no":
                     convert2float = True
                     if convert2float:
                         try:
@@ -1011,12 +1028,17 @@ class KdeMdn:
                     zs = np.array([self.normalize(i, self.meanz, self.widthz)
                                    for i in zs])
 
-            if self.b_one_hot:
+            if self.encoding == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
+                print(zs)
                 zs_onehot = self.enc.fit_transform(zs).toarray()
-                input_dim = len(self.enc.categories_[0])
+                # len(self.enc.categories_[0])
+                input_dim = sum([len(i) for i in self.enc.categories_]) + 0
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_onehot])  # transform to torch tensors
+            elif self.encoding == "binary":
+                # TODO implement this
+                pass
             else:
                 input_dim = 1
                 tensor_zs = torch.stack([torch.Tensor(i)
@@ -1027,6 +1049,10 @@ class KdeMdn:
             # move variables to device
             tensor_xs = tensor_xs.to(self.device)
             tensor_zs = tensor_zs.to(self.device)
+
+            print("tensor_xs", tensor_xs, list(tensor_xs.size()))
+            print("tensor_zs", tensor_zs, list(tensor_zs.size()))
+            print("input_dim", input_dim)
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_zs, tensor_xs)  # create your dataloader

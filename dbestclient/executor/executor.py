@@ -223,7 +223,7 @@ class SqlExecutor:
                                 n_sample_point=n_sample_point,
                                 x_min_value=-np.inf, x_max_value=np.inf,
                                 config=self.config, device=device).fit_from_df(
-                                xys, b_one_hot_encoding=b_one_hot_encoding, network_size="large", b_grid_search=b_grid_search, )
+                                xys, encoding="onehot", network_size="large", b_grid_search=b_grid_search, )
 
                             kdeModelWrapper.serialize2warehouse(
                                 self.config['warehousedir'])
