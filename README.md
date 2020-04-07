@@ -39,7 +39,9 @@ Supported SQL queries include model creation and query answering:
 	[GROUP BY z]  
 	[SIZE 10000]  
 	[METHOD UNIFROM|HASH]
+	[SCALE FILE|DATA]
 	```
+	<!-- [ENCODING ONEHOT|BINARY] -->
 
 - **query answering** 
 	```

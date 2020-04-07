@@ -12,6 +12,7 @@ import sys
 from os import remove
 from os.path import abspath
 
+import category_encoders as ce
 import dill
 import matplotlib.pyplot as plt
 import numpy as np
@@ -261,10 +262,16 @@ class RegMdnGroupBy():
         if not b_grid_search:
             if self.encoding == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
-                zs_onehot = z_group
-                zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
+                zs_encoded = z_group
+                zs_encoded = self.enc.fit_transform(zs_encoded).toarray()
             elif self.encoding == "binary":
-                raise Exception
+                # print(z_group)
+                # prepare column names for binary encoding
+                columns = list(range(len(z_group[0])))
+                self.enc = ce.BinaryEncoder(cols=columns)
+                zs_encoded = self.enc.fit_transform(z_group).to_numpy()
+                # print(zs_encoded, type(zs_encoded))
+                # raise Exception
                 # TODO implement binary
             if self.b_normalize_data:
                 self.meanx = (np.max(x_points) + np.min(x_points)) / 2
@@ -286,15 +293,15 @@ class RegMdnGroupBy():
                 self.y_points = None
                 self.z_points = None
 
-            if self.encoding == "onehot":
-                xs_onehot = x_points[:, np.newaxis]
-                xzs_onehot = np.concatenate(
-                    [xs_onehot, zs_onehot], axis=1).tolist()
+            if self.encoding in["onehot", "binary"]:
+                xs_encoded = x_points[:, np.newaxis]
+                xzs_encoded = np.concatenate(
+                    [xs_encoded, zs_encoded], axis=1).tolist()
                 tensor_xzs = torch.stack([torch.Tensor(i)
-                                          for i in xzs_onehot])  # transform to torch tensors
-            elif self.encoding == "binary":
-                raise Exception
-                # TODO implement binary
+                                          for i in xzs_encoded])
+            # elif self.encoding == "binary":
+            #     raise Exception
+            #     # TODO implement binary
             else:
                 xzs = [[x_point, z_point]
                        for x_point, z_point in zip(x_points, z_group)]
@@ -312,7 +319,12 @@ class RegMdnGroupBy():
             my_dataloader = torch.utils.data.DataLoader(
                 my_dataset, batch_size=1000, shuffle=True, num_workers=n_workers)
 
-            input_dim = sum([len(i) for i in self.enc.categories_]) + 1
+            if self.encoding == "onehot":
+                input_dim = sum([len(i) for i in self.enc.categories_]) + 1
+            elif self.encoding == "binary":
+                input_dim = len(self.enc.base_n_encoder.feature_names) + 1
+            else:
+                raise ValueError("Encoding should be binary or onehot")
 
             # initialize the model
             if n_hidden_layer == 1:
@@ -453,16 +465,20 @@ class RegMdnGroupBy():
             x_points = normalize(x_points, self.meanx, self.widthx)
 
         if self.encoding == "onehot":
-            zs_onehot = z_group  # [:, np.newaxis]
-            zs_onehot = self.enc.transform(zs_onehot).toarray()
+            # zs_encoded = z_group  # [:, np.newaxis]
+            zs_encoded = self.enc.transform(z_group).toarray()
             x_points = x_points[:, np.newaxis]
-            xzs_onehot = np.concatenate(
-                [x_points, zs_onehot], axis=1).tolist()
+            xzs_encoded = np.concatenate(
+                [x_points, zs_encoded], axis=1).tolist()
             tensor_xzs = torch.stack([torch.Tensor(i)
-                                      for i in xzs_onehot])
+                                      for i in xzs_encoded])
         elif self.encoding == "binary":
-            pass
-            # TODO implement binary
+            zs_encoded = self.enc.transform(z_group).to_numpy()
+            x_points = x_points[:, np.newaxis]
+            xzs_encoded = np.concatenate(
+                [x_points, zs_encoded], axis=1).tolist()
+            tensor_xzs = torch.stack([torch.Tensor(i)
+                                      for i in xzs_encoded])
         else:
             xzs = [[x_point, z_point]
                    for x_point, z_point in zip(x_points, z_group)]
@@ -1053,14 +1069,18 @@ class KdeMdn:
 
             if self.encoding == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
-                zs_onehot = self.enc.fit_transform(zs).toarray()
+                zs_encoded = self.enc.fit_transform(zs).toarray()
                 # len(self.enc.categories_[0])
                 input_dim = sum([len(i) for i in self.enc.categories_]) + 0
                 tensor_zs = torch.stack([torch.Tensor(i)
-                                         for i in zs_onehot])  # transform to torch tensors
+                                         for i in zs_encoded])  # transform to torch tensors
             elif self.encoding == "binary":
-                # TODO implement this
-                pass
+                columns = list(range(len(zs[0])))
+                self.enc = ce.BinaryEncoder(cols=columns)
+                zs_encoded = self.enc.fit_transform(zs).to_numpy()
+                input_dim = len(self.enc.base_n_encoder.feature_names) + 0
+                tensor_zs = torch.stack([torch.Tensor(i)
+                                         for i in zs_encoded])
             else:
                 input_dim = 1
                 tensor_zs = torch.stack([torch.Tensor(i)
@@ -1212,12 +1232,13 @@ class KdeMdn:
         zs = np.array(zs)  # [:, np.newaxis]
 
         if self.encoding == "onehot":
-            zs_onehot = self.enc.transform(zs).toarray()
+            zs_encoded = self.enc.transform(zs).toarray()
             tensor_zs = torch.stack([torch.Tensor(i)
-                                     for i in zs_onehot])
+                                     for i in zs_encoded])
         elif self.encoding == "binary":
-            # TODO implement binary
-            pass
+            zs_encoded = self.enc.transform(zs).to_numpy()
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_encoded])
         else:
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs])

@@ -203,13 +203,14 @@ class SqlExecutor:
                             if os.path.exists(frequency_file):
                                 n_total_point = get_group_count_from_summary_file(
                                     frequency_file, sep=',')
+                                # TODO implement the file summary here.
                             else:
                                 raise FileNotFoundError(
                                     "scaling factor should come from the file, as"
                                     " stated in the SQL. However, the file is not found.")
                         else:
                             n_total_point = sampler.get_groupby_frequency()
-                            print("n_totoal_point", n_total_point)
+                            # print("n_totoal_point", n_total_point)
                             # n_total_point = get_group_count_from_table(
                             #     # self.config['csv_split_char'],
                             #     original_data_file, groupby_attribute, sep=',',

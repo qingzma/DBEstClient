@@ -14,6 +14,7 @@ class DBEstParser:
         >>> [SIZE 0.01]
         >>> [METHOD UNIFROM|HASH]
         >>> [SCALE FILE|DATA]
+        >>> [ENCODING ONEHOT|BINARY]
 
     - **DML**
         >>> SELECT AF(y)

@@ -43,7 +43,7 @@ def run():
 def build_models(sqlExecutor):
     # 10k
     sqlExecutor.execute(
-        "create table ss40g(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 6000", n_mdn_layer_node=8, encoding="onehot", b_grid_search=True, device='cpu', b_use_gg=False, n_per_gg=60)  # ,ss_quantity
+        "create table ss40g(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 6000", n_mdn_layer_node=8, encoding="binary", b_grid_search=True, device='cpu', b_use_gg=False, n_per_gg=60)  # ,ss_quantity
     # "create table ss40g_600k(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
     # "create table ss_600k(ss_quantity real, ss_sales_price real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
 
