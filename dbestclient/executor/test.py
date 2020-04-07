@@ -68,4 +68,10 @@ def test_binary_encoding():
     print(encoder.transform([['G', 4]]))
 
 
-test_binary_encoding()
+def test_dic():
+    dic = {}
+    dic["[1, 2]"] = 9
+    print(dic)
+
+test_dic()
+# test_binary_encoding()

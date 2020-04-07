@@ -203,10 +203,9 @@ class SqlExecutor:
                             if os.path.exists(frequency_file):
                                 n_total_point = get_group_count_from_summary_file(
                                     frequency_file, sep=',')
-                                # TODO implement the file summary here.
                             else:
                                 raise FileNotFoundError(
-                                    "scaling factor should come from the file, as"
+                                    "scaling factor should come from the default num_points.txt file in the warehouse folder, as"
                                     " stated in the SQL. However, the file is not found.")
                         else:
                             n_total_point = sampler.get_groupby_frequency()

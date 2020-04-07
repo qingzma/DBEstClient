@@ -170,7 +170,7 @@ class ReservoirSampling:
         for row in gb.itertuples():
             # print(row)
             # print(type(row))
-            key = "-".join(list(row[1:-1]))
+            key = ",".join(list(row[1:-1]))
             count = row[-1]
             frequency[key] = count
             # print(key, count)

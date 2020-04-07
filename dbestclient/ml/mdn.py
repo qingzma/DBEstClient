@@ -270,9 +270,7 @@ class RegMdnGroupBy():
                 columns = list(range(len(z_group[0])))
                 self.enc = ce.BinaryEncoder(cols=columns)
                 zs_encoded = self.enc.fit_transform(z_group).to_numpy()
-                # print(zs_encoded, type(zs_encoded))
-                # raise Exception
-                # TODO implement binary
+
             if self.b_normalize_data:
                 self.meanx = (np.max(x_points) + np.min(x_points)) / 2
                 self.widthx = np.max(x_points) - np.min(x_points)
@@ -299,9 +297,7 @@ class RegMdnGroupBy():
                     [xs_encoded, zs_encoded], axis=1).tolist()
                 tensor_xzs = torch.stack([torch.Tensor(i)
                                           for i in xzs_encoded])
-            # elif self.encoding == "binary":
-            #     raise Exception
-            #     # TODO implement binary
+
             else:
                 xzs = [[x_point, z_point]
                        for x_point, z_point in zip(x_points, z_group)]
