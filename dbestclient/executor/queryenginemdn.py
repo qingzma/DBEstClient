@@ -200,9 +200,23 @@ class MdnQueryEngine:
             groups = self.groupby_values
 
         if n_jobs == 1:
-
-            scaling_factor = np.array([self.n_total_point[key]
-                                       for key in groups])
+            # print(groups)
+            # print(self.n_total_point)
+            # print(groups[0], "*******************")
+            # print(",".join(groups[0]))
+            # for key in groups:
+            # print("key is ", key, end="----- ")
+            # print(",".join(key))
+            if len(groups[0].split(",")) == 1:  # 1d group by
+                # print(groups[0].split(","))
+                # print("1d")
+                scaling_factor = np.array([self.n_total_point[key]
+                                           for key in groups])
+            else:
+                # print(groups[0].split(","))
+                # print("n-d")
+                scaling_factor = np.array([self.n_total_point[key]
+                                           for key in groups])
             pre_density, pre_reg, step = prepare_reg_density_data(
                 self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
 
@@ -266,9 +280,17 @@ class MdnQueryEngineBundle():
             encoding="onehot", b_grid_search=True):
 
         self.pickle_file_name = mdl
+        # print(groupby_attribute)
+        print(df)
+
         grouped = df.groupby(groupby_attribute)
 
+        # print("grouped", grouped)
+
         self.group_keys = list(grouped.groups.keys())
+
+        print("self.group_keys", self.group_keys[:20])
+        print(self.group_keys[0], type(self.group_keys[0]))
 
         # print("group_keys", self.group_keys)
 
@@ -286,54 +308,109 @@ class MdnQueryEngineBundle():
         #     fakeKey.append(k)
 
         # self.group_keys = [k for _, k in sorted(zip(fakeKey, self.group_keys))]
-        group_keys_float = []
-        for idx, group_key in enumerate(self.group_keys):
-            group_key_float = [idx]
-            for group in group_key:
-                if group == "":
-                    g = 0.0
+        if isinstance(self.group_keys[0], tuple):  # n-d group by  #tuple
+            group_keys_float = []
+            for idx, group_key in enumerate(self.group_keys):
+                group_key_float = [idx]
+                for group in group_key:
+                    if group == "":
+                        g = 0.0
+                    else:
+                        try:
+                            g = float(group)
+                        except ValueError:
+                            raise ValueError(
+                                "ValueError: could not convert string to float in " + __file__)
+                    group_key_float.append(g)
+                group_keys_float.append(group_key_float)
+            group_keys_float = sorted(
+                group_keys_float, key=lambda k: [k[1], k[2]])
+            # print(group_keys_float[:200])
+            sorted_keys = [i[0] for i in group_keys_float]  # [:200]
+            # print(sorted_keys)
+
+            self.group_keys = [",".join(i) for i in self.group_keys]
+
+            sorted_group_keys = list(itemgetter(*sorted_keys)(self.group_keys))
+            print("sorted_group_keys", sorted_group_keys)
+            self.group_keys_chunk = [sorted_group_keys[i:i + n_per_group] for i in
+                                     range(0, len(sorted_group_keys), n_per_group)]
+            print("*"*100)
+            print("self.group_keys_chunk", self.group_keys_chunk)
+
+            groups_chunk = [pd.concat([grouped.get_group(tuple(
+                grp.split(","))) for grp in sub_group]) for sub_group in self.group_keys_chunk]
+            # groups_chunk = []
+            # # groups_chunk = [pd.concat([grouped.get_group(grp.split(",")) for grp in sub_group])
+            # #                 for sub_group in sub.split(",") for sub in self.group_keys_chunk]
+            # for sub_group in self.group_keys_chunk:
+            #     for grp in sub_group:
+            #         print("*"*100)
+            #         print(grp)
+            #         print(grp.split(","))
+            #         print(grouped.groups.keys())
+            #         print(grouped.get_group(tuple(grp.split(","))))
+            #         raise Exception
+            print("groups_chunk", groups_chunk)
+
+            # print("self.group_keys_chunk", self.group_keys_chunk)
+            print("sorted_group_keys", sorted_group_keys[:20])
+
+            # print(groups_chunk)
+
+        else:  # 1d group by
+            group_keys_float = []
+            for key in self.group_keys:
+                if key == "":
+                    k = 0.0
                 else:
                     try:
-                        g = float(group)
+                        k = float(key)
                     except ValueError:
                         raise ValueError(
                             "ValueError: could not convert string to float in " + __file__)
-                group_key_float.append(g)
-            group_keys_float.append(group_key_float)
-        # print(group_keys_float[:200])
+                group_keys_float.append(k)
 
-        group_keys_float = sorted(
-            group_keys_float, key=lambda k: [k[1], k[2]])
-        # print(group_keys_float[:200])
-        sorted_keys = [i[0] for i in group_keys_float][:200]
-        # print(sorted_keys)
+            print("group_keys_float", group_keys_float[:20])
+            self.group_keys = [k for _, k in sorted(
+                zip(group_keys_float, self.group_keys))]
+            self.group_keys_chunk = [self.group_keys[i:i + n_per_group] for i in
+                                     range(0, len(self.group_keys), n_per_group)]
+            groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group])
+                            for sub_group in self.group_keys_chunk]
+            print("self.group_keys_chunk", self.group_keys_chunk)
+            # print("groups_chunk")
+            # print(groups_chunk)
 
-        sorted_group_keys = list(itemgetter(*sorted_keys)(self.group_keys))
-
-        # print(sorted_group_keys[:200])
+        # raise Exception
 
         # self.group_keys_chunk = [self.group_keys[i:i + n_per_group] for i in
         #                          range(0, len(self.group_keys), n_per_group)]
-        self.group_keys_chunk = [sorted_group_keys[i:i + n_per_group] for i in
-                                 range(0, len(sorted_group_keys), n_per_group)]
+
         # print(self.group_keys_chunk)
 
-        groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group])
-                        for sub_group in self.group_keys_chunk]
+        # groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group])
+        #                 for sub_group in self.group_keys_chunk]
+        # print("groups_chunk")
+        # print(groups_chunk)
 
         # print(n_total_point)
         for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk, groups_chunk)):
-            # print(index,chunk_key)
+            print(index, chunk_key)
+            print("n_total_point", n_total_point)
+            # print(index, chunk_group)
+
             n_total_point_chunk = {k: n_total_point[k]
                                    for k in n_total_point if k in chunk_key}
             # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
+            print("n_total_point_chunk", n_total_point_chunk)
             # raise Exception()
             print("Training network " + str(index) +
                   " for group " + str(chunk_key))
-
+            print("n_total_point_chunk", n_total_point_chunk)
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
-                                              n_total_point=n_total_point_chunk, n_sample_point={},
+                                              n_total_point=n_total_point_chunk,
                                               x_min_value=-np.inf, x_max_value=np.inf, config=self.config, device=self.device).fit_from_df(
                 chunk_group, network_size="small", n_mdn_layer_node=n_mdn_layer_node,
                 encoding=encoding, b_grid_search=b_grid_search)

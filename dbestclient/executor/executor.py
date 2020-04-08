@@ -197,15 +197,18 @@ class SqlExecutor:
                         # n_total_point = get_group_count_from_table(
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
-                        if self.parser.get_scaling_method() == "file":
-                            frequency_file = self.config['warehousedir'] + \
-                                "/num_of_points.txt"
+                        if self.parser.get_scaling_method()[0] == "file":
+                            frequency_file = self.config['warehousedir'] +"/" +self.parser.get_scaling_method()[
+                                1]
+                            # "/num_of_points.csv"
                             if os.path.exists(frequency_file):
                                 n_total_point = get_group_count_from_summary_file(
                                     frequency_file, sep=',')
                             else:
                                 raise FileNotFoundError(
-                                    "scaling factor should come from the default num_points.txt file in the warehouse folder, as"
+                                    "scaling factor should come from the " +
+                                    self.parser.get_scaling_method(
+                                    )[1]+" in the warehouse folder, as"
                                     " stated in the SQL. However, the file is not found.")
                         else:
                             n_total_point = sampler.get_groupby_frequency()
@@ -234,7 +237,7 @@ class SqlExecutor:
                             self.model_catalog.add_model_wrapper(
                                 kdeModelWrapper)
                         else:
-
+                            # print("n_total_point ", n_total_point)
                             queryEngineBundle = MdnQueryEngineBundle(
                                 config=self.config, device=device).fit(xys, groupby_attribute,
                                                                        n_total_point, mdl, tbl,
@@ -326,7 +329,7 @@ class SqlExecutor:
                             qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
                             print("OK")
                             qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                            result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=False)
+                                            result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=True)
 
                     if self.config['verbose']:
                         end = datetime.now()

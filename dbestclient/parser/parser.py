@@ -1,3 +1,5 @@
+import re
+
 import sqlparse
 from sqlparse.sql import Function, Identifier, IdentifierList
 from sqlparse.tokens import DDL, DML, Keyword
@@ -52,7 +54,8 @@ class DBEstParser:
         - **parameters**
         :param query: a SQL query
         """
-        self.query = query
+
+        self.query = re.sub(' +', ' ', query)  # query
         self.parsed = sqlparse.parse(self.query)[0]
 
     def if_nested_query(self):
@@ -110,7 +113,12 @@ class DBEstParser:
                         raise ValueError(
                             "Scaling method is not set properly, wrong argument provided.")
                     else:
-                        return self.parsed.tokens[idx].value.lower()
+                        file = self.parsed.tokens[idx+2].value.lower()
+                        method = self.parsed.tokens[idx].value.lower()
+                        if method == "file":
+                            return method, file
+                        else:
+                            return method, None
 
     def get_groupby_value(self):
         for item in self.parsed.tokens:
@@ -184,7 +192,7 @@ if __name__ == "__main__":
         "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
     print(parser.if_contain_scaling_factor())
     parser.parse(
-        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform scale data ")
+        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
     print(parser.if_contain_scaling_factor())
     if parser.if_contain_groupby():
         print("yes, group by")
