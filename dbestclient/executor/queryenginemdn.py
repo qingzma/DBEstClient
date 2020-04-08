@@ -332,11 +332,11 @@ class MdnQueryEngineBundle():
             self.group_keys = [",".join(i) for i in self.group_keys]
 
             sorted_group_keys = list(itemgetter(*sorted_keys)(self.group_keys))
-            print("sorted_group_keys", sorted_group_keys)
+            # print("sorted_group_keys", sorted_group_keys)
             self.group_keys_chunk = [sorted_group_keys[i:i + n_per_group] for i in
                                      range(0, len(sorted_group_keys), n_per_group)]
-            print("*"*100)
-            print("self.group_keys_chunk", self.group_keys_chunk)
+            # print("*"*100)
+            # print("self.group_keys_chunk", self.group_keys_chunk)
 
             groups_chunk = [pd.concat([grouped.get_group(tuple(
                 grp.split(","))) for grp in sub_group]) for sub_group in self.group_keys_chunk]
@@ -351,10 +351,10 @@ class MdnQueryEngineBundle():
             #         print(grouped.groups.keys())
             #         print(grouped.get_group(tuple(grp.split(","))))
             #         raise Exception
-            print("groups_chunk", groups_chunk)
+            # print("groups_chunk", groups_chunk)
 
             # print("self.group_keys_chunk", self.group_keys_chunk)
-            print("sorted_group_keys", sorted_group_keys[:20])
+            # print("sorted_group_keys", sorted_group_keys[:20])
 
             # print(groups_chunk)
 
@@ -371,14 +371,14 @@ class MdnQueryEngineBundle():
                             "ValueError: could not convert string to float in " + __file__)
                 group_keys_float.append(k)
 
-            print("group_keys_float", group_keys_float[:20])
+            # print("group_keys_float", group_keys_float[:20])
             self.group_keys = [k for _, k in sorted(
                 zip(group_keys_float, self.group_keys))]
             self.group_keys_chunk = [self.group_keys[i:i + n_per_group] for i in
                                      range(0, len(self.group_keys), n_per_group)]
             groups_chunk = [pd.concat([grouped.get_group(grp) for grp in sub_group])
                             for sub_group in self.group_keys_chunk]
-            print("self.group_keys_chunk", self.group_keys_chunk)
+            # print("self.group_keys_chunk", self.group_keys_chunk)
             # print("groups_chunk")
             # print(groups_chunk)
 
@@ -396,18 +396,18 @@ class MdnQueryEngineBundle():
 
         # print(n_total_point)
         for index, [chunk_key, chunk_group] in enumerate(zip(self.group_keys_chunk, groups_chunk)):
-            print(index, chunk_key)
-            print("n_total_point", n_total_point)
+            # print(index, chunk_key)
+            # print("n_total_point", n_total_point)
             # print(index, chunk_group)
 
             n_total_point_chunk = {k: n_total_point[k]
                                    for k in n_total_point if k in chunk_key}
             # print(n_total_point_chunk)#, chunk_group,chunk_group.dtypes)
-            print("n_total_point_chunk", n_total_point_chunk)
+            # print("n_total_point_chunk", n_total_point_chunk)
             # raise Exception()
             print("Training network " + str(index) +
                   " for group " + str(chunk_key))
-            print("n_total_point_chunk", n_total_point_chunk)
+            # print("n_total_point_chunk", n_total_point_chunk)
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
                                               n_total_point=n_total_point_chunk,
