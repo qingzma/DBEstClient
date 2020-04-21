@@ -281,7 +281,7 @@ class MdnQueryEngineBundle():
 
         self.pickle_file_name = mdl
         # print(groupby_attribute)
-        print(df)
+        # print(df)
 
         grouped = df.groupby(groupby_attribute)
 
@@ -289,8 +289,8 @@ class MdnQueryEngineBundle():
 
         self.group_keys = list(grouped.groups.keys())
 
-        print("self.group_keys", self.group_keys[:20])
-        print(self.group_keys[0], type(self.group_keys[0]))
+        # print("self.group_keys", self.group_keys[:20])
+        # print(self.group_keys[0], type(self.group_keys[0]))
 
         # print("group_keys", self.group_keys)
 

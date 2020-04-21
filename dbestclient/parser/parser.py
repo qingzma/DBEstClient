@@ -38,7 +38,7 @@ class DBEstParser:
         parse a single SQL query, of the following form:
 
         - **DDL**
-            >>> CREATE TABLE t_m(y real, x real)
+            >>> CREATE TABLE t_m(y real, x_1 real, ... x_n categorical)
             >>> FROM tbl
             >>> [GROUP BY z]
             >>> [SIZE 0.01]
@@ -55,7 +55,7 @@ class DBEstParser:
         :param query: a SQL query
         """
 
-        self.query = re.sub(' +', ' ', query)  # query
+        self.query = re.sub(' +', ' ', query).replace(" (", "(")  # query
         self.parsed = sqlparse.parse(self.query)[0]
 
     def if_nested_query(self):
