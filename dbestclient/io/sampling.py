@@ -45,8 +45,8 @@ class DBEstSampling:
     def getyx(self, y, x, dropna=True, b_return_mean=False, groupby=None):
         return self.sample.getyx(y, x, dropna=dropna, b_return_mean=b_return_mean, groupby=groupby)
 
-    def get_groupby_frequency(self):
-        return self.sample.get_groupby_frequency()
+    def get_groupby_frequency_data(self):
+        return self.sample.get_groupby_frequency_and_data()
 
 
 if __name__ == '__main__':

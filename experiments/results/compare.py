@@ -38,7 +38,7 @@ def read_results(file, b_remove_null=True, split_char="\s"):
                     # self.logger.logger.info(key_value)
                     key_value = re.split(split_char, key_value)
                     # print(key_value)
-                    if key_value[0] == "":
+                    if key_value[0] == "" or key_value[0] == "NULL":
                         continue
                     # remove empty strings caused by sequential blank spaces.
                     key_value = list(filter(None, key_value))
@@ -46,7 +46,9 @@ def read_results(file, b_remove_null=True, split_char="\s"):
 
                         key_value[0] = key_value[0].replace(",", "")
                         # print(key_value)
-                        key_values[key_value[0]] = float(key_value[1])
+                        # print(int('506.0'))
+                        key_values[str(int(float(key_value[0])))
+                                   ] = float(key_value[1])
 
     if ('NULL' in key_values) and b_remove_null:
         key_values.pop('NULL', None)
@@ -140,7 +142,7 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
         prefix = agg_func+str(i)
         mdn = read_results("mdn501/"+prefix+suffix, split_char=",")
         truth = read_results("groundtruth/"+prefix+".result")
-        kde = read_results("DBEst/"+prefix+".txt")
+        kde = read_results("deepdb/"+prefix+".txt", split_char=',')
         mdn_error = compare_dicts(truth, mdn)
         kde_error = compare_dicts(truth, kde)
         mdn_errors.append(mdn_error)
@@ -233,5 +235,6 @@ def autolabel(rects, ax):
 
 if __name__ == "__main__":
     # plt_501_bar_chart_error()
-    plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
-    # plt501_workload(agg_func="sum", suffix="_ss1t_gg32_cpu.txt")
+    # plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
+    plt501_workload(agg_func="avg", suffix="_ss1t_gg32_cpu.txt",
+                    b_merge_result_for_group=False)

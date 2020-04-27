@@ -86,9 +86,37 @@ class DBEstParser:
     def get_where_name_and_range(self):
         for item in self.parsed.tokens:
             if 'where' in item.value.lower():
-                whereclause = item.value.split()
+                whereclause = item.value.lower().split()
                 # print(whereclause)
-                return whereclause[1], whereclause[3], whereclause[5]
+                idx = whereclause.index("between")
+                # print(idx)
+                return whereclause[idx-1], whereclause[idx+1], whereclause[idx+3]
+                # return whereclause[1], whereclause[3], whereclause[5]
+
+    def get_where_categorical_equal(self):
+        for item in self.parsed.tokens:
+            clause = item.value.lower()
+            if 'where' in clause:
+
+                # indexes = [m.start() for m in re.finditer('=', clause)]
+                splits = clause.replace("=", " = ").split()
+                # print(clause)
+                # print(clause.count("="))
+                xs = []
+                values = []
+                while True:
+                    if "=" not in splits:
+                        break
+                    idx = splits.index("=")
+                    xs.append(splits[idx-1])
+                    if splits[idx+1] != "''":
+                        values.append(splits[idx+1])
+                    else:
+                        values.append("")
+                    splits = splits[idx+3:]
+                #     print(splits)
+                # print(xs, values)
+                return xs, values
 
     def if_contain_groupby(self):
         for item in self.parsed.tokens:
@@ -146,7 +174,24 @@ class DBEstParser:
     def get_x(self):
         for item in self.parsed.tokens:
             if item.ttype is None and "(" in item.value.lower():
-                return item.tokens[1].tokens[6].value, item.tokens[1].tokens[8].value
+                x_list = item.tokens[1].value.lower().replace(
+                    "(", "").replace(")", "").replace(",", " ").split()
+                continous = []
+                categorical = []
+                for idx in range(3, len(x_list), 2):
+                    if x_list[idx] == "real":
+                        continous.append(x_list[idx-1])
+                    if x_list[idx] == "categorical":
+                        categorical.append(x_list[idx-1])
+
+                if len(continous) > 1:
+                    raise SyntaxError(
+                        "Only one continous independent variable is supported at "
+                        "this moment, please modify your SQL query accordingly.")
+                # print("continous,", continous)
+                # print("categorical,", categorical)
+                return continous, categorical
+                # return item.tokens[1].tokens[6].value, item.tokens[1].tokens[8].value
 
     def get_from_name(self):
         for item in self.parsed.tokens:
@@ -171,14 +216,15 @@ class DBEstParser:
 
 if __name__ == "__main__":
     parser = DBEstParser()
-    # parser.parse("create table mdl(y real, x real) from tbl group by z method uniform size 0.1 ")
-    #
+    # parser.parse(
+    #     "create table mdl(y real, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size 0.1 ")
+
     # if parser.if_contain_groupby():
     #     print("yes, group by")
     #     print(parser.get_groupby_value())
     # else:
     #     print("no group by")
-    #
+
     # if parser.if_ddl():
     #     print("ddl")
     #     print(parser.get_ddl_model_name())
@@ -192,7 +238,7 @@ if __name__ == "__main__":
         "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
     print(parser.if_contain_scaling_factor())
     parser.parse(
-        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
+        "select count(y) from t_m where x BETWEEN  1 and 2 and x1 = grp and x2=hahaha and x3='' GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
     print(parser.if_contain_scaling_factor())
     if parser.if_contain_groupby():
         print("yes, group by")
@@ -206,6 +252,7 @@ if __name__ == "__main__":
     if parser.if_where_exists():
         print("where exists!")
         print(parser.get_where_name_and_range())
+        parser.get_where_categorical_equal()
 
     print("method, ", parser.get_sampling_method())
 

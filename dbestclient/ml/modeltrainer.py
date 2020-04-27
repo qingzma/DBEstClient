@@ -111,6 +111,7 @@ class KdeModelTrainer:
     def fit_from_df(self, df, network_size="small", n_mdn_layer_node=10, encoding="onehot", b_shuffle_data=True, b_grid_search=True):
         print("Starting training kde models for model " + self.mdl)
 
+        # print(df)
         # shuffle the order in the data
         if b_shuffle_data:
             df = df.sample(frac=1).reset_index(drop=True)

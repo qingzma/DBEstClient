@@ -460,6 +460,60 @@ class MdnQueryEngineBundle():
             dill.dump(self, f)
 
 
+class MdnQueryEngineXCategorical:
+    """ This class is the query engine for x with categorical attributes
+    """
+
+    def __init__(self, config):
+        self.models = {}
+        self.config = config
+        self.mdl_name = None
+        self.n_total_points = None
+
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, device: str, encoding="binary", b_grid_search=False):
+        if not total_points["if_contain_x_categorical"]:
+            raise ValueError("The data provided is not a dict.")
+
+        print("fit MdnQueryEngineXCategorical...")
+        self.mdl_name = mdl_name
+        self.n_total_points = total_points
+        total_points.pop("if_contain_x_categorical")
+        # print("total_points", total_points)
+        idx = 0
+        for categorical_attributes in total_points:
+            print("start training  sub_model " +
+                  str(idx) + " for "+mdl_name+"...")
+            kdeModelWrapper = KdeModelTrainer(
+                mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
+                groupby_attribute=usecols["gb"],
+                groupby_values=list(
+                    total_points[categorical_attributes].keys()),
+                n_total_point=total_points[categorical_attributes],
+                x_min_value=-np.inf, x_max_value=np.inf,
+                config=self.config, device=device).fit_from_df(
+                data[categorical_attributes], encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
+
+            qe_mdn = MdnQueryEngine(kdeModelWrapper, self.config)
+            self.models[categorical_attributes] = qe_mdn
+
+        # kdeModelWrapper.serialize2warehouse(
+        #     self.config['warehousedir'])
+        # self.model_catalog.add_model_wrapper(
+        #     kdeModelWrapper)
+
+    def predicts(self, func, x_lb, x_ub, categorical_attributes, result2file=False, n_jobs=1, n_division=20):
+        # print(self.models.keys())
+        self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                             result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+
+    def serialize2warehouse(self, warehouse):
+        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+            dill.dump(self, f)
+
+    def init_pickle_file_name(self):
+        return self.mdl_name+".pkl"
+
+
 if __name__ == "__main__":
     config = {
         'warehousedir': '/home/u1796377/Programs/dbestwarehouse',

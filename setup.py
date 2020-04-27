@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, find_packages
-
+from setuptools import find_packages, setup
 
 with open('README.rst') as f:
     readme = f.read()
@@ -18,21 +17,21 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
         'Topic :: Approximate Query Processing :: AQP :: Data Warehouse',
-      ],
+    ],
     keywords='Approximate Query Processing AQP',
     url='https://github.com/qingzma/DBEstClient',
     author='Qingzhi Ma',
     author_email='Q.Ma.2@warwick.ac.uk',
     long_description=readme,
     license=license,
-    packages=['dbestclient'], #find_packages(exclude=('examples', 'docs')),
-    entry_points = {
-            'console_scripts': ['dbestclient=dbestclient.main:main','dbestcmd=dbestclient.main:cmd'],
-        },
+    packages=['dbestclient'],  # find_packages(exclude=('examples', 'docs')),
+    entry_points={
+        'console_scripts': ['dbestclient=dbestclient.main:main', 'dbestcmd=dbestclient.main:cmd'],
+    },
     zip_safe=False,
     install_requires=[
-          'numpy','sqlparse','pandas','scikit-learn','qregpy', 'scipy', 'dill', 'matplotlib', 'torch'
-      ],
+        'numpy', 'sqlparse', 'pandas', 'scikit-learn', 'qregpy', 'scipy', 'dill', 'matplotlib', 'torch', 'category_encoders'
+    ],
     test_suite='nose.collector',
     tests_require=['nose'],
 )

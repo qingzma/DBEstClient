@@ -43,14 +43,15 @@ def run():
 def build_models(sqlExecutor):
     # 10k
     sqlExecutor.execute(
-        "create table ss40g_gpu_(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 600000 scale file num_of_points2.csv", n_mdn_layer_node=8, encoding="binary", b_grid_search=False, device='gpu', b_use_gg=True, n_per_gg=260)  # ,ss_quantity
+        "create table ss40g_(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 600000 scale data num_of_points2.csv", n_mdn_layer_node=8, encoding="binary", b_grid_search=False, device='gpu', b_use_gg=False, n_per_gg=260)  # ,ss_quantity
     # "create table ss40g_600k(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
     # "create table ss_600k(ss_quantity real, ss_sales_price real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000")
+    # ss_coupon_amt categorical, ss_sold_time_sk categorical
 
 
 def query(sqlExecutor):
     sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss40g where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk,ss_quantity", n_jobs=8, n_division=20, b_use_gg=True, device='cpu')
+        "select count(ss_sales_price)  from ss40g_ where ss_sold_date_sk between 2451119  and 2451483 and ss_coupon_amt=''  group by ss_store_sk,ss_quantity", n_jobs=1, n_division=20, b_use_gg=False, device='gpu')
     # sqlExecutor.execute(
     #     "select sum(ss_sales_price)  from ss40g_600k_tes_gg_cpu_grid_search where ss_sold_date_sk between 2451119  and 2451483   group by ss_store_sk", n_jobs=1)
     # sqlExecutor.execute(

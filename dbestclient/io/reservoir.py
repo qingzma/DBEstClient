@@ -25,12 +25,12 @@ except NameError:
 
 
 class ReservoirSampling:
-    def __init__(self, headers, usecols=None):
+    def __init__(self, headers):
         self.header = headers
         self.n_total_point = None
         self.sampledf = None
         self.sampledfmean = None
-        self.usecols = usecols
+        self.usecols = None
 
     def build_reservoir(self, file, R, threshold=None, verbose=False, split_char=",", save2file=None, n_total_point=None, usecols=None):
         self.usecols = usecols
@@ -94,18 +94,48 @@ class ReservoirSampling:
             self.sampledf = pd.DataFrame(res, columns=self.header)
             # print(self.sampledf)
             if usecols is not None:
-                self.sampledf = self.sampledf[usecols]
+                # process the usecols from dic to list
+                columns_continous = [usecols['y']]
 
-                for col in usecols[0:2]:  # [0:-1]:
-                    self.sampledf[col] = pd.to_numeric(
-                        self.sampledf[col], errors='coerce')
+                if usecols['x_continous']:
+                    columns_continous = columns_continous + \
+                        usecols['x_continous']
+
+                columns_categorial = []
+                if usecols["x_categorical"]:
+                    # columns = columns + usecols['x_categorical']
+                    columns_categorial = columns_categorial + \
+                        usecols['x_categorical']
+                if usecols["gb"]:
+                    # columns = columns + usecols['gb']
+                    columns_categorial = columns_categorial + usecols['gb']
+                usecols = columns_continous + columns_categorial
+
+                self.sampledf = self.sampledf[usecols]
+                # print(columns_continous)
+                # print(columns_categorial)
+                # print(self.sampledf)
+
+                self.sampledf[columns_continous] = self.sampledf[columns_continous].apply(
+                    pd.to_numeric, errors='coerce')
+                self.sampledf.dropna()
+                # print(self.sampledf)
+                # for col in columns_continous:  # [0:-1]:
+                #     print("col,", col)
+                #     print("df column " + str(col))
+                #     print(self.sampledf[col])
+
+                #     self.sampledf[col] = pd.to_numeric(
+                #         self.sampledf[col], errors='coerce')
+                #     print(self.sampledf)
+                #     print("*"*80)
                 # convert the group by column to string
-                if len(usecols) >= 3:
-                    # self.sampledf = self.sampledf.dropna(subset=[usecols[-1]])
-                    for idx in range(2, len(usecols)):
-                        self.sampledf[usecols[idx]
-                                      ] = self.sampledf[usecols[idx]].astype(str)
+
+                for col in columns_categorial:
+                    self.sampledf[col] = self.sampledf[col].astype(str)
                 self.sampledf = self.sampledf.dropna(subset=usecols)
+                self.columns_categorical = columns_categorial
+                self.column_continous = columns_continous
 
             if save2file is not None:
                 self.sampledf.to_csv(save2file, index=False)
@@ -162,19 +192,67 @@ class ReservoirSampling:
             ft[key] = count
         return ft
 
-    def get_groupby_frequency(self):
-        groupbys = self.usecols[2:]
-        gb = self.sampledf.groupby(groupbys).size().to_frame(
-            name='count').reset_index()
-        frequency = {}
-        for row in gb.itertuples():
-            # print(row)
-            # print(type(row))
-            key = ",".join(list(row[1:-1]))
-            count = row[-1]
-            frequency[key] = count
-            # print(key, count)
-        return frequency
+    def get_groupby_frequency_and_data(self):
+        print("get frequency info from data....")
+        total_frequency = {}
+        data = {}
+        if self.usecols["x_categorical"]:
+            total_frequency["if_contain_x_categorical"] = True
+            data["if_contain_x_categorical"] = True
+            gb = self.sampledf.groupby(self.usecols["x_categorical"])
+            for grp, values in gb:
+                # print(grp, type(grp))
+
+                # print("*"*40)
+                if isinstance(grp, tuple):
+                    key = ",".join(grp)
+                else:
+                    key = grp
+                # print(key)
+                # print('key', key)
+                gb_data = values[[self.usecols["y"]] +
+                                 self.usecols["x_continous"] +
+                                 self.usecols["gb"]]
+
+                # to get the frequency for each sub group
+                # print(gb_data)
+                gb_by_group_by_atrributes = values.groupby(
+                    self.usecols["gb"]).size().to_frame(name='count').reset_index()
+                frequency = {}
+                for row in gb_by_group_by_atrributes.itertuples():
+                    # print(row)
+                    # print(type(row))
+                    key1 = ",".join(list(row[1:-1]))
+                    count = row[-1]
+                    frequency[key1] = count
+                    # print(key1, count)
+                # print("grp", grp, frequency)
+                # print("*"*100)
+                # print()
+                total_frequency[key] = frequency
+                data[key] = gb_data
+
+        else:
+            total_frequency["if_contain_x_categorical"] = False
+            data["if_contain_x_categorical"] = False
+            # groupbys = self.usecols["gb"]
+            gb = self.sampledf.groupby(self.usecols["gb"]).size().to_frame(
+                name='count').reset_index()
+            # frequency = {}
+            for row in gb.itertuples():
+                # print(row)
+                # print(type(row))
+                key = ",".join(list(row[1:-1]))
+                count = row[-1]
+                total_frequency[key] = count
+                # print(key, count)
+            data["data"] = self.sampledf
+
+        # for key in total_frequency:
+        #     print(key, total_frequency[key])
+        #     print("-"*20)
+
+        return total_frequency, data
 
 
 if __name__ == '__main__':

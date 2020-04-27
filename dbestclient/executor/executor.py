@@ -14,7 +14,8 @@ import numpy as np
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (MdnQueryEngine,
-                                                 MdnQueryEngineBundle)
+                                                 MdnQueryEngineBundle,
+                                                 MdnQueryEngineXCategorical)
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
                                          SimpleModelTrainer)
@@ -113,18 +114,19 @@ class SqlExecutor:
                 else:  # the file is in the warehouse direcotry
                     original_data_file = self.config['warehousedir'] + "/" + tbl
                 yheader = self.parser.get_y()[0]
-                xheader = self.parser.get_x()[0]
+                xheader_continous, xheader_categorical = self.parser.get_x()
+
                 ratio = self.parser.get_sampling_ratio()
                 method = self.parser.get_sampling_method()
 
                 # make samples
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     sampler = DBEstSampling(
-                        headers=self.table_header, usecols=[xheader, yheader])
+                        headers=self.table_header, usecols={"y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": None})
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
-                    sampler = DBEstSampling(headers=self.table_header, usecols=[
-                                            xheader, yheader] + groupby_attribute)
+                    sampler = DBEstSampling(headers=self.table_header, usecols={
+                                            "y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": groupby_attribute})
 
                 # print(self.config)
                 if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
@@ -190,7 +192,7 @@ class SqlExecutor:
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
                     else:  # "mdn"
                         xys = sampler.getyx(
-                            yheader, xheader, groupby=groupby_attribute)
+                            yheader, xheader_continous, groupby=groupby_attribute)
                         # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
                         # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
 
@@ -198,7 +200,7 @@ class SqlExecutor:
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
                         if self.parser.get_scaling_method()[0] == "file":
-                            frequency_file = self.config['warehousedir'] +"/" +self.parser.get_scaling_method()[
+                            frequency_file = self.config['warehousedir'] + "/" + self.parser.get_scaling_method()[
                                 1]
                             # "/num_of_points.csv"
                             if os.path.exists(frequency_file):
@@ -211,46 +213,60 @@ class SqlExecutor:
                                     )[1]+" in the warehouse folder, as"
                                     " stated in the SQL. However, the file is not found.")
                         else:
-                            n_total_point = sampler.get_groupby_frequency()
-                            # print("n_totoal_point", n_total_point)
-                            # n_total_point = get_group_count_from_table(
-                            #     # self.config['csv_split_char'],
-                            #     original_data_file, groupby_attribute, sep=',',
-                            #     headers=self.table_header)
+                            n_total_point, xys = sampler.get_groupby_frequency_data()
+                            # print("n_total_point", n_total_point)
+                            # raise Exception
 
-                        # n_sample_point = {}  # get_group_count_from_df(
-                        # xys, groupby_attribute)
+                            # no categorical x attributes
+                            if not n_total_point['if_contain_x_categorical']:
+                                if not b_use_gg:
+                                    n_total_point.pop(
+                                        "if_contain_x_categorical")
+                                    # xys.pop("if_contain_x_categorical")
+                                    kdeModelWrapper = KdeModelTrainer(
+                                        mdl, tbl, xheader_continous[0], yheader,
+                                        groupby_attribute=groupby_attribute,
+                                        groupby_values=list(
+                                            n_total_point.keys()),
+                                        n_total_point=n_total_point,
+                                        x_min_value=-np.inf, x_max_value=np.inf,
+                                        config=self.config, device=device).fit_from_df(
+                                        xys["data"], encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
 
-                        if not b_use_gg:
-                            kdeModelWrapper = KdeModelTrainer(
-                                mdl, tbl, xheader, yheader,
-                                groupby_attribute=groupby_attribute,
-                                groupby_values=list(
-                                    n_total_point.keys()),
-                                n_total_point=n_total_point,
-                                x_min_value=-np.inf, x_max_value=np.inf,
-                                config=self.config, device=device).fit_from_df(
-                                xys, encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
+                                    kdeModelWrapper.serialize2warehouse(
+                                        self.config['warehousedir'])
+                                    self.model_catalog.add_model_wrapper(
+                                        kdeModelWrapper)
 
-                            kdeModelWrapper.serialize2warehouse(
-                                self.config['warehousedir'])
-                            self.model_catalog.add_model_wrapper(
-                                kdeModelWrapper)
-                        else:
-                            # print("n_total_point ", n_total_point)
-                            queryEngineBundle = MdnQueryEngineBundle(
-                                config=self.config, device=device).fit(xys, groupby_attribute,
-                                                                       n_total_point, mdl, tbl,
-                                                                       xheader, yheader,
-                                                                       n_per_group=n_per_gg,
-                                                                       n_mdn_layer_node=n_mdn_layer_node,
-                                                                       encoding=encoding,
-                                                                       b_grid_search=b_grid_search)
+                                else:
+                                    # print("n_total_point ", n_total_point)
+                                    queryEngineBundle = MdnQueryEngineBundle(
+                                        config=self.config, device=device).fit(xys, groupby_attribute,
+                                                                               n_total_point, mdl, tbl,
+                                                                               xheader, yheader,
+                                                                               n_per_group=n_per_gg,
+                                                                               n_mdn_layer_node=n_mdn_layer_node,
+                                                                               encoding=encoding,
+                                                                               b_grid_search=b_grid_search)
 
-                            self.model_catalog.add_model_wrapper(
-                                queryEngineBundle)
-                            queryEngineBundle.serialize2warehouse(
-                                self.config['warehousedir'])
+                                    self.model_catalog.add_model_wrapper(
+                                        queryEngineBundle)
+                                    queryEngineBundle.serialize2warehouse(
+                                        self.config['warehousedir'])
+                            else:  # x has categorical attributes
+                                if not b_use_gg:
+                                    qeXContinuous = MdnQueryEngineXCategorical(
+                                        self.config)
+                                    qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
+                                        "y": yheader, "x_continous": xheader_continous,
+                                        "x_categorical": xheader_categorical, "gb": groupby_attribute},
+                                        device=device, encoding=encoding, b_grid_search=b_grid_search)
+                                    qeXContinuous.serialize2warehouse(
+                                        self.config['warehousedir'])
+                                    self.model_catalog.add_model_wrapper(
+                                        qeXContinuous)
+                                else:
+                                    pass
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.config['verbose']:
@@ -319,17 +335,28 @@ class SqlExecutor:
                         start = datetime.now()
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
-                        if not b_use_gg:
-                            qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
-                                                    self.config)
-                            print("OK")
-                            qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                    result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                        # no categorical x attributes
+                        x_categorical_attributes, x_categorical_values = self.parser.get_where_categorical_equal()
+
+                        if not x_categorical_attributes:
+                            if not b_use_gg:
+                                qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
+                                                        self.config)
+                                print("OK")
+                                qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                        result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                            else:
+                                qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
+                                # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
+                                print("OK")
+                                qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
+                                                result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=True)
                         else:
-                            qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
-                            print("OK")
-                            qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                            result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=True)
+                            if not b_use_gg:
+                                self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
+                                    func, x_lb, x_ub, ",".join(x_categorical_values), result2file=False, n_jobs=1, n_division=20)
+                            else:
+                                pass
 
                     if self.config['verbose']:
                         end = datetime.now()
