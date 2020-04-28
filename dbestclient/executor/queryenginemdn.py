@@ -483,6 +483,7 @@ class MdnQueryEngineXCategorical:
         for categorical_attributes in total_points:
             print("start training  sub_model " +
                   str(idx) + " for "+mdl_name+"...")
+            idx += 1
             kdeModelWrapper = KdeModelTrainer(
                 mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
                 groupby_attribute=usecols["gb"],
@@ -502,7 +503,7 @@ class MdnQueryEngineXCategorical:
         #     kdeModelWrapper)
 
     def predicts(self, func, x_lb, x_ub, categorical_attributes, result2file=False, n_jobs=1, n_division=20):
-        # print(self.models.keys())
+        print(self.models.keys())
         self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
                                                              result2file=result2file, n_jobs=n_jobs, n_division=n_division)
 

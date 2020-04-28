@@ -201,7 +201,7 @@ class ReservoirSampling:
             data["if_contain_x_categorical"] = True
             gb = self.sampledf.groupby(self.usecols["x_categorical"])
             for grp, values in gb:
-                # print(grp, type(grp))
+                print(grp, type(grp))
 
                 # print("*"*40)
                 if isinstance(grp, tuple):
