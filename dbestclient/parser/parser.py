@@ -216,44 +216,44 @@ class DBEstParser:
 
 if __name__ == "__main__":
     parser = DBEstParser()
-    # parser.parse(
-    #     "create table mdl(y real, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size 0.1 ")
-
-    # if parser.if_contain_groupby():
-    #     print("yes, group by")
-    #     print(parser.get_groupby_value())
-    # else:
-    #     print("no group by")
-
-    # if parser.if_ddl():
-    #     print("ddl")
-    #     print(parser.get_ddl_model_name())
-    #     print(parser.get_y())
-    #     print(parser.get_x())
-    #     print(parser.get_from_name())
-    #     print(parser.get_sampling_method())
-    #     print(parser.get_sampling_ratio())
-
     parser.parse(
-        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
-    print(parser.if_contain_scaling_factor())
-    parser.parse(
-        "select count(y) from t_m where x BETWEEN  1 and 2 and x1 = grp and x2=hahaha and x3='' GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
-    print(parser.if_contain_scaling_factor())
+        "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size 0.1 ")
+
     if parser.if_contain_groupby():
         print("yes, group by")
         print(parser.get_groupby_value())
     else:
         print("no group by")
-    if not parser.if_ddl():
-        print("DML")
-        print(parser.get_aggregate_function_and_variable())
 
-    if parser.if_where_exists():
-        print("where exists!")
-        print(parser.get_where_name_and_range())
-        parser.get_where_categorical_equal()
+    if parser.if_ddl():
+        print("ddl")
+        print(parser.get_ddl_model_name())
+        print(parser.get_y())
+        print(parser.get_x())
+        print(parser.get_from_name())
+        print(parser.get_sampling_method())
+        print(parser.get_sampling_ratio())
 
-    print("method, ", parser.get_sampling_method())
+    # parser.parse(
+    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    # print(parser.if_contain_scaling_factor())
+    # parser.parse(
+    #     "select count(y) from t_m where x BETWEEN  1 and 2 and x1 = grp and x2=hahaha and x3='' GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
+    # print(parser.if_contain_scaling_factor())
+    # if parser.if_contain_groupby():
+    #     print("yes, group by")
+    #     print(parser.get_groupby_value())
+    # else:
+    #     print("no group by")
+    # if not parser.if_ddl():
+    #     print("DML")
+    #     print(parser.get_aggregate_function_and_variable())
 
-    print("scaling factor ", parser.get_scaling_method())
+    # if parser.if_where_exists():
+    #     print("where exists!")
+    #     print(parser.get_where_name_and_range())
+    #     parser.get_where_categorical_equal()
+
+    # print("method, ", parser.get_sampling_method())
+
+    # print("scaling factor ", parser.get_scaling_method())
