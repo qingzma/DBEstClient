@@ -134,3 +134,13 @@ WHERE
 ts >= unix_timestamp('2020-03-09T02:10:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
 AND ts <= unix_timestamp('2020-03-10T02:10:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
 group by tenantId,kpiCount,regionLevelEight,ssid;
+
+
+
+
+
+SELECT ts, COUNT(DISTINCT usermac)  FROM ci_campusclient_clientstat_5m WHERE  ts >= unix_timestamp('2019-03-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND ts <= unix_timestamp('2020-03-29T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND tenantId = 'default-organization-id' AND kpiCount >= 0 AND ssid = 'Apple' AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18'GROUP BY ts;
+
+
+
+# to support the SQL where GROUP BY and X is the same attriubte,  I remove the X attribute from the X columns, and only use X in the GB columns, then add a filter to choose the propriate groups from all predictions.

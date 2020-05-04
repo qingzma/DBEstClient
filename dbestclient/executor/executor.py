@@ -113,7 +113,8 @@ class SqlExecutor:
                     original_data_file = tbl
                 else:  # the file is in the warehouse direcotry
                     original_data_file = self.config['warehousedir'] + "/" + tbl
-                yheader = self.parser.get_y()[0]
+                yheader = self.parser.get_y()
+
                 xheader_continous, xheader_categorical = self.parser.get_x()
 
                 ratio = self.parser.get_sampling_ratio()
@@ -352,9 +353,13 @@ class SqlExecutor:
                                 qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
                                                 result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=True)
                         else:
+                            print("OK")
                             if not b_use_gg:
+                                # print("x_categorical_values",
+                                #       x_categorical_values)
+                                # print(",".join(x_categorical_values))
                                 self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                                    func, x_lb, x_ub, ",".join(x_categorical_values), result2file=False, n_jobs=1, n_division=20)
+                                    func, x_lb, x_ub, ",".join(x_categorical_values), result2file=False, n_jobs=1, n_division=20,b_return_counts_as_prediction=True)
                             else:
                                 pass
 

@@ -95,11 +95,13 @@ class DBEstParser:
 
     def get_where_categorical_equal(self):
         for item in self.parsed.tokens:
-            clause = item.value.lower()
-            if 'where' in clause:
+            clause_lower = item.value.lower()
+            clause = item.value
+            if 'where' in clause_lower:
 
                 # indexes = [m.start() for m in re.finditer('=', clause)]
                 splits = clause.replace("=", " = ").split()
+                splits_lower = clause_lower.replace("=", " = ").split()
                 # print(clause)
                 # print(clause.count("="))
                 xs = []
@@ -108,9 +110,9 @@ class DBEstParser:
                     if "=" not in splits:
                         break
                     idx = splits.index("=")
-                    xs.append(splits[idx-1])
+                    xs.append(splits_lower[idx-1])
                     if splits[idx+1] != "''":
-                        values.append(splits[idx+1])
+                        values.append(splits[idx+1].replace("'",""))
                     else:
                         values.append("")
                     splits = splits[idx+3:]
@@ -141,9 +143,10 @@ class DBEstParser:
                         raise ValueError(
                             "Scaling method is not set properly, wrong argument provided.")
                     else:
-                        file = self.parsed.tokens[idx+2].value.lower()
+
                         method = self.parsed.tokens[idx].value.lower()
                         if method == "file":
+                            file = self.parsed.tokens[idx+2].value.lower()
                             return method, file
                         else:
                             return method, None
@@ -169,7 +172,14 @@ class DBEstParser:
     def get_y(self):
         for item in self.parsed.tokens:
             if item.ttype is None and "(" in item.value.lower():
-                return item.tokens[1].tokens[1].value, item.tokens[1].tokens[3].value
+                y_list = item.tokens[1].value.lower().replace(
+                    "(", "").replace(")", "").replace(",", " ").split()
+                if y_list[1] not in ["real", "categorical"]:
+                    raise TypeError("Unsupported type for " +
+                                    y_list[0] + " -> " + y_list[1])
+                return [y_list[0], y_list[1]]
+
+                # return item.tokens[1].tokens[1].value, item.tokens[1].tokens[3].value
 
     def get_x(self):
         for item in self.parsed.tokens:
@@ -216,44 +226,47 @@ class DBEstParser:
 
 if __name__ == "__main__":
     parser = DBEstParser()
-    parser.parse(
-        "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size 0.1 ")
-
-    if parser.if_contain_groupby():
-        print("yes, group by")
-        print(parser.get_groupby_value())
-    else:
-        print("no group by")
-
-    if parser.if_ddl():
-        print("ddl")
-        print(parser.get_ddl_model_name())
-        print(parser.get_y())
-        print(parser.get_x())
-        print(parser.get_from_name())
-        print(parser.get_sampling_method())
-        print(parser.get_sampling_ratio())
-
     # parser.parse(
-    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
-    # print(parser.if_contain_scaling_factor())
-    # parser.parse(
-    #     "select count(y) from t_m where x BETWEEN  1 and 2 and x1 = grp and x2=hahaha and x3='' GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
-    # print(parser.if_contain_scaling_factor())
+    #     "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size 0.1 ")
+
     # if parser.if_contain_groupby():
     #     print("yes, group by")
     #     print(parser.get_groupby_value())
     # else:
     #     print("no group by")
-    # if not parser.if_ddl():
-    #     print("DML")
-    #     print(parser.get_aggregate_function_and_variable())
 
-    # if parser.if_where_exists():
-    #     print("where exists!")
-    #     print(parser.get_where_name_and_range())
-    #     parser.get_where_categorical_equal()
+    # if parser.if_ddl():
+    #     print("ddl")
+    #     print(parser.get_ddl_model_name())
+    #     print(parser.get_y())
+    #     print(parser.get_x())
+    #     print(parser.get_from_name())
+    #     print(parser.get_sampling_method())
+    #     print(parser.get_sampling_ratio())
 
-    # print("method, ", parser.get_sampling_method())
+    # parser.parse(
+    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    # print(parser.if_contain_scaling_factor())
+    parser.parse(
+        "select count(y) from t_m where x BETWEEN  1 and 2 and X1 = grp and x2 = 'HaHaHa' and x3='' GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
+    print(parser.if_contain_scaling_factor())
+    if parser.if_contain_groupby():
+        print("yes, group by")
+        print(parser.get_groupby_value())
+    else:
+        print("no group by")
+    if not parser.if_ddl():
+        print("DML")
+        print(parser.get_aggregate_function_and_variable())
 
-    # print("scaling factor ", parser.get_scaling_method())
+    if parser.if_where_exists():
+        print("where exists!")
+        print(parser.get_where_name_and_range())
+        parser.get_where_categorical_equal()
+
+    print("method, ", parser.get_sampling_method())
+
+    print("scaling factor ", parser.get_scaling_method())
+
+    print(parser.get_where_name_and_range())
+    print(parser.get_where_categorical_equal())

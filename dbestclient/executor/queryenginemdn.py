@@ -192,12 +192,25 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None, b_print_to_screen=True, n_division: int = 20, n_jobs: int = 1, result2file: str = None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None, b_print_to_screen=True, n_division: int = 20, n_jobs: int = 1, result2file: str = None, b_return_counts_as_prediction=False, filter=None):
 
         if func.lower() not in ("count", "sum", "avg"):
             raise ValueError("function not supported: "+func)
         if groups is None:  # provide predictions for all groups.
             groups = self.groupby_values
+
+        if b_return_counts_as_prediction:
+            results = self.n_total_point
+            # print("self.n_total_point", self.n_total_point)
+            if b_print_to_screen:
+                for key in results:
+                    print(",".join(key.split("-")) + "," + str(results[key]))
+
+            # if result2file is not None:
+            #     with open(result2file, 'w') as f:
+            #         for key in results:
+            #             f.write(str(key) + "," + str(results[key]) + "\n")
+            return results
 
         if n_jobs == 1:
             # print(groups)
@@ -217,6 +230,7 @@ class MdnQueryEngine:
                 # print("n-d")
                 scaling_factor = np.array([self.n_total_point[key]
                                            for key in groups])
+            print("self.n_total_point", self.n_total_point)
             pre_density, pre_reg, step = prepare_reg_density_data(
                 self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
 
@@ -469,6 +483,7 @@ class MdnQueryEngineXCategorical:
         self.config = config
         self.mdl_name = None
         self.n_total_points = None
+        
 
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, device: str, encoding="binary", b_grid_search=False):
         if not total_points["if_contain_x_categorical"]:
@@ -502,10 +517,11 @@ class MdnQueryEngineXCategorical:
         # self.model_catalog.add_model_wrapper(
         #     kdeModelWrapper)
 
-    def predicts(self, func, x_lb, x_ub, categorical_attributes, result2file=False, n_jobs=1, n_division=20):
-        print(self.models.keys())
+    def predicts(self, func, x_lb, x_ub, categorical_attributes, result2file=False, n_jobs=1, n_division=20, b_return_counts_as_prediction=False):
+        # print("self.models.keys()", self.models.keys())
+        # print("categorical_attributes", categorical_attributes)
         self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                             result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                                                             result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_return_counts_as_prediction=b_return_counts_as_prediction)
 
     def serialize2warehouse(self, warehouse):
         with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:

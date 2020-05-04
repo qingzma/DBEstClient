@@ -53,7 +53,8 @@ class ReservoirSampling:
             if self.header is None:
                 # skip the first header row
                 first_row = next(iterator)
-                self.header = first_row.replace("\n", '').split(split_char)
+                self.header = first_row.replace(
+                    "\n", '').lower().split(split_char)
             try:
                 j = 0
                 # iterator = iter(data)
@@ -94,8 +95,13 @@ class ReservoirSampling:
             self.sampledf = pd.DataFrame(res, columns=self.header)
             # print(self.sampledf)
             if usecols is not None:
-                # process the usecols from dic to list
-                columns_continous = [usecols['y']]
+                # # firstlt check whether y is categorical, if so, convert the categorical attributes to real values.
+                # if usecols['y'][1] == "categorical":
+                #     print("usecols['y'][1] is categorical")
+                #     raise Exception
+
+                 # process the usecols from dic to list
+                columns_continous = [usecols['y'][0]]
 
                 if usecols['x_continous']:
                     columns_continous = columns_continous + \
@@ -107,18 +113,40 @@ class ReservoirSampling:
                     columns_categorial = columns_categorial + \
                         usecols['x_categorical']
                 if usecols["gb"]:
-                    # columns = columns + usecols['gb']
-                    columns_categorial = columns_categorial + usecols['gb']
-                usecols = columns_continous + columns_categorial
+                    for col in usecols["gb"]:
+                        if col not in columns_continous + columns_categorial:
+                            columns_categorial.append(col)
+                        else:
+                            print(
+                                "SQL meets the condition where Group By attributes and X attributes have common attributes: " + col)
 
-                self.sampledf = self.sampledf[usecols]
+                            # columns = columns + usecols['gb']
+                    # gb_cols = ["gb_"+i for i in usecols['gb']]
+                    # columns_categorial = columns_categorial + gb_cols
+                usecols_list = columns_continous + columns_categorial
+
+                # print(self.sampledf)
+                # print(self.sampledf["tenantid"])
+                # print(usecols)
+
+                self.sampledf = self.sampledf[usecols_list]
+                # print(self.sampledf)
                 # print(columns_continous)
                 # print(columns_categorial)
                 # print(self.sampledf)
 
-                self.sampledf[columns_continous] = self.sampledf[columns_continous].apply(
-                    pd.to_numeric, errors='coerce')
-                self.sampledf.dropna()
+                # convert continuous X attributes to float, execept for those that repeated in the GROUP BY clause.
+                # print(usecols)
+                # print(usecols['x_continous'])
+                columns_to_float = [
+                    item for item in usecols['x_continous'] if item not in usecols["gb"]]
+                # print("columns_to_float", columns_to_float)
+                for col in columns_to_float:
+                    self.sampledf[col] = self.sampledf[col].apply(
+                        pd.to_numeric, errors='coerce')
+                # self.sampledf[columns_continous] = self.sampledf[columns_continous].apply(
+                #     pd.to_numeric, errors='coerce')
+                # self.sampledf.dropna()
                 # print(self.sampledf)
                 # for col in columns_continous:  # [0:-1]:
                 #     print("col,", col)
@@ -133,7 +161,23 @@ class ReservoirSampling:
 
                 for col in columns_categorial:
                     self.sampledf[col] = self.sampledf[col].astype(str)
-                self.sampledf = self.sampledf.dropna(subset=usecols)
+
+                # if col in both X and Group BY, convert it to float
+                columns_common = [
+                    item for item in usecols['x_continous'] if item in usecols["gb"]]
+
+                for col in columns_common:
+                    self.sampledf[col] = self.sampledf[col].apply(
+                        pd.to_numeric, errors='coerce')
+
+                if usecols['y'][1] == "categorical":
+                    self.sampledf[usecols['y'][0]
+                                  ] = self.sampledf[usecols['y'][0]].astype(str)
+                # print("usecols", usecols)
+                self.sampledf = self.sampledf.dropna(subset=usecols_list)
+                # print("self.sampledf", self.sampledf)
+                # print("type is ", self.sampledf.dtypes)
+                # raise Exception
                 self.columns_categorical = columns_categorial
                 self.column_continous = columns_continous
 
@@ -194,6 +238,7 @@ class ReservoirSampling:
 
     def get_groupby_frequency_and_data(self):
         print("get frequency info from data....")
+        # print("self.sampledf", self.sampledf)
         total_frequency = {}
         data = {}
         if self.usecols["x_categorical"]:
@@ -201,7 +246,7 @@ class ReservoirSampling:
             data["if_contain_x_categorical"] = True
             gb = self.sampledf.groupby(self.usecols["x_categorical"])
             for grp, values in gb:
-                print(grp, type(grp))
+                # print(grp, type(grp))
 
                 # print("*"*40)
                 if isinstance(grp, tuple):
@@ -210,9 +255,19 @@ class ReservoirSampling:
                     key = grp
                 # print(key)
                 # print('key', key)
-                gb_data = values[[self.usecols["y"]] +
-                                 self.usecols["x_continous"] +
-                                 self.usecols["gb"]]
+                # print(values)
+                # print([self.usecols["y"]] +
+                #       self.usecols["x_continous"] +
+                #       self.usecols["gb"])
+                columns_to_use = [self.usecols["y"][0]]
+                columns_to_float = [
+                    item for item in self.usecols['x_continous'] if item not in self.usecols["gb"]]
+                columns_to_use = columns_to_use + \
+                    columns_to_float + self.usecols["gb"]
+                gb_data = values[columns_to_use]
+                # gb_data = values[[self.usecols["y"]] +
+                #                  self.usecols["x_continous"] +
+                #                  self.usecols["gb"]]
 
                 # to get the frequency for each sub group
                 # print(gb_data)
@@ -222,7 +277,11 @@ class ReservoirSampling:
                 for row in gb_by_group_by_atrributes.itertuples():
                     # print(row)
                     # print(type(row))
-                    key1 = ",".join(list(row[1:-1]))
+                    columns_str = []
+                    for item in list(row[1:-1]):
+                        columns_str.append(str(item))
+                    key1 = ",".join(columns_str)
+                    # print(key1)
                     count = row[-1]
                     frequency[key1] = count
                     # print(key1, count)
