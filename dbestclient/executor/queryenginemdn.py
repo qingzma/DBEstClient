@@ -29,6 +29,8 @@ from dbestclient.tools.dftools import get_group_count_from_summary_file
 #           "for more info.)")
 
 
+
+
 class MdnQueryEngine:
     def __init__(self, kdeModelWrapper, config=None, b_use_integral=False):
         # self.n_training_point = kdeModelWrapper.n_sample_point
@@ -483,6 +485,7 @@ class MdnQueryEngineXCategorical:
         self.config = config
         self.mdl_name = None
         self.n_total_points = None
+
         
 
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, device: str, encoding="binary", b_grid_search=False):
