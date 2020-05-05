@@ -275,41 +275,105 @@ class ReservoirSampling:
 
                 # to get the frequency for each sub group
                 # print(gb_data)
-                gb_by_group_by_atrributes = values.groupby(
-                    self.usecols["gb"]).size().to_frame(name='count').reset_index()
-                frequency = {}
-                for row in gb_by_group_by_atrributes.itertuples():
-                    # print(row)
-                    # print(type(row))
-                    columns_str = []
-                    for item in list(row[1:-1]):
-                        columns_str.append(str(item))
-                    key1 = ",".join(columns_str)
-                    # print(key1)
-                    count = row[-1]
-                    frequency[key1] = count
-                    # print(key1, count)
-                # print("grp", grp, frequency)
-                # print("*"*100)
-                # print()
+
+                # check if DISTINCT is involved in the SQL
+                # DISTINCT is not involved
+                if not self.usecols["y"][2]:
+                    gb_by_group_by_atrributes = values.groupby(
+                        self.usecols["gb"]).size().to_frame(name='count').reset_index()
+                    # print(gb_by_group_by_atrributes)
+                    # for row in gb_by_group_by_atrributes.itertuples():
+                    #     print(row)
+
+                    frequency = {}
+                    for row in gb_by_group_by_atrributes.itertuples():
+                        # print(row)
+                        # print(type(row))
+                        columns_str = []
+                        for item in list(row[1:-1]):
+                            columns_str.append(str(item))
+                        key1 = ",".join(columns_str)
+                        # print(key1)
+                        # raise Exception
+                        count = row[-1]
+                        frequency[key1] = count
+                        # print(key1, count)
+                    # print("grp", grp, frequency)
+                    # print("*"*100)
+                    # print()
+                else:
+                    # print("start distinct sampling")
+                    # print("gb,", gb)
+                    # print("values")
+                    # print(values)
+                    gb_by_group_by_atrributes = values.groupby(
+                        self.usecols["gb"])[columns_to_use].nunique()  #
+
+                    # print(gb_by_group_by_atrributes)
+                    frequency = {}
+                    for row in gb_by_group_by_atrributes.itertuples():
+                        # print(row)
+                        # print(row[0])
+                        # print(type(row[0]))
+                        columns_str = []
+                        if isinstance(row[0], int):
+                            key1 = str(row[0])
+                        else:
+                            for item in list(row[0]):
+                                columns_str.append(str(item))
+                            key1 = ",".join(columns_str)
+                        # print(key1)
+                        # print(row[0])
+                        # print(row[1])
+                        count = row[1]
+                        frequency[key1] = count
                 total_frequency[key] = frequency
                 data[key] = gb_data
 
         else:
-            total_frequency["if_contain_x_categorical"] = False
-            data["if_contain_x_categorical"] = False
-            # groupbys = self.usecols["gb"]
-            gb = self.sampledf.groupby(self.usecols["gb"]).size().to_frame(
-                name='count').reset_index()
-            # frequency = {}
-            for row in gb.itertuples():
-                # print(row)
-                # print(type(row))
-                key = ",".join(list(row[1:-1]))
-                count = row[-1]
-                total_frequency[key] = count
-                # print(key, count)
-            data["data"] = self.sampledf
+            # check if DISTINCT is involved in the SQL
+            # DISTINCT is not involved
+            if not self.usecols["y"][2]:
+                total_frequency["if_contain_x_categorical"] = False
+                data["if_contain_x_categorical"] = False
+                # groupbys = self.usecols["gb"]
+                gb = self.sampledf.groupby(self.usecols["gb"]).size().to_frame(
+                    name='count').reset_index()
+                # frequency = {}
+                for row in gb.itertuples():
+                    # print(row)
+                    # print(type(row))
+                    key = ",".join(list(row[1:-1]))
+                    count = row[-1]
+                    total_frequency[key] = count
+                    # print(key, count)
+                data["data"] = self.sampledf
+            else:
+                total_frequency["if_contain_x_categorical"] = False
+                data["if_contain_x_categorical"] = False
+                gb = self.sampledf.groupby(
+                    self.usecols["gb"])[columns_to_use].nunique()  #
+
+                # print(gb_by_group_by_atrributes)
+                # frequency = {}
+                for row in gb.itertuples():
+                    # print(row)
+                    # print(row[0])
+                    # print(type(row[0]))
+                    columns_str = []
+                    if isinstance(row[0], int):
+                        key1 = str(row[0])
+                    else:
+                        for item in list(row[0]):
+                            columns_str.append(str(item))
+                        key1 = ",".join(columns_str)
+                    # print(key1)
+                    # print(row[0])
+                    # print(row[1])
+                    count = row[1]
+                    # frequency[key1] = count
+                    total_frequency[key1] = count
+                data["data"] = self.sampledf
 
         # for key in total_frequency:
         #     print(key, total_frequency[key])

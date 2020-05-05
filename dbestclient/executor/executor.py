@@ -109,16 +109,8 @@ class SqlExecutor:
                 tbl = self.parser.get_from_name()
 
                 # save the parameters for model.
-                # self.config.set_parameter("b_use_gg", b_use_gg)
-                # self.config.set_parameter("n_per_gg", n_per_gg)
-                # self.config.set_parameter("result2file", result2file)
-                # self.config.set_parameter(
-                #     "n_mdn_layer_node", n_mdn_layer_node)
-                # self.config.set_parameter("encoding", encoding)
                 self.config.set_parameter("n_jobs", n_jobs)
-                # self.config.set_parameter("b_grid_search", b_grid_search)
                 self.config.set_parameter("device", device)
-                # self.config.set_parameter("n_division", n_division)
 
                 if self.parser.if_model_need_filter():
                     self.config.set_parameter("accept_filter", True)
@@ -294,7 +286,8 @@ class SqlExecutor:
             else:
                 # DML, provide the prediction using models
                 mdl = self.parser.get_from_name()
-                func, yheader = self.parser.get_aggregate_function_and_variable()
+                gb_to_print, [
+                    func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
                 if self.parser.if_where_exists():
                     xheader, x_lb, x_ub = self.parser.get_where_x_and_range()
                     try:
