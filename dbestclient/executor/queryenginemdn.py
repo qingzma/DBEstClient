@@ -194,7 +194,7 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None,  n_jobs: int = 1,  b_return_counts_as_prediction=False, filter=None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None,  n_jobs: int = 1, filter=None):
         # b_print_to_screen=True, n_division: int = 20, result2file: str = None,
 
         b_print_to_screen = self.config.get_config()["b_print_to_screen"]
@@ -207,8 +207,11 @@ class MdnQueryEngine:
         if groups is None:  # provide predictions for all groups.
             groups = self.groupby_values
 
-        if b_return_counts_as_prediction:
+        if self.config.get_config()["accept_filter"]:
             results = self.n_total_point
+            results = {key: results[key] for key in results if float(
+                key) >= filter[0] and float(key) <= filter[1]}
+
             # print("self.n_total_point", self.n_total_point)
             if b_print_to_screen:
                 for key in results:
@@ -539,7 +542,7 @@ class MdnQueryEngineXCategorical:
         #     kdeModelWrapper)
 
     # result2file=False,n_division=20
-    def predicts(self, func, x_lb, x_ub, categorical_attributes,  n_jobs=1, b_return_counts_as_prediction=False):
+    def predicts(self, func, x_lb, x_ub, categorical_attributes,  n_jobs=1, filter=None):
         # configuration-related parameters.
         # result2file = self.config.get_config()["result2file"]
         n_jobs = self.config.get_config()["n_jobs"]
@@ -547,7 +550,7 @@ class MdnQueryEngineXCategorical:
         # print("self.models.keys()", self.models.keys())
         # print("categorical_attributes", categorical_attributes)
         self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                             n_jobs=n_jobs, b_return_counts_as_prediction=b_return_counts_as_prediction)  # result2file=result2file,n_division=n_division,
+                                                             n_jobs=n_jobs, filter=filter)  # result2file=result2file,n_division=n_division,
 
     def serialize2warehouse(self, warehouse):
         with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:

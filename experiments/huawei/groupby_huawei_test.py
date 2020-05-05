@@ -21,23 +21,6 @@ from dbestclient.executor.executor import SqlExecutor
 
 
 def run():
-    config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-        'verbose': 'True',
-        'b_show_latency': 'True',
-        'backend_server': 'None',
-        'csv_split_char': ',',
-        "epsabs": 10.0,
-        "epsrel": 0.1,
-        "mesh_grid_num": 20,
-        "limit": 30,
-        # "b_reg_mean":'True',
-        "num_epoch": 400,
-        "reg_type": "mdn",
-        "density_type": "mdn",
-        "num_gaussians": 4,
-    }
-
     sqlExecutor = SqlExecutor()
     # sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
     #                               "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
@@ -60,9 +43,7 @@ def build_models(sqlExecutor):
                         "GROUP BY ts "
                         "method uniform "
                         "size 118567 "
-                        "scale data;", n_mdn_layer_node=8, encoding="binary", b_grid_search=False, device='gpu', b_use_gg=False, n_per_gg=260)
-
-# SELECT ts, COUNT(DISTINCT usermac)
+                        "scale data;", device='gpu',)
 
 
 def query(sqlExecutor):

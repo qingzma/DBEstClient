@@ -40,6 +40,7 @@ class DbestConfig:
             # file format configuration.
             'csv_split_char': ',',
 
+            "accept_filter": False,
             # MDN related parameters
             "num_epoch": 400,
             "num_gaussians": 4,

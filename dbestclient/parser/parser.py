@@ -83,8 +83,9 @@ class DBEstParser:
                 return True
         return False
 
-    def get_where_name_and_range(self):
+    def get_where_x_and_range(self):
         for item in self.parsed.tokens:
+            # print(item)
             if 'where' in item.value.lower():
                 whereclause = item.value.lower().split()
                 # print(whereclause)
@@ -112,10 +113,11 @@ class DBEstParser:
                     idx = splits.index("=")
                     xs.append(splits_lower[idx-1])
                     if splits[idx+1] != "''":
-                        values.append(splits[idx+1].replace("'",""))
+                        values.append(splits[idx+1].replace("'", ""))
                     else:
                         values.append("")
                     splits = splits[idx+3:]
+                    splits_lower = splits_lower[idx+3:]
                 #     print(splits)
                 # print(xs, values)
                 return xs, values
@@ -223,50 +225,73 @@ class DBEstParser:
                 return self.parsed.tokens[idx].value
         return "uniform"
 
+    def if_model_need_filter(self):
+        x = self.get_x()
+        gbs = self.get_groupby_value()
+
+        # print("x", x)
+        if x[0][0] in gbs:
+            return True
+        else:
+            return False
+
+    def get_filter(self):
+        x_between_and = self.get_where_x_and_range()
+        gbs = self.get_groupby_value()
+
+        # print("x_between_and", x_between_and)
+        if x_between_and[0] not in gbs:
+            return None
+        else:
+            return [float(item) for item in x_between_and[1:]]
+
 
 if __name__ == "__main__":
     parser = DBEstParser()
-    # parser.parse(
-    #     "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size 0.1 ")
-
-    # if parser.if_contain_groupby():
-    #     print("yes, group by")
-    #     print(parser.get_groupby_value())
-    # else:
-    #     print("no group by")
-
-    # if parser.if_ddl():
-    #     print("ddl")
-    #     print(parser.get_ddl_model_name())
-    #     print(parser.get_y())
-    #     print(parser.get_x())
-    #     print(parser.get_from_name())
-    #     print(parser.get_sampling_method())
-    #     print(parser.get_sampling_ratio())
-
-    # parser.parse(
-    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
-    # print(parser.if_contain_scaling_factor())
     parser.parse(
-        "select count(y) from t_m where x BETWEEN  1 and 2 and X1 = grp and x2 = 'HaHaHa' and x3='' GROUP BY z1, z2 ,z3 method uniform scale file   haha/num.csv  size 23")
-    print(parser.if_contain_scaling_factor())
+        "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1 ")
+
     if parser.if_contain_groupby():
         print("yes, group by")
         print(parser.get_groupby_value())
     else:
         print("no group by")
-    if not parser.if_ddl():
-        print("DML")
-        print(parser.get_aggregate_function_and_variable())
 
-    if parser.if_where_exists():
-        print("where exists!")
-        print(parser.get_where_name_and_range())
-        parser.get_where_categorical_equal()
+    if parser.if_ddl():
+        print("ddl")
+        print(parser.get_ddl_model_name())
+        print(parser.get_y())
+        print(parser.get_x())
+        print(parser.get_from_name())
+        print(parser.get_sampling_method())
+        print(parser.get_sampling_ratio())
+        print(parser.if_model_need_filter())
 
-    print("method, ", parser.get_sampling_method())
+    # parser.parse(
+    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    # print(parser.if_contain_scaling_factor())
+    # parser.parse(
+    #     "select count(y) from t_m where x BETWEEN  1 and 2 and X1 = grp and x2 = 'HaHaHa' and x3='' GROUP BY z1, z2 ,x method uniform scale file   haha/num.csv  size 23")
+    # print(parser.if_contain_scaling_factor())
+    # if parser.if_contain_groupby():
+    #     print("yes, group by")
+    #     print(parser.get_groupby_value())
+    # else:
+    #     print("no group by")
+    # if not parser.if_ddl():
+    #     print("DML")
+    #     print(parser.get_aggregate_function_and_variable())
 
-    print("scaling factor ", parser.get_scaling_method())
+    # if parser.if_where_exists():
+    #     print("where exists!")
+    #     print(parser.get_where_x_and_range())
+    #     parser.get_where_categorical_equal()
 
-    print(parser.get_where_name_and_range())
-    print(parser.get_where_categorical_equal())
+    # print("method, ", parser.get_sampling_method())
+
+    # print("scaling factor ", parser.get_scaling_method())
+
+    # print(parser.get_where_x_and_range())
+    # print(parser.get_where_categorical_equal())
+
+    # print(parser.get_filter())

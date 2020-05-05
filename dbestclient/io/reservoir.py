@@ -18,10 +18,10 @@ from sys import stderr, stdin
 import numpy as np
 import pandas as pd
 
-try:
-    range = xrange
-except NameError:
-    pass
+# try:
+#     range = xrange
+# except NameError:
+#     pass
 
 
 class ReservoirSampling:

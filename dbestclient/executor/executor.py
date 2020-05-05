@@ -83,12 +83,9 @@ class SqlExecutor:
 
         if n_model > 0:
             print("Loaded " + str(n_model) + " models.")
-        # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql, b_use_gg=False, n_per_gg=10, result2file=None,
-                n_mdn_layer_node=10, encoding="onehot",
-                n_jobs=4, b_grid_search=True,
-                device="cpu", n_division=20):
+    def execute(self, sql, n_jobs=4, device="cpu", ):
+        # b_use_gg=False, n_per_gg=10, result2file=None,n_mdn_layer_node = 10, encoding = "onehot",n_jobs = 4, b_grid_search = True,device = "cpu", n_division = 20
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -104,21 +101,26 @@ class SqlExecutor:
             print("Nested query is currently not supported!")
         else:
             if self.parser.if_ddl():
+                # initialize the configure for each model creation.
+                self.config = DbestConfig()
                 # DDL, create the model as requested
                 mdl = self.parser.get_ddl_model_name()
                 tbl = self.parser.get_from_name()
 
                 # save the parameters for model.
-                self.config.set_parameter("b_use_gg", b_use_gg)
-                self.config.set_parameter("n_per_gg", n_per_gg)
-                self.config.set_parameter("result2file", result2file)
-                self.config.set_parameter(
-                    "n_mdn_layer_node", n_mdn_layer_node)
-                self.config.set_parameter("encoding", encoding)
+                # self.config.set_parameter("b_use_gg", b_use_gg)
+                # self.config.set_parameter("n_per_gg", n_per_gg)
+                # self.config.set_parameter("result2file", result2file)
+                # self.config.set_parameter(
+                #     "n_mdn_layer_node", n_mdn_layer_node)
+                # self.config.set_parameter("encoding", encoding)
                 self.config.set_parameter("n_jobs", n_jobs)
-                self.config.set_parameter("b_grid_search", b_grid_search)
+                # self.config.set_parameter("b_grid_search", b_grid_search)
                 self.config.set_parameter("device", device)
-                self.config.set_parameter("n_division", n_division)
+                # self.config.set_parameter("n_division", n_division)
+
+                if self.parser.if_model_need_filter():
+                    self.config.set_parameter("accept_filter", True)
 
                 # remove unnecessary charactor '
                 tbl = tbl.replace("'", "")
@@ -237,7 +239,7 @@ class SqlExecutor:
 
                             # no categorical x attributes
                             if not n_total_point['if_contain_x_categorical']:
-                                if not b_use_gg:
+                                if not self.config.get_config()["b_use_gg"]:
                                     n_total_point.pop(
                                         "if_contain_x_categorical")
                                     # xys.pop("if_contain_x_categorical")
@@ -249,7 +251,7 @@ class SqlExecutor:
                                         n_total_point=n_total_point,
                                         x_min_value=-np.inf, x_max_value=np.inf,
                                         config=self.config, device=device).fit_from_df(
-                                        xys["data"], encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
+                                        xys["data"], encoding=self.config.get_config()["encoding"], network_size="large", b_grid_search=self.config.get_config()["b_grid_search"], )
 
                                     kdeModelWrapper.serialize2warehouse(
                                         self.config.get_config()['warehousedir'])
@@ -269,7 +271,7 @@ class SqlExecutor:
                                     queryEngineBundle.serialize2warehouse(
                                         self.config.get_config()['warehousedir'])
                             else:  # x has categorical attributes
-                                if not b_use_gg:
+                                if not self.config.get_config()["b_use_gg"]:
                                     qeXContinuous = MdnQueryEngineXCategorical(
                                         self.config)
                                     qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
@@ -293,7 +295,7 @@ class SqlExecutor:
                 mdl = self.parser.get_from_name()
                 func, yheader = self.parser.get_aggregate_function_and_variable()
                 if self.parser.if_where_exists():
-                    xheader, x_lb, x_ub = self.parser.get_where_name_and_range()
+                    xheader, x_lb, x_ub = self.parser.get_where_x_and_range()
                     x_lb = float(x_lb)
                     x_ub = float(x_ub)
 
@@ -354,7 +356,7 @@ class SqlExecutor:
                         x_categorical_attributes, x_categorical_values = self.parser.get_where_categorical_equal()
 
                         if not x_categorical_attributes:
-                            if not b_use_gg:
+                            if not self.config.get_config()["b_use_gg"]:
                                 qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
                                                         self.config)
                                 print("OK")
@@ -365,15 +367,16 @@ class SqlExecutor:
                                 # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
                                 print("OK")
                                 qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                                result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_print_to_screen=True)
+                                                n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division, b_print_to_screen=True
                         else:
                             print("OK")
-                            if not b_use_gg:
+                            if not self.config.get_config()["b_use_gg"]:
                                 # print("x_categorical_values",
                                 #       x_categorical_values)
                                 # print(",".join(x_categorical_values))
+                                filter = self.parser.get_filter()
                                 self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                                    func, x_lb, x_ub, ",".join(x_categorical_values), result2file=False, n_jobs=1, n_division=20, b_return_counts_as_prediction=True)
+                                    func, x_lb, x_ub, ",".join(x_categorical_values),  n_jobs=1, filter=filter)  # result2file=False,n_division=20, b_return_counts_as_prediction=True
                             else:
                                 pass
 
