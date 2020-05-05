@@ -180,9 +180,9 @@ class SqlExecutor:
                     #     return
 
                     n_total_point = sampler.n_total_point
-                    xys = sampler.getyx(yheader, xheader)
+                    xys = sampler.getyx(yheader, xheader_continous)
 
-                    simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader, yheader,
+                    simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader_continous, yheader,
                                                               n_total_point, ratio, config=self.config).fit_from_df(
                         xys)
 
@@ -192,7 +192,7 @@ class SqlExecutor:
 
                 else:  # if group by is involved in the query
                     if self.config.get_config()['reg_type'] == "qreg":
-                        xys = sampler.getyx(yheader, xheader)
+                        xys = sampler.getyx(yheader, xheader_continous)
                         n_total_point = get_group_count_from_table(
                             original_data_file, groupby_attribute, sep=self.config.get_config()[
                                 'csv_split_char'],
@@ -200,7 +200,7 @@ class SqlExecutor:
 
                         n_sample_point = get_group_count_from_df(
                             xys, groupby_attribute)
-                        groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute,
+                        groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader_continous, yheader, groupby_attribute,
                                                                     n_total_point, n_sample_point,
                                                                     x_min_value=-np.inf, x_max_value=np.inf,
                                                                     config=self.config).fit_from_df(
@@ -261,7 +261,7 @@ class SqlExecutor:
                                     queryEngineBundle = MdnQueryEngineBundle(
                                         config=self.config, device=device).fit(xys, groupby_attribute,
                                                                                n_total_point, mdl, tbl,
-                                                                               xheader, yheader,
+                                                                               xheader_continous, yheader,
                                                                                )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
 
                                     self.model_catalog.add_model_wrapper(

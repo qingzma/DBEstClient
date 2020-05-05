@@ -14,12 +14,13 @@ import pandas as pd
 from scipy import integrate
 from torch.multiprocessing import Pool, set_start_method
 
-from dbestclient.io.sampling import DBEstSampling
+# from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
                                      prepare_reg_density_data)
 from dbestclient.ml.modeltrainer import KdeModelTrainer
-from dbestclient.tools.dftools import get_group_count_from_summary_file
+
+# from dbestclient.tools.dftools import get_group_count_from_summary_file
 
 # try:
 #     set_start_method('spawn')
@@ -537,11 +538,12 @@ class MdnQueryEngineXCategorical:
         # self.model_catalog.add_model_wrapper(
         #     kdeModelWrapper)
 
-    def predicts(self, func, x_lb, x_ub, categorical_attributes, result2file=False, n_jobs=1, n_division=20, b_return_counts_as_prediction=False):
+    # result2file=False,n_division=20
+    def predicts(self, func, x_lb, x_ub, categorical_attributes,  n_jobs=1, b_return_counts_as_prediction=False):
         # configuration-related parameters.
-        result2file = self.config.get_config()["result2file"]
+        # result2file = self.config.get_config()["result2file"]
         n_jobs = self.config.get_config()["n_jobs"]
-        n_division = self.config.get_config()["n_division"]
+        # n_division = self.config.get_config()["n_division"]
         # print("self.models.keys()", self.models.keys())
         # print("categorical_attributes", categorical_attributes)
         self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
@@ -555,46 +557,46 @@ class MdnQueryEngineXCategorical:
         return self.mdl_name+".pkl"
 
 
-if __name__ == "__main__":
-    config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-        'verbose': 'True',
-        'b_show_latency': 'True',
-        'backend_server': 'None',
-        'csv_split_char': ',',
-        "epsabs": 10.0,
-        "epsrel": 0.1,
-        "mesh_grid_num": 20,
-        "limit": 30,
-        # "b_reg_mean":'True',
-        "num_epoch": 400,
-        "reg_type": "mdn",
-        "density_type": "density_type",
-        "num_gaussians": 4,
-    }
+# if __name__ == "__main__":
+#     config = {
+#         'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
+#         'verbose': 'True',
+#         'b_show_latency': 'True',
+#         'backend_server': 'None',
+#         'csv_split_char': ',',
+#         "epsabs": 10.0,
+#         "epsrel": 0.1,
+#         "mesh_grid_num": 20,
+#         "limit": 30,
+#         # "b_reg_mean":'True',
+#         "num_epoch": 400,
+#         "reg_type": "mdn",
+#         "density_type": "density_type",
+#         "num_gaussians": 4,
+#     }
 
-    headers = ["ss_sold_date_sk", "ss_sold_time_sk", "ss_item_sk", "ss_customer_sk", "ss_cdemo_sk", "ss_hdemo_sk",
-               "ss_addr_sk", "ss_store_sk", "ss_promo_sk", "ss_ticket_number", "ss_quantity", "ss_wholesale_cost",
-               "ss_list_price", "ss_sales_price", "ss_ext_discount_amt", "ss_ext_sales_price",
-               "ss_ext_wholesale_cost", "ss_ext_list_price", "ss_ext_tax", "ss_coupon_amt", "ss_net_paid",
-               "ss_net_paid_inc_tax", "ss_net_profit", "none"]
-    groupby_attribute = "ss_store_sk"
-    xheader = "ss_wholesale_cost"
-    yheader = "ss_list_price"
+#     headers = ["ss_sold_date_sk", "ss_sold_time_sk", "ss_item_sk", "ss_customer_sk", "ss_cdemo_sk", "ss_hdemo_sk",
+#                "ss_addr_sk", "ss_store_sk", "ss_promo_sk", "ss_ticket_number", "ss_quantity", "ss_wholesale_cost",
+#                "ss_list_price", "ss_sales_price", "ss_ext_discount_amt", "ss_ext_sales_price",
+#                "ss_ext_wholesale_cost", "ss_ext_list_price", "ss_ext_tax", "ss_coupon_amt", "ss_net_paid",
+#                "ss_net_paid_inc_tax", "ss_net_profit", "none"]
+#     groupby_attribute = "ss_store_sk"
+#     xheader = "ss_wholesale_cost"
+#     yheader = "ss_list_price"
 
-    sampler = DBEstSampling(headers=headers, usecols=[
-        xheader, yheader, groupby_attribute])
-    total_count = {'total': 2879987999}
-    original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
+#     sampler = DBEstSampling(headers=headers, usecols=[
+#         xheader, yheader, groupby_attribute])
+#     total_count = {'total': 2879987999}
+#     original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
 
-    sampler.make_sample(original_data_file, 60000, "uniform", split_char="|",
-                        num_total_records=total_count)
-    xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
-    n_total_point = get_group_count_from_summary_file(
-        config['warehousedir'] + "/num_of_points57.txt", sep=',')
+#     sampler.make_sample(original_data_file, 60000, "uniform", split_char="|",
+#                         num_total_records=total_count)
+#     xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
+#     n_total_point = get_group_count_from_summary_file(
+#         config['warehousedir'] + "/num_of_points57.txt", sep=',')
 
-    bundles = MdnQueryEngineBundle(config=config, device="cpu")
-    bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl",
-                xheader, yheader, n_per_group=30, b_grid_search=False,)
+#     bundles = MdnQueryEngineBundle(config=config, device="cpu")
+#     bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl",
+#                 xheader, yheader, n_per_group=30, b_grid_search=False,)
 
-    bundles.predicts("count", 2451119, 2451483)
+#     bundles.predicts("count", 2451119, 2451483)

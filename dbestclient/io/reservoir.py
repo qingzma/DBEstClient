@@ -318,14 +318,14 @@ class ReservoirSampling:
         return total_frequency, data
 
 
-if __name__ == '__main__':
-    file = '/home/u1796377/Programs/dbestwarehouse/pm25.csv'
-    # with open(file, 'r') as f:
-    sampler = ReservoirSampling()
-    sampler.build_reservoir(file, 10000, verbose=False)
-    xy = sampler.getyx('pm25', 'PRES')
-    ft = sampler.get_frequency('pm25', 'PRES')
-    print(ft)
+# if __name__ == '__main__':
+#     file = '/home/u1796377/Programs/dbestwarehouse/pm25.csv'
+#     # with open(file, 'r') as f:
+#     sampler = ReservoirSampling()
+#     sampler.build_reservoir(file, 10000, verbose=False)
+#     xy = sampler.getyx('pm25', 'PRES')
+#     ft = sampler.get_frequency('pm25', 'PRES')
+#     print(ft)
     # print(xy)
     #
     # print(xy.values)
