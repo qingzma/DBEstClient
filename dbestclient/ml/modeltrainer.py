@@ -123,7 +123,9 @@ class KdeModelTrainer:
         else:
             b_skip_reg_training = False
             b_skip_density_training = False
-            y = df[self.yheader].values
+            # print(df)
+            # print(self.yheader[0])
+            y = df[self.yheader[0]].values
         groupby = df[self.groupby_attribute].values
 
         xzs_train = np.concatenate(

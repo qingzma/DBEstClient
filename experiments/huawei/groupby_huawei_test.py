@@ -38,7 +38,7 @@ def run():
         "num_gaussians": 4,
     }
 
-    sqlExecutor = SqlExecutor(config)
+    sqlExecutor = SqlExecutor()
     # sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
     #                               "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
     #                               "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
@@ -62,7 +62,6 @@ def build_models(sqlExecutor):
                         "size 118567 "
                         "scale data;", n_mdn_layer_node=8, encoding="binary", b_grid_search=False, device='gpu', b_use_gg=False, n_per_gg=260)
 
-
 # SELECT ts, COUNT(DISTINCT usermac)
 
 
@@ -73,7 +72,7 @@ def query(sqlExecutor):
                         # "AND kpiCount = 0 "
                         "AND ssid = 'Tencent' "
                         # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
-                        "GROUP BY ts;", n_jobs=1, n_division=20, b_use_gg=False, device='gpu')
+                        "GROUP BY ts;", n_jobs=1, device='gpu')
 
 
 if __name__ == "__main__":

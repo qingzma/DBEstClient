@@ -26,11 +26,15 @@ class DbestConfig:
         self.config = {
             # system-level configuration.
             'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-            'verbose': 'True',
-            'b_show_latency': 'True',
+            'verbose': True,
+            'b_show_latency': True,
+            "b_print_to_screen": True,
             "reg_type": "mdn",
             "density_type": "mdn",
             'backend_server': 'None',
+            "n_jobs": 4,
+            "b_grid_search": True,
+            "device": "cpu",
             # "b_reg_mean":'True',
 
             # file format configuration.
@@ -39,9 +43,15 @@ class DbestConfig:
             # MDN related parameters
             "num_epoch": 400,
             "num_gaussians": 4,
+            "b_use_gg": False,
+            "n_per_gg": 10,
+            "result2file": None,
+            "n_mdn_layer_node": 10,
+            "encoding": "binary",  # one-hot
 
             # integral related parameters
-            "mesh_grid_num": 20,
+            "b_use_integral": False,
+            "n_division": 20,
             # integral package related parameters
             "epsabs": 10.0,
             "epsrel": 0.1,
@@ -57,7 +67,7 @@ class DbestConfig:
         for key in config:
             self.config[key] = config[key]
 
-    def set_one_parameter(self, key: str, value):
+    def set_parameter(self, key: str, value):
         """ update the configuration.
 
         Args:

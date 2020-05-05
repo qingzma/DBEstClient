@@ -25,6 +25,7 @@ from dbestclient.parser.parser import DBEstParser
 from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
+from dbestclient.tools.running_parameters import DbestConfig
 
 
 class SqlExecutor:
@@ -32,9 +33,9 @@ class SqlExecutor:
     This is the executor for the SQL query.
     """
 
-    def __init__(self, config):
+    def __init__(self):
         self.parser = None
-        self.config = config
+        self.config = DbestConfig()
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
         self.save_sample = False
@@ -45,28 +46,28 @@ class SqlExecutor:
     def init_model_catalog(self):
         # search the warehouse, and add all available models.
         n_model = 0
-        for file_name in os.listdir(self.config['warehousedir']):
+        for file_name in os.listdir(self.config.get_config()['warehousedir']):
 
             # load simple models
             if file_name.endswith(".pkl"):
                 if n_model == 0:
                     print("start loading pre-existing models.")
 
-                with open(self.config['warehousedir'] + "/" + file_name, 'rb') as f:
+                with open(self.config.get_config()['warehousedir'] + "/" + file_name, 'rb') as f:
                     model = dill.load(f)
                 self.model_catalog.model_catalog[model.init_pickle_file_name(
                 )] = model
                 n_model += 1
 
             # load group by models
-            if os.path.isdir(self.config['warehousedir'] + "/" + file_name):
+            if os.path.isdir(self.config.get_config()['warehousedir'] + "/" + file_name):
                 n_models_in_groupby = 0
                 if n_model == 0:
                     print("start loading pre-existing models.")
 
-                for model_name in os.listdir(self.config['warehousedir'] + "/" + file_name):
+                for model_name in os.listdir(self.config.get_config()['warehousedir'] + "/" + file_name):
                     if model_name.endswith(".pkl"):
-                        with open(self.config['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
+                        with open(self.config.get_config()['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
                             model = dill.load(f)
                             n_models_in_groupby += 1
 
@@ -84,9 +85,9 @@ class SqlExecutor:
             print("Loaded " + str(n_model) + " models.")
         # >>>>>>>>>>>>>>>>>>> implement this please!!! <<<<<<<<<<<<<<<<<<
 
-    def execute(self, sql, n_per_gg=10, result2file=None,
+    def execute(self, sql, b_use_gg=False, n_per_gg=10, result2file=None,
                 n_mdn_layer_node=10, encoding="onehot",
-                n_jobs=4, b_grid_search=True, b_use_gg=True,
+                n_jobs=4, b_grid_search=True,
                 device="cpu", n_division=20):
         # prepare the parser
         if type(sql) == str:
@@ -107,12 +108,25 @@ class SqlExecutor:
                 mdl = self.parser.get_ddl_model_name()
                 tbl = self.parser.get_from_name()
 
+                # save the parameters for model.
+                self.config.set_parameter("b_use_gg", b_use_gg)
+                self.config.set_parameter("n_per_gg", n_per_gg)
+                self.config.set_parameter("result2file", result2file)
+                self.config.set_parameter(
+                    "n_mdn_layer_node", n_mdn_layer_node)
+                self.config.set_parameter("encoding", encoding)
+                self.config.set_parameter("n_jobs", n_jobs)
+                self.config.set_parameter("b_grid_search", b_grid_search)
+                self.config.set_parameter("device", device)
+                self.config.set_parameter("n_division", n_division)
+
                 # remove unnecessary charactor '
                 tbl = tbl.replace("'", "")
                 if os.path.isfile(tbl):  # the absolute path is provided
                     original_data_file = tbl
                 else:  # the file is in the warehouse direcotry
-                    original_data_file = self.config['warehousedir'] + "/" + tbl
+                    original_data_file = self.config.get_config()[
+                        'warehousedir'] + "/" + tbl
                 yheader = self.parser.get_y()
 
                 xheader_continous, xheader_categorical = self.parser.get_x()
@@ -130,7 +144,7 @@ class SqlExecutor:
                                             "y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": groupby_attribute})
 
                 # print(self.config)
-                if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
+                if os.path.exists(self.config.get_config()['warehousedir'] + "/" + mdl + '.pkl'):
                     print(
                         "Model {0} exists in the warehouse, please use"
                         " another model name to train it.".format(mdl))
@@ -147,13 +161,15 @@ class SqlExecutor:
 
                 if self.save_sample:
                     sampler.make_sample(
-                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],
-                        file2save=self.config['warehousedir'] +
+                        original_data_file, ratio, method, split_char=self.config.get_config()[
+                            'csv_split_char'],
+                        file2save=self.config.get_config()['warehousedir'] +
                         "/" + mdl + '.csv',
                         num_total_records=self.n_total_records)
                 else:
                     sampler.make_sample(
-                        original_data_file, ratio, method, split_char=self.config['csv_split_char'],
+                        original_data_file, ratio, method, split_char=self.config.get_config()[
+                            'csv_split_char'],
                         num_total_records=self.n_total_records)
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
@@ -171,14 +187,15 @@ class SqlExecutor:
                         xys)
 
                     simple_model_wrapper.serialize2warehouse(
-                        self.config['warehousedir'])
+                        self.config.get_config()['warehousedir'])
                     self.model_catalog.add_model_wrapper(simple_model_wrapper)
 
                 else:  # if group by is involved in the query
-                    if self.config['reg_type'] == "qreg":
+                    if self.config.get_config()['reg_type'] == "qreg":
                         xys = sampler.getyx(yheader, xheader)
                         n_total_point = get_group_count_from_table(
-                            original_data_file, groupby_attribute, sep=self.config['csv_split_char'],
+                            original_data_file, groupby_attribute, sep=self.config.get_config()[
+                                'csv_split_char'],
                             headers=self.table_header)
 
                         n_sample_point = get_group_count_from_df(
@@ -189,7 +206,7 @@ class SqlExecutor:
                                                                     config=self.config).fit_from_df(
                             xys)
                         groupby_model_wrapper.serialize2warehouse(
-                            self.config['warehousedir'] + "/" + groupby_model_wrapper.dir)
+                            self.config.get_config()['warehousedir'] + "/" + groupby_model_wrapper.dir)
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
                     else:  # "mdn"
                         xys = sampler.getyx(
@@ -201,7 +218,7 @@ class SqlExecutor:
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
                         if self.parser.get_scaling_method()[0] == "file":
-                            frequency_file = self.config['warehousedir'] + "/" + self.parser.get_scaling_method()[
+                            frequency_file = self.config.get_config()['warehousedir'] + "/" + self.parser.get_scaling_method()[
                                 1]
                             # "/num_of_points.csv"
                             if os.path.exists(frequency_file):
@@ -235,7 +252,7 @@ class SqlExecutor:
                                         xys["data"], encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
 
                                     kdeModelWrapper.serialize2warehouse(
-                                        self.config['warehousedir'])
+                                        self.config.get_config()['warehousedir'])
                                     self.model_catalog.add_model_wrapper(
                                         kdeModelWrapper)
 
@@ -245,15 +262,12 @@ class SqlExecutor:
                                         config=self.config, device=device).fit(xys, groupby_attribute,
                                                                                n_total_point, mdl, tbl,
                                                                                xheader, yheader,
-                                                                               n_per_group=n_per_gg,
-                                                                               n_mdn_layer_node=n_mdn_layer_node,
-                                                                               encoding=encoding,
-                                                                               b_grid_search=b_grid_search)
+                                                                               )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
 
                                     self.model_catalog.add_model_wrapper(
                                         queryEngineBundle)
                                     queryEngineBundle.serialize2warehouse(
-                                        self.config['warehousedir'])
+                                        self.config.get_config()['warehousedir'])
                             else:  # x has categorical attributes
                                 if not b_use_gg:
                                     qeXContinuous = MdnQueryEngineXCategorical(
@@ -261,17 +275,17 @@ class SqlExecutor:
                                     qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
                                         "y": yheader, "x_continous": xheader_continous,
                                         "x_categorical": xheader_categorical, "gb": groupby_attribute},
-                                        device=device, encoding=encoding, b_grid_search=b_grid_search)
+                                    )  # device=device, encoding=encoding, b_grid_search=b_grid_search
                                     qeXContinuous.serialize2warehouse(
-                                        self.config['warehousedir'])
+                                        self.config.get_config()['warehousedir'])
                                     self.model_catalog.add_model_wrapper(
                                         qeXContinuous)
                                 else:
                                     pass
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
-                if self.config['verbose']:
-                    print("time cost: " + str(t))
+                if self.config.get_config()['verbose']:
+                    print("time cost: " + str(t) + "s.")
                 print("------------------------")
 
             else:
@@ -303,13 +317,13 @@ class SqlExecutor:
                     p, t = query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)
                     print("OK")
                     print(p)
-                    if self.config['verbose']:
+                    if self.config.get_config()['verbose']:
                         print("time cost: " + str(t))
                     print("------------------------")
                     return p, t
 
                 else:  # if group by is involved in the query
-                    if self.config['reg_type'] == "qreg":
+                    if self.config.get_config()['reg_type'] == "qreg":
                         start = datetime.now()
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
@@ -345,7 +359,7 @@ class SqlExecutor:
                                                         self.config)
                                 print("OK")
                                 qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                        result2file=result2file, n_jobs=n_jobs, n_division=n_division)
+                                                        n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division
                             else:
                                 qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
                                 # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
@@ -359,11 +373,11 @@ class SqlExecutor:
                                 #       x_categorical_values)
                                 # print(",".join(x_categorical_values))
                                 self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                                    func, x_lb, x_ub, ",".join(x_categorical_values), result2file=False, n_jobs=1, n_division=20,b_return_counts_as_prediction=True)
+                                    func, x_lb, x_ub, ",".join(x_categorical_values), result2file=False, n_jobs=1, n_division=20, b_return_counts_as_prediction=True)
                             else:
                                 pass
 
-                    if self.config['verbose']:
+                    if self.config.get_config()['verbose']:
                         end = datetime.now()
                         time_cost = (end - start).total_seconds()
                         print("Time cost: %.4fs." % time_cost)
@@ -396,7 +410,7 @@ if __name__ == "__main__":
         "density_type": "density_type",
         "num_gaussians": 4,
     }
-    sqlExecutor = SqlExecutor(config)
+    sqlExecutor = SqlExecutor()
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
     # sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
     # sqlExecutor.execute(

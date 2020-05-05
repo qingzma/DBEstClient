@@ -173,6 +173,10 @@ class ReservoirSampling:
                 if usecols['y'][1] == "categorical":
                     self.sampledf[usecols['y'][0]
                                   ] = self.sampledf[usecols['y'][0]].astype(str)
+                else:
+                    self.sampledf[usecols['y'][0]
+                                  ] = self.sampledf[usecols['y'][0]].apply(
+                        pd.to_numeric, errors='coerce')
                 # print("usecols", usecols)
                 self.sampledf = self.sampledf.dropna(subset=usecols_list)
                 # print("self.sampledf", self.sampledf)

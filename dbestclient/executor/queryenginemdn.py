@@ -29,8 +29,6 @@ from dbestclient.tools.dftools import get_group_count_from_summary_file
 #           "for more info.)")
 
 
-
-
 class MdnQueryEngine:
     def __init__(self, kdeModelWrapper, config=None, b_use_integral=False):
         # self.n_training_point = kdeModelWrapper.n_sample_point
@@ -41,23 +39,23 @@ class MdnQueryEngine:
         self.x_max = kdeModelWrapper.x_max_value
         self.groupby_attribute = kdeModelWrapper.groupby_attribute
         self.groupby_values = kdeModelWrapper.groupby_values
-        if config is None:
-            self.config = config = {
-                'warehousedir': 'dbestwarehouse',
-                'verbose': 'True',
-                'b_show_latency': 'True',
-                'backend_server': 'None',
-                'epsabs': 10.0,
-                'epsrel': 0.1,
-                'mesh_grid_num': 20,
-                'limit': 30,
-                'csv_split_char': '|',
-                'num_epoch': 400,
-                "reg_type": "mdn",
-            }
-        else:
-            self.config = config
-        self.b_use_integral = b_use_integral
+        # if config is None:
+        #     self.config = config = {
+        #         'warehousedir': 'dbestwarehouse',
+        #         'verbose': 'True',
+        #         'b_show_latency': 'True',
+        #         'backend_server': 'None',
+        #         'epsabs': 10.0,
+        #         'epsrel': 0.1,
+        #         'mesh_grid_num': 20,
+        #         'limit': 30,
+        #         'csv_split_char': '|',
+        #         'num_epoch': 400,
+        #         "reg_type": "mdn",
+        #     }
+        # else:
+        self.config = config
+        self.b_use_integral = config.get_config()["b_use_integral"]
 
     def approx_avg(self, x_min, x_max, groupby_value):
         start = datetime.now()
@@ -149,7 +147,8 @@ class MdnQueryEngine:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
 
-    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, result2file=None):
+    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, ):  # result2file=None
+        result2file = self.config.get_config()["result2file"]
         predictions = {}
         times = {}
         if not b_parallel:  # single process implementation
@@ -194,7 +193,13 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None, b_print_to_screen=True, n_division: int = 20, n_jobs: int = 1, result2file: str = None, b_return_counts_as_prediction=False, filter=None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None,  n_jobs: int = 1,  b_return_counts_as_prediction=False, filter=None):
+        # b_print_to_screen=True, n_division: int = 20, result2file: str = None,
+
+        b_print_to_screen = self.config.get_config()["b_print_to_screen"]
+        n_division = self.config.get_config()["n_division"]
+        result2file = self.config.get_config()["result2file"]
+        # result2file = self.config.get_config()["result2file"]
 
         if func.lower() not in ("count", "sum", "avg"):
             raise ValueError("function not supported: "+func)
@@ -208,10 +213,10 @@ class MdnQueryEngine:
                 for key in results:
                     print(",".join(key.split("-")) + "," + str(results[key]))
 
-            # if result2file is not None:
-            #     with open(result2file, 'w') as f:
-            #         for key in results:
-            #             f.write(str(key) + "," + str(results[key]) + "\n")
+            if result2file is not None:
+                with open(result2file, 'w') as f:
+                    for key in results:
+                        f.write(str(key) + "," + str(results[key]) + "\n")
             return results
 
         if n_jobs == 1:
@@ -282,7 +287,7 @@ def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
 
 
 class MdnQueryEngineBundle():
-    def __init__(self, config: dict, device):
+    def __init__(self, config, device):
         self.enginesContainer = {}
         self.config = config
         self.n_total_point = None
@@ -292,8 +297,12 @@ class MdnQueryEngineBundle():
         self.device = device
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
-            mdl: str, tbl: str, xheader: str, yheader: str, n_per_group: int = 10, n_mdn_layer_node=10,
-            encoding="onehot", b_grid_search=True):
+            mdl: str, tbl: str, xheader: str, yheader: str, ):  # n_per_group: int = 10, n_mdn_layer_node=10, encoding = "onehot", b_grid_search = True
+        # configuration-related parameters.
+        n_per_group = self.config.get_config()["n_per_group"]
+        n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node"]
+        encoding = self.config.get_config()["encoding"]
+        b_grid_search = self.config.get_config()["b_grid_search"]
 
         self.pickle_file_name = mdl
         # print(groupby_attribute)
@@ -435,7 +444,11 @@ class MdnQueryEngineBundle():
             self.enginesContainer[index] = engine
         return self
 
-    def predicts(self, func, x_lb, x_ub, n_jobs=4, result2file=None, n_division=20, b_print_to_screen=True):
+    def predicts(self, func, x_lb, x_ub, n_jobs=4, ):
+        # result2file=None, n_division=20, b_print_to_screen=True
+        result2file = self.config.get_config()["result2file"]
+        n_division = self.config.get_config()["n_division"]
+        b_print_to_screen = self.config.get_config()["b_print_to_screen"]
         instances = []
         predictions = {}
         # times = {}
@@ -486,9 +499,8 @@ class MdnQueryEngineXCategorical:
         self.mdl_name = None
         self.n_total_points = None
 
-        
-
-    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, device: str, encoding="binary", b_grid_search=False):
+    # device: str, encoding="binary", b_grid_search=False
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict):
         if not total_points["if_contain_x_categorical"]:
             raise ValueError("The data provided is not a dict.")
 
@@ -496,6 +508,11 @@ class MdnQueryEngineXCategorical:
         self.mdl_name = mdl_name
         self.n_total_points = total_points
         total_points.pop("if_contain_x_categorical")
+
+        # configuration-related parameters.
+        device = self.config.get_config()["device"]
+        encoding = self.config.get_config()["encoding"]
+        b_grid_search = self.config.get_config()["b_grid_search"]
         # print("total_points", total_points)
         idx = 0
         for categorical_attributes in total_points:
@@ -521,10 +538,14 @@ class MdnQueryEngineXCategorical:
         #     kdeModelWrapper)
 
     def predicts(self, func, x_lb, x_ub, categorical_attributes, result2file=False, n_jobs=1, n_division=20, b_return_counts_as_prediction=False):
+        # configuration-related parameters.
+        result2file = self.config.get_config()["result2file"]
+        n_jobs = self.config.get_config()["n_jobs"]
+        n_division = self.config.get_config()["n_division"]
         # print("self.models.keys()", self.models.keys())
         # print("categorical_attributes", categorical_attributes)
         self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                             result2file=result2file, n_jobs=n_jobs, n_division=n_division, b_return_counts_as_prediction=b_return_counts_as_prediction)
+                                                             n_jobs=n_jobs, b_return_counts_as_prediction=b_return_counts_as_prediction)  # result2file=result2file,n_division=n_division,
 
     def serialize2warehouse(self, warehouse):
         with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
