@@ -1,8 +1,11 @@
 import re
+from dataclasses import replace
 
 import sqlparse
 from sqlparse.sql import Function, Identifier, IdentifierList
 from sqlparse.tokens import DDL, DML, Keyword
+
+from dbestclient.tools.date import to_timestamp
 
 
 class DBEstParser:
@@ -243,55 +246,63 @@ class DBEstParser:
         if x_between_and[0] not in gbs:
             return None
         else:
-            return [float(item) for item in x_between_and[1:]]
+            try:
+                return [float(item) for item in x_between_and[1:]]
+            except ValueError:
+                # check if timestamp exists
+                if "to_timestamp" in x_between_and[1]:
+                    # print([to_timestamp(item.replace("to_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]])
+                    return [to_timestamp(item.replace("to_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]]
+                else:
+                    raise ValueError("Error parse SQL.")
 
 
 if __name__ == "__main__":
     parser = DBEstParser()
-    parser.parse(
-        "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1 ")
-
-    if parser.if_contain_groupby():
-        print("yes, group by")
-        print(parser.get_groupby_value())
-    else:
-        print("no group by")
-
-    if parser.if_ddl():
-        print("ddl")
-        print(parser.get_ddl_model_name())
-        print(parser.get_y())
-        print(parser.get_x())
-        print(parser.get_from_name())
-        print(parser.get_sampling_method())
-        print(parser.get_sampling_ratio())
-        print(parser.if_model_need_filter())
-
     # parser.parse(
-    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
-    # print(parser.if_contain_scaling_factor())
-    # parser.parse(
-    #     "select count(y) from t_m where x BETWEEN  1 and 2 and X1 = grp and x2 = 'HaHaHa' and x3='' GROUP BY z1, z2 ,x method uniform scale file   haha/num.csv  size 23")
-    # print(parser.if_contain_scaling_factor())
+    #     "create table mdl(y categorical, x0 real, x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1 ")
+
     # if parser.if_contain_groupby():
     #     print("yes, group by")
     #     print(parser.get_groupby_value())
     # else:
     #     print("no group by")
-    # if not parser.if_ddl():
-    #     print("DML")
-    #     print(parser.get_aggregate_function_and_variable())
 
-    # if parser.if_where_exists():
-    #     print("where exists!")
-    #     print(parser.get_where_x_and_range())
-    #     parser.get_where_categorical_equal()
+    # if parser.if_ddl():
+    #     print("ddl")
+    #     print(parser.get_ddl_model_name())
+    #     print(parser.get_y())
+    #     print(parser.get_x())
+    #     print(parser.get_from_name())
+    #     print(parser.get_sampling_method())
+    #     print(parser.get_sampling_ratio())
+    #     print(parser.if_model_need_filter())
 
-    # print("method, ", parser.get_sampling_method())
+    # parser.parse(
+    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    # print(parser.if_contain_scaling_factor())
+    parser.parse(
+        "select count(y) from t_m where x BETWEEN  to_timestamp('2019-02-28T16:00:00.000Z') and to_timestamp('2019-03-28T16:00:00.000Z') and X1 = grp and x2 = 'HaHaHa' and x3='' GROUP BY z1, z2 ,x method uniform scale file   haha/num.csv  size 23")
+    print(parser.if_contain_scaling_factor())
+    if parser.if_contain_groupby():
+        print("yes, group by")
+        print(parser.get_groupby_value())
+    else:
+        print("no group by")
+    if not parser.if_ddl():
+        print("DML")
+        print(parser.get_aggregate_function_and_variable())
 
-    # print("scaling factor ", parser.get_scaling_method())
+    if parser.if_where_exists():
+        print("where exists!")
+        print(parser.get_where_x_and_range())
+        parser.get_where_categorical_equal()
 
-    # print(parser.get_where_x_and_range())
-    # print(parser.get_where_categorical_equal())
+    print("method, ", parser.get_sampling_method())
 
-    # print(parser.get_filter())
+    print("scaling factor ", parser.get_scaling_method())
+
+    print(parser.get_where_x_and_range())
+    print(parser.get_where_categorical_equal())
+
+    print(parser.get_filter())
