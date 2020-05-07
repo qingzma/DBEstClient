@@ -45,8 +45,9 @@ def query(sqlExecutor):
     sqlExecutor.execute("select ts, count(distinct usermac) from huawei_test "
                         "where ts between to_timestamp('2020-01-28T16:00:00.000Z') and to_timestamp('2020-04-28T16:00:00.000Z') "
                         "AND tenantId = 'default-organization-id' "
+                        "AND kpiCount = 0 "
                         "AND ssid = 'Tencent' "
-                        "AND kpiCount = 1 "
+
                         # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
                         "GROUP BY ts;", n_jobs=1, device='gpu')
 

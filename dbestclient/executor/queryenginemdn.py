@@ -552,6 +552,7 @@ class MdnQueryEngineXCategorical:
 
     # result2file=False,n_division=20
     def predicts(self, func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=None):
+        # print(self.models.keys())
         # configuration-related parameters.
         n_jobs = self.config.get_config()["n_jobs"]
 
@@ -559,7 +560,8 @@ class MdnQueryEngineXCategorical:
         x_categorical_conditions[0] = [item.lower()
                                        for item in x_categorical_conditions[0]]
         cols = [item.lower() for item in x_categorical_conditions[0]]
-        keys = x_categorical_conditions[1]
+        keys = [item for item in x_categorical_conditions[1]]
+
         sorted_keys = [keys[cols.index(col)].replace("'", "")
                        for col in self.x_categorical_columns]
         key = ",".join(sorted_keys)
