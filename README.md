@@ -98,7 +98,7 @@ Here,
 - DISTINCT means this model is used for answer query involving DISTINCT on usermac.
 - ts is REAL, which means a density function will be trained on attribute ts, and the SQL is expected to have a range selector on ts, like ``` WHERE ts BETWEEN * AND * ```.
 -  tenantId and ssid are of type CATEGORICAL, which means there will be a equal clause in the WHERE clause, like ```AND ssid = 'Tencent'  ```
-- SIZE is the sample size you want the sample to be, 118567 is the data size, so it is a 100% sample.
+- SIZE: if ```SIZE > 1```, it is the sample size you want the sample to be, 118567 is the data size, so it is a 100% sample. if ```0 < SIZE < 1```, the data you provided is treated as a sample with the sampling rate provided.
 
 To execute a SQL query from the model, you could use the following SQL format:
 ```
