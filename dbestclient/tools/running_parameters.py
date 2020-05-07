@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from copy import deepcopy
 
 
 class DbestConfig:
@@ -87,7 +88,17 @@ class DbestConfig:
         """
         return self.config
 
+    def copy(self):
+        return deepcopy(self)
 
-# if __name__ == "__main__":
-#     conf = DbestConfig()
-#     conf.update({})
+
+if __name__ == "__main__":
+    conf = DbestConfig()
+    print(conf.get_config()["n_per_gg"])
+    new_conf = conf.copy()
+
+    conf.set_parameter("n_per_gg",20)
+
+    print(conf.get_config()["n_per_gg"])
+    print(new_conf.get_config()["n_per_gg"])
+

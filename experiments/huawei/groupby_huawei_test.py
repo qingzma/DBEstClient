@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 
+
 from dbestclient.executor.executor import SqlExecutor
 
 
@@ -28,7 +29,7 @@ def run():
 
 
 def build_models(sqlExecutor):
-    sqlExecutor.execute("create table huawei_test(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical )  "  #
+    sqlExecutor.execute("create table huawei_test(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical )  "  #
                         "FROM '/data/huawei/sample.csv' "
                         # "WHERE  ts between 0 and 10 "
                         # "AND tenantId = 'default-organization-id' "
@@ -45,8 +46,10 @@ def query(sqlExecutor):
     sqlExecutor.execute("select ts, count(distinct usermac) from huawei_test "
                         "where ts between to_timestamp('2020-01-28T16:00:00.000Z') and to_timestamp('2020-04-28T16:00:00.000Z') "
                         "AND tenantId = 'default-organization-id' "
-                        "AND kpiCount = 0 "
                         "AND ssid = 'Tencent' "
+                        "AND kpiCount >= 0 "
+                        "AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'"
+
 
                         # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
                         "GROUP BY ts;", n_jobs=1, device='gpu')

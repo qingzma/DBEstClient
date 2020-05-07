@@ -262,7 +262,7 @@ class SqlExecutor:
                                 else:
                                     # print("n_total_point ", n_total_point)
                                     queryEngineBundle = MdnQueryEngineBundle(
-                                        config=self.config, device=device).fit(xys, groupby_attribute,
+                                        config=self.config.copy(), device=device).fit(xys, groupby_attribute,
                                                                                n_total_point, mdl, tbl,
                                                                                xheader_continous, yheader,
                                                                                )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
@@ -274,7 +274,7 @@ class SqlExecutor:
                             else:  # x has categorical attributes
                                 if not self.config.get_config()["b_use_gg"]:
                                     qeXContinuous = MdnQueryEngineXCategorical(
-                                        self.config)
+                                        self.config.copy())
                                     qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
                                         "y": yheader, "x_continous": xheader_continous,
                                         "x_categorical": xheader_categorical, "gb": groupby_attribute},

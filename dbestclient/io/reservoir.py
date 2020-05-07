@@ -383,6 +383,19 @@ class ReservoirSampling:
         #     print(key, total_frequency[key])
         #     print("-"*20)
         total_frequency["x_categorical_columns"] = self.usecols["x_categorical"]
+
+        # get the distinct values of categorical x attributes, which will be used in where clause, like where x2>=10
+
+        categorical_distinct_values = {}
+        for col in self.usecols["x_categorical"]:
+            print("col", col)
+            try:
+                float(self.sampledf[col].iloc[0])
+                distinct_values = self.sampledf[col].unique().tolist()
+                categorical_distinct_values[col] = distinct_values
+            except ValueError:
+                pass
+        total_frequency["categorical_distinct_values"] = categorical_distinct_values
         return total_frequency, data
 
 
