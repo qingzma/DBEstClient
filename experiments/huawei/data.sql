@@ -93,9 +93,15 @@ hdfs dfs -mkdir /data/huawei/ci_campusnetwork_radiokpi_1m
 hdfs dfs -put /data/huawei/ci_campusclient_clientstat_5m/* /data/huawei/ci_campusclient_clientstat_5m
 hdfs dfs -put /data/huawei/ci_campusnetwork_radiokpi_1m/* /data/huawei/ci_campusnetwork_radiokpi_1m
 
+select ts, count(usermac) from ci_campusclient_clientstat_5m 
+where ts between unix_timestamp('2020-01-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 and unix_timestamp('2020-04-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Tencent' 
+AND kpiCount >= 2 
+AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'
+GROUP BY ts;
 
-
-SELECT ts, COUNT(DISTINCT usermac) 
+SELECT ts, COUNT( usermac) 
 FROM ci_campusclient_clientstat_5m
 WHERE 
 ts >= unix_timestamp('2019-03-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
@@ -154,3 +160,4 @@ AND ssid = 'Tencent'
 GROUP BY ts;
                         # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
                         # "AND kpiCount = 0 "
+
