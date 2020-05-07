@@ -1,5 +1,6 @@
 import re
 from dataclasses import replace
+from os.path import abspath
 
 import sqlparse
 from sqlparse.sql import Function, Identifier, IdentifierList
@@ -119,39 +120,131 @@ class DBEstParser:
             # print(item)
             if 'where' in item.value.lower():
                 whereclause = item.value.lower().split()
-                # print(whereclause)
                 idx = whereclause.index("between")
                 # print(idx)
                 return whereclause[idx-1], whereclause[idx+1], whereclause[idx+3]
                 # return whereclause[1], whereclause[3], whereclause[5]
 
-    def get_where_categorical_equal(self):
+    def get_dml_where_categorical_equal_and_range(self):
+        """ get the equal and range selection for categorical attributes.
+
+        For example, 
+
+        321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 produces 
+
+        ['x2', 'x3'],
+
+        ["'HaHaHa'", "''"], 
+
+        {'X1': ['321', '1123', False, False], 'x4': [None, 5.0, False, False]}
+
+        Raises:
+            ValueError: unexpected condition in SQL
+
+        Returns:
+            tuple: list, list, dict
+        """
+        equal_xs = []
+        equal_values = []
+        conditions = {}
         for item in self.parsed.tokens:
-            clause_lower = item.value.lower()
-            clause = item.value
+            clause_lower = item.value.lower().replace("( ", "(").replace(" )", ")")
+            clause = item.value.replace("( ", "(").replace(" )", ")")
             if 'where' in clause_lower:
 
-                # indexes = [m.start() for m in re.finditer('=', clause)]
-                splits = clause.replace("=", " = ").split()
-                splits_lower = clause_lower.replace("=", " = ").split()
-                # print(clause)
-                # print(clause.count("="))
-                xs = []
-                values = []
-                while True:
-                    if "=" not in splits:
-                        break
-                    idx = splits.index("=")
-                    xs.append(splits_lower[idx-1])
-                    if splits[idx+1] != "''":
-                        values.append(splits[idx+1].replace("'", ""))
-                    else:
-                        values.append("")
-                    splits = splits[idx+3:]
-                    splits_lower = splits_lower[idx+3:]
-                #     print(splits)
-                # print(xs, values)
-                return xs, values
+                # for token in item:
+                #     print(token.is_group, token.is_keyword,
+                #           token.is_whitespace, token.normalized)
+                splits = clause.replace("=", " = ").replace(
+                    "AND", "and").split("and")
+                # splits_lower = clause_lower.replace("=", " = ").split("and")
+
+                # print("splits", splits)
+                for condition in splits:
+                    if any(pattern in condition for pattern in ["=", ">", "<"]):
+                        condition = condition.replace(" ", "")
+                        # firstly check if there is a bi-directinal condition or not.
+                        count_less = condition.count("<")
+                        if count_less == 2:  # 1<x<2
+
+                            condition_no_equal = condition.replace("=", "")
+                            splits = condition_no_equal.split("<")
+                            cond = [splits[0], splits[2]]
+                            key = splits[1]
+
+                            splits = condition.split(splits[1])
+                            if "=" in splits[0]:  # 0 <= x <...
+                                cond.append(True)
+                            else:
+                                cond.append(False)
+
+                            if "=" in splits[1]:  # ...< x <=2
+                                cond.append(True)
+                            else:
+                                cond.append(False)
+                            conditions[key] = cond
+
+                        else:
+                            if "<=" in condition:
+                                splits = condition.split("<=")
+                                conditions[splits[0]] = [
+                                    None, float(splits[1]), False, True]
+                            elif ">=" in condition:
+                                splits = condition.split(">=")
+                                conditions[splits[0]] = [
+                                    float(splits[1]), None, True, False]
+                            elif "<" in condition:
+                                splits = condition.split("<")
+                                conditions[splits[0]] = [
+                                    None, float(splits[1]), False, False]
+                            elif ">" in condition:
+                                splits = condition.split(">")
+                                conditions[splits[0]] = [
+                                    float(splits[1]), None, False, False]
+                            elif "=" in condition:
+                                splits = condition.split("=")
+                                equal_xs.append(splits[0])
+                                equal_values.append(splits[1])
+                                # print(equal_xs, equal_values)
+                            else:
+                                raise ValueError(
+                                    "unexpected condition in SQL: ", condition)
+                return [equal_xs, equal_values, conditions]
+
+                # # # = condition
+                # # if "=" in condition and not any(pattern in condition for pattern in [">", "<"]):
+                # #     print("only =")
+                # #     equal_xs.append()
+                # #     equal_values.append()
+                # # # >= <= condition
+                # # elif "=" in condition:
+                # #     print(">=")
+                # #     print(condition.count("="))
+                # # # no = condition, which is > or <
+                # # else:
+                # #     print("no =")
+
+                # # indexes = [m.start() for m in re.finditer('=', clause)]
+                # splits = clause.replace("=", " = ").split()
+                # splits_lower = clause_lower.replace("=", " = ").split()
+                # # print(clause)
+                # # print(clause.count("="))
+                # xs = []
+                # values = []
+                # while True:
+                #     if "=" not in splits:
+                #         break
+                #     idx = splits.index("=")
+                #     xs.append(splits_lower[idx-1])
+                #     if splits[idx+1] != "''":
+                #         values.append(splits[idx+1].replace("'", ""))
+                #     else:
+                #         values.append("")
+                #     splits = splits[idx+3:]
+                #     splits_lower = splits_lower[idx+3:]
+                # #     print(splits)
+                # # print(xs, values)
+                # return xs, values
 
     def if_contain_groupby(self):
         for item in self.parsed.tokens:
@@ -344,7 +437,7 @@ if __name__ == "__main__":
     #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
     # print(parser.if_contain_scaling_factor())
     parser.parse(
-        "select z, count ( y ) from t_m where x BETWEEN  to_timestamp('2019-02-28T16:00:00.000Z') and to_timestamp('2019-03-28T16:00:00.000Z') and X1 = grp and x2 = 'HaHaHa' and x3='' GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+        "select z, count ( y ) from t_m where x BETWEEN  to_timestamp('2019-02-28T16:00:00.000Z') and to_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
     print(parser.if_contain_scaling_factor())
     if parser.if_contain_groupby():
         print("yes, group by")
@@ -357,14 +450,14 @@ if __name__ == "__main__":
 
     if parser.if_where_exists():
         print("where exists!")
-        print(parser.get_where_x_and_range())
-        parser.get_where_categorical_equal()
+        # print(parser.get_where_x_and_range())
+        # print(parser.get_dml_where_categorical_equal_and_range())
 
     print("method, ", parser.get_sampling_method())
 
     print("scaling factor ", parser.get_scaling_method())
 
     print(parser.get_where_x_and_range())
-    print(parser.get_where_categorical_equal())
+    print(parser.get_dml_where_categorical_equal_and_range())
 
     print(parser.get_filter())

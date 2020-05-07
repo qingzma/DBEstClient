@@ -366,9 +366,11 @@ class SqlExecutor:
                         predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
                         # no categorical x attributes
-                        x_categorical_attributes, x_categorical_values = self.parser.get_where_categorical_equal()
+                        # x_categorical_attributes, x_categorical_values, x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                        x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
 
-                        if not x_categorical_attributes:
+                        # no x categrical attributes, use a single model to predict.
+                        if not x_categorical_conditions[0]:
                             if not self.config.get_config()["b_use_gg"]:
                                 qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
                                                         self.config)
@@ -389,7 +391,7 @@ class SqlExecutor:
                                 # print(",".join(x_categorical_values))
                                 filter_dbest = self.parser.get_filter()
                                 self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                                    func, x_lb, x_ub, ",".join(x_categorical_values),  n_jobs=1, filter=filter_dbest)  # result2file=False,n_division=20, b_return_counts_as_prediction=True
+                                    func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=filter_dbest)  # ",".join(x_categorical_values)
                             else:
                                 pass
 

@@ -194,7 +194,7 @@ class MdnQueryEngine:
                     f.write(key + "," + str(predictions[key]))
         return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None,  n_jobs: int = 1, filter=None):
+    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None,  n_jobs: int = 1, filter_dbest=None):
         # b_print_to_screen=True, n_division: int = 20, result2file: str = None,
 
         b_print_to_screen = self.config.get_config()["b_print_to_screen"]
@@ -210,7 +210,7 @@ class MdnQueryEngine:
         if self.config.get_config()["accept_filter"]:
             results = self.n_total_point
             results = {key: results[key] for key in results if float(
-                key) >= filter[0] and float(key) <= filter[1]}
+                key) >= filter_dbest[0] and float(key) <= filter_dbest[1]}
 
             # scale up the result
             scaling_factor = self.config.get_config()["scaling_factor"]
@@ -547,15 +547,20 @@ class MdnQueryEngineXCategorical:
         #     kdeModelWrapper)
 
     # result2file=False,n_division=20
-    def predicts(self, func, x_lb, x_ub, categorical_attributes,  n_jobs=1, filter=None):
+    def predicts(self, func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=None):
         # configuration-related parameters.
         # result2file = self.config.get_config()["result2file"]
         n_jobs = self.config.get_config()["n_jobs"]
         # n_division = self.config.get_config()["n_division"]
         # print("self.models.keys()", self.models.keys())
         # print("categorical_attributes", categorical_attributes)
-        self.models[categorical_attributes].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                             n_jobs=n_jobs, filter=filter)  # result2file=result2file,n_division=n_division,
+
+        # check the condition when only one model is involved.
+        if not x_categorical_conditions[2]:
+            self.models[",".join(x_categorical_conditions[1]).replace("'", "")].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                                                                 n_jobs=n_jobs, filter_dbest=filter_dbest)  # result2file=result2file,n_division=n_division,
+        else:
+            print("need to get predictions from multiple models.")
 
     def serialize2warehouse(self, warehouse):
         with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:

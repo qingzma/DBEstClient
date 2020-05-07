@@ -34,9 +34,9 @@ Supported SQL queries include model creation and query answering:
 
 - **model creation**
 	```
-	CREATE TABLE t_m(y real, x real)  
-	FROM tbl  
-	[GROUP BY z]  
+	CREATE TABLE t_m(y REAL|CATEGORICAL [DISTINCT], x0 REAL, x1 CATEGORICAL)  
+	FROM '/data/sample.csv'  
+	[GROUP BY z1, z2]  
 	[SIZE 10000]  
 	[METHOD UNIFROM|HASH]
 	[SCALE FILE|DATA (file_name)]
