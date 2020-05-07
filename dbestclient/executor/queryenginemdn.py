@@ -507,6 +507,7 @@ class MdnQueryEngineXCategorical:
         self.config = config
         self.mdl_name = None
         self.n_total_points = None
+        self.x_categorical_columns = None
 
     # device: str, encoding="binary", b_grid_search=False
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict):
@@ -517,12 +518,15 @@ class MdnQueryEngineXCategorical:
         self.mdl_name = mdl_name
         self.n_total_points = total_points
         total_points.pop("if_contain_x_categorical")
+        self.x_categorical_columns = total_points.pop("x_categorical_columns")
+
+        # print("x_categorical_columns", self.x_categorical_columns)
 
         # configuration-related parameters.
         device = self.config.get_config()["device"]
         encoding = self.config.get_config()["encoding"]
         b_grid_search = self.config.get_config()["b_grid_search"]
-        # print("total_points", total_points)
+        print("total_points", total_points)
         idx = 0
         for categorical_attributes in total_points:
             print("start training  sub_model " +
@@ -549,16 +553,20 @@ class MdnQueryEngineXCategorical:
     # result2file=False,n_division=20
     def predicts(self, func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=None):
         # configuration-related parameters.
-        # result2file = self.config.get_config()["result2file"]
         n_jobs = self.config.get_config()["n_jobs"]
-        # n_division = self.config.get_config()["n_division"]
-        # print("self.models.keys()", self.models.keys())
-        # print("categorical_attributes", categorical_attributes)
 
+        # prepare the keys of the model.
+        x_categorical_conditions[0] = [item.lower()
+                                       for item in x_categorical_conditions[0]]
+        cols = [item.lower() for item in x_categorical_conditions[0]]
+        keys = x_categorical_conditions[1]
+        sorted_keys = [keys[cols.index(col)].replace("'", "")
+                       for col in self.x_categorical_columns]
+        key = ",".join(sorted_keys)
         # check the condition when only one model is involved.
         if not x_categorical_conditions[2]:
-            self.models[",".join(x_categorical_conditions[1]).replace("'", "")].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                                                                 n_jobs=n_jobs, filter_dbest=filter_dbest)  # result2file=result2file,n_division=n_division,
+            self.models[key].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                              n_jobs=n_jobs, filter_dbest=filter_dbest)  # ",".join(x_categorical_conditions[1]).replace("'", "")
         else:
             print("need to get predictions from multiple models.")
 

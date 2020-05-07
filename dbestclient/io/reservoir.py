@@ -382,7 +382,7 @@ class ReservoirSampling:
         # for key in total_frequency:
         #     print(key, total_frequency[key])
         #     print("-"*20)
-
+        total_frequency["x_categorical_columns"] = self.usecols["x_categorical"]
         return total_frequency, data
 
 

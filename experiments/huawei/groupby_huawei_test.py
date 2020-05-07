@@ -37,7 +37,7 @@ def build_models(sqlExecutor):
                         # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
                         "GROUP BY ts "
                         "method uniform "
-                        "size  80000 "  # 118567
+                        "size  118567 "  # 118567
                         "scale data;", device='gpu')
 
 
@@ -46,7 +46,7 @@ def query(sqlExecutor):
                         "where ts between to_timestamp('2020-01-28T16:00:00.000Z') and to_timestamp('2020-04-28T16:00:00.000Z') "
                         "AND tenantId = 'default-organization-id' "
                         "AND ssid = 'Tencent' "
-                        "AND kpiCount >= 0 "
+                        "AND kpiCount = 1 "
                         # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
                         "GROUP BY ts;", n_jobs=1, device='gpu')
 
