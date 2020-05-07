@@ -103,13 +103,13 @@ Here,
 To execute a SQL query from the model, you could use the following SQL format:
 ```
 SELECT ts, COUNT(DISTINCT usermac) FROM huawei_test 
-WHERE ts between to_timestamp('2020-01-28T16:00:00.000Z') and to_timestamp('2020-04-28T16:00:00.000Z') 
+WHERE ts between unix_timestamp('2020-01-28T16:00:00.000Z') and unix_timestamp('2020-04-28T16:00:00.000Z') 
 AND tenantId = 'default-organization-id' 
 AND ssid = 'Tencent' 
 GROUP BY ts;
 ```
 Where,
-- to_timestamp() is the function to convert the date strings into timestamps.
+- unix_timestamp() is the function to convert the date strings into timestamps.
 - the condition on ```kpiCount>0``` is currently not supported, only ```=``` is supported at this moment. It will be soon supported.
 
 ## Documentation

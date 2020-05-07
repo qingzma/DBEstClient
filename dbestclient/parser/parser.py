@@ -6,7 +6,7 @@ import sqlparse
 from sqlparse.sql import Function, Identifier, IdentifierList
 from sqlparse.tokens import DDL, DML, Keyword
 
-from dbestclient.tools.date import to_timestamp
+from dbestclient.tools.date import unix_timestamp
 
 
 class DBEstParser:
@@ -405,9 +405,9 @@ class DBEstParser:
                 return [float(item) for item in x_between_and[1:]]
             except ValueError:
                 # check if timestamp exists
-                if "to_timestamp" in x_between_and[1]:
-                    # print([to_timestamp(item.replace("to_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]])
-                    return [to_timestamp(item.replace("to_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]]
+                if "unix_timestamp" in x_between_and[1]:
+                    # print([unix_timestamp(item.replace("unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]])
+                    return [unix_timestamp(item.replace("unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]]
                 else:
                     raise ValueError("Error parse SQL.")
 
@@ -437,7 +437,9 @@ if __name__ == "__main__":
     #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
     # print(parser.if_contain_scaling_factor())
     parser.parse(
-        "select z, count ( y ) from t_m where x BETWEEN  to_timestamp('2019-02-28T16:00:00.000Z') and to_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+        "select z, count ( y ) from t_m where x BETWEEN  unix_timestamp('2019-02-28T16:00:00.000Z') and unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+    parser.parse(
+        "select z, count ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z') <=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
     print(parser.if_contain_scaling_factor())
     if parser.if_contain_groupby():
         print("yes, group by")

@@ -34,7 +34,7 @@ def to_utc(date_str: str, format_str="%Y-%m-%dt%H:%M:%S.%fz"):
     return utc_time
 
 
-def to_timestamp(date_str: str, format_str="%Y-%m-%dt%H:%M:%S.%fz"):
+def unix_timestamp(date_str: str, format_str="%Y-%m-%dt%H:%M:%S.%fz"):
     """convert rfc 3339 time string into timestamps
 
     Args:
@@ -50,4 +50,4 @@ def to_timestamp(date_str: str, format_str="%Y-%m-%dt%H:%M:%S.%fz"):
 
 
 if __name__ == "__main__":
-    print(to_timestamp("2019-03-28t16:00:00.000z"))
+    print(unix_timestamp("2019-03-28t16:00:00.000z"))

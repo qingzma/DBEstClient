@@ -22,7 +22,7 @@ from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
 from dbestclient.ml.modelwraper import (GroupByModelWrapper,
                                         get_pickle_file_name)
 from dbestclient.parser.parser import DBEstParser
-from dbestclient.tools.date import to_timestamp
+from dbestclient.tools.date import unix_timestamp
 from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
@@ -304,10 +304,10 @@ class SqlExecutor:
                         x_ub = float(x_ub)
                     except ValueError:
                         # check if timestamp exists
-                        if "to_timestamp" in x_lb:
-                            x_lb = to_timestamp(x_lb.replace("to_timestamp(", "").replace(
+                        if "unix_timestamp" in x_lb:
+                            x_lb = unix_timestamp(x_lb.replace("unix_timestamp(", "").replace(
                                 ")", "").replace("'", "").replace('"', ''))
-                            x_ub = to_timestamp(x_ub.replace("to_timestamp(", "").replace(
+                            x_ub = unix_timestamp(x_ub.replace("unix_timestamp(", "").replace(
                                 ")", "").replace("'", "").replace('"', ''))
                         else:
                             raise ValueError("Error parse SQL.")

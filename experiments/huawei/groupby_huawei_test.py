@@ -44,7 +44,7 @@ def build_models(sqlExecutor):
 
 def query(sqlExecutor):
     sqlExecutor.execute("select ts, count(usermac) from huawei_p1 "
-                        "where ts between to_timestamp('2020-01-28T16:00:00.000Z') and to_timestamp('2020-04-28T16:00:00.000Z') "
+                        "where ts between unix_timestamp('2020-01-28T16:00:00.000Z') and unix_timestamp('2020-04-28T16:00:00.000Z') "
                         "AND tenantId = 'default-organization-id' "
                         "AND ssid = 'Tencent' "
                         "AND kpiCount >= 2 "
