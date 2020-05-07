@@ -167,6 +167,13 @@ class SqlExecutor:
                             'csv_split_char'],
                         num_total_records=self.n_total_records)
 
+                # set the n_total_point and scaling factor for each model.
+                self.config.set_parameter(
+                    "n_total_point", sampler.n_total_point)
+                self.config.set_parameter(
+                    "scaling_factor", sampler.scaling_factor)
+                # print("scaling_factor is ", sampler.scaling_factor)
+
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     # check whether this model exists, if so, skip training
                     # if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
@@ -204,6 +211,7 @@ class SqlExecutor:
                             self.config.get_config()['warehousedir'] + "/" + groupby_model_wrapper.dir)
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
                     else:  # "mdn"
+
                         xys = sampler.getyx(
                             yheader, xheader_continous, groupby=groupby_attribute)
                         # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
@@ -276,7 +284,8 @@ class SqlExecutor:
                                     self.model_catalog.add_model_wrapper(
                                         qeXContinuous)
                                 else:
-                                    pass
+                                    raise ValueError(
+                                        "GoG support for categorical attributes is not supported.")
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.config.get_config()['verbose']:
@@ -378,9 +387,9 @@ class SqlExecutor:
                                 # print("x_categorical_values",
                                 #       x_categorical_values)
                                 # print(",".join(x_categorical_values))
-                                filter = self.parser.get_filter()
+                                filter_dbest = self.parser.get_filter()
                                 self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                                    func, x_lb, x_ub, ",".join(x_categorical_values),  n_jobs=1, filter=filter)  # result2file=False,n_division=20, b_return_counts_as_prediction=True
+                                    func, x_lb, x_ub, ",".join(x_categorical_values),  n_jobs=1, filter=filter_dbest)  # result2file=False,n_division=20, b_return_counts_as_prediction=True
                             else:
                                 pass
 

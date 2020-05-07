@@ -38,6 +38,8 @@ class DbestConfig:
             # "b_reg_mean":'True',
 
             # file format configuration.
+            'n_total_point': None,
+            'scaling_factor': None,
             'csv_split_char': ',',
 
             "accept_filter": False,

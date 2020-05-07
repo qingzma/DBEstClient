@@ -212,6 +212,11 @@ class MdnQueryEngine:
             results = {key: results[key] for key in results if float(
                 key) >= filter[0] and float(key) <= filter[1]}
 
+            # scale up the result
+            scaling_factor = self.config.get_config()["scaling_factor"]
+            # print("scaling_factor", scaling_factor)
+            results = {key: results[key]*scaling_factor for key in results}
+
             # print("self.n_total_point", self.n_total_point)
             if b_print_to_screen:
                 for key in results:

@@ -16,6 +16,8 @@ class DBEstSampling:
         self.sample_mean = None
         self.headers = headers
         self.usecols = usecols
+        self.original_table_size = None
+        self.scaling_factor = None
 
     def make_sample(self, file, ratio,  method='uniform', split_char=',', file2save=None, num_total_records=None):
         if method == 'uniform':
@@ -31,9 +33,17 @@ class DBEstSampling:
                 # print("total point", self.n_total_point)
                 # print("sample point",self.n_sample_point)
 
-                return self.sample
+                self.scaling_factor = self.n_total_point/ratio
+                # return self.sample,    # data, scaling factor
             else:
-                print("sampling with probability is not implemented yet, abort")
+                print(
+                    "The given table is treated as a uniform sample, and it is obtained with sampling rate " + str(ratio))
+                self.sample = ReservoirSampling(headers=self.headers)
+                self.sample.build_reservoir(
+                    file, None, split_char=split_char, save2file=file2save, n_total_point=num_total_records, usecols=self.usecols)
+                self.n_total_point = self.sample.n_total_point/float(ratio)
+                self.scaling_factor = 1/float(ratio)
+                # return self.sample, 1/float(ratio)
             # # if ratio is not provided, then the whole dataset is used to train the model.
             # else:
             #     self.sample = pd.read_csv(file)

@@ -45,6 +45,10 @@ class ReservoirSampling:
                 def p(*_):
                     pass
 
+            # check if the size R (number of rows in the sample) is passed, if not, return the file as a sample.
+            if R is None:
+                R = self.n_total_point
+
             if threshold is None:
                 threshold = 4 * R
             res = []
