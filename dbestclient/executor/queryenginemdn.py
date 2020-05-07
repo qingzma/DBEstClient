@@ -41,6 +41,8 @@ class MdnQueryEngine:
         self.x_max = kdeModelWrapper.x_max_value
         self.groupby_attribute = kdeModelWrapper.groupby_attribute
         self.groupby_values = kdeModelWrapper.groupby_values
+        self.density_column = kdeModelWrapper.x
+
         # if config is None:
         #     self.config = config = {
         #         'warehousedir': 'dbestwarehouse',
@@ -210,6 +212,7 @@ class MdnQueryEngine:
 
         if self.config.get_config()["accept_filter"]:
             results = self.n_total_point
+            # print("filter_dbest", filter_dbest)
             results = {key: results[key] for key in results if float(
                 key) >= filter_dbest[0] and float(key) <= filter_dbest[1]}
 
@@ -308,6 +311,7 @@ class MdnQueryEngineBundle():
         self.group_keys = None
         self.pickle_file_name = None
         self.device = device
+        self.density_column = None
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
             mdl: str, tbl: str, xheader: str, yheader: str, ):  # n_per_group: int = 10, n_mdn_layer_node=10, encoding = "onehot", b_grid_search = True
@@ -316,6 +320,8 @@ class MdnQueryEngineBundle():
         n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node"]
         encoding = self.config.get_config()["encoding"]
         b_grid_search = self.config.get_config()["b_grid_search"]
+
+        self.density_column = xheader
 
         self.pickle_file_name = mdl
         # print(groupby_attribute)
@@ -514,6 +520,7 @@ class MdnQueryEngineXCategorical:
         self.x_categorical_columns = None
         self.categorical_distinct_values = None
         self.group_by_columns = None
+        self.density_column = None
 
     # device: str, encoding="binary", b_grid_search=False
 
@@ -522,12 +529,16 @@ class MdnQueryEngineXCategorical:
             raise ValueError("The data provided is not a dict.")
 
         print("fit MdnQueryEngineXCategorical...")
+        self.density_column = usecols["x_continous"][0]
         self.mdl_name = mdl_name
         self.n_total_points = total_points
         total_points.pop("if_contain_x_categorical")
         self.x_categorical_columns = total_points.pop("x_categorical_columns")
         self.categorical_distinct_values = total_points.pop(
             "categorical_distinct_values")
+        # print("self.x_categorical_columns",
+        #       self.x_categorical_columns)
+        # del self.x_categorical_columns[self.density_column]
         self.group_by_columns = usecols['gb']
 
         # print("x_categorical_columns", self.x_categorical_columns)
@@ -563,6 +574,8 @@ class MdnQueryEngineXCategorical:
     # result2file=False,n_division=20
     def predicts(self, func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=None):
         # print(self.models.keys())
+        # print(x_categorical_conditions)
+        x_categorical_conditions[2].pop(self.density_column)
         # configuration-related parameters.
         n_jobs = self.config.get_config()["n_jobs"]
 
@@ -579,9 +592,12 @@ class MdnQueryEngineXCategorical:
                            for col in self.x_categorical_columns]
             key = ",".join(sorted_keys)
 
+            self.models[key].config.set_parameter(
+                            "b_print_to_screen", False)
+
             # make the predictions
-            self.models[key].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                              n_jobs=n_jobs, filter_dbest=filter_dbest)
+            predictions = self.models[key].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                            n_jobs=n_jobs, filter_dbest=filter_dbest)
 
         else:
             # prepare the keys of the models to be called.
@@ -638,17 +654,17 @@ def meet_condition(value: str, condition):
         b1 = True
     else:
         if condition[2]:
-            b1 = True if value >= condition[0] else False
+            b1 = True if value >= float(condition[0]) else False
         else:
-            b1 = True if value > condition[0] else False
+            b1 = True if value > float(condition[0]) else False
     # check x less than
     if condition[1] is None:
         b2 = True
     else:
         if condition[3]:
-            b2 = True if value <= condition[1] else False
+            b2 = True if value <= float(condition[1]) else False
         else:
-            b2 = True if value < condition[1] else False
+            b2 = True if value < float(condition[1]) else False
 
     return b1 and b2
 

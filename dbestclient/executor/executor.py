@@ -263,9 +263,9 @@ class SqlExecutor:
                                     # print("n_total_point ", n_total_point)
                                     queryEngineBundle = MdnQueryEngineBundle(
                                         config=self.config.copy(), device=device).fit(xys, groupby_attribute,
-                                                                               n_total_point, mdl, tbl,
-                                                                               xheader_continous, yheader,
-                                                                               )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
+                                                                                      n_total_point, mdl, tbl,
+                                                                                      xheader_continous, yheader,
+                                                                                      )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
 
                                     self.model_catalog.add_model_wrapper(
                                         queryEngineBundle)
@@ -298,19 +298,33 @@ class SqlExecutor:
                 gb_to_print, [
                     func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
                 if self.parser.if_where_exists():
-                    xheader, x_lb, x_ub = self.parser.get_where_x_and_range()
-                    try:
-                        x_lb = float(x_lb)
-                        x_ub = float(x_ub)
-                    except ValueError:
-                        # check if timestamp exists
-                        if "unix_timestamp" in x_lb:
-                            x_lb = unix_timestamp(x_lb.replace("unix_timestamp(", "").replace(
-                                ")", "").replace("'", "").replace('"', ''))
-                            x_ub = unix_timestamp(x_ub.replace("unix_timestamp(", "").replace(
-                                ")", "").replace("'", "").replace('"', ''))
-                        else:
-                            raise ValueError("Error parse SQL.")
+                    print("OK")
+                    where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                    # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
+                    model = self.model_catalog.model_catalog[mdl + '.pkl']
+                    x_header_density = model.density_column
+
+                    [x_lb, x_ub] = [where_conditions[2][x_header_density][i]
+                                    for i in [0, 1]]
+                    filter_dbest = dict(where_conditions[2])
+                    filter_dbest = [filter_dbest[next(iter(filter_dbest))][i]
+                                    for i in [0, 1]]
+                    # print("filter_dbest", filter_dbest)
+                    model.predicts(func, x_lb, x_ub, where_conditions,
+                                   n_jobs=1, filter_dbest=filter_dbest)
+
+                    # try:
+                    #     x_lb = float(x_lb)
+                    #     x_ub = float(x_ub)
+                    # except ValueError:
+                    #     # check if timestamp exists
+                    #     if "unix_timestamp" in x_lb:
+                    #         x_lb = unix_timestamp(x_lb.replace("unix_timestamp(", "").replace(
+                    #             ")", "").replace("'", "").replace('"', ''))
+                    #         x_ub = unix_timestamp(x_ub.replace("unix_timestamp(", "").replace(
+                    #             ")", "").replace("'", "").replace('"', ''))
+                    #     else:
+                    #         raise ValueError("Error parse SQL.")
 
                 else:
                     print(
@@ -384,16 +398,17 @@ class SqlExecutor:
                                 qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
                                                 n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division, b_print_to_screen=True
                         else:
-                            print("OK")
-                            if not self.config.get_config()["b_use_gg"]:
-                                # print("x_categorical_values",
-                                #       x_categorical_values)
-                                # print(",".join(x_categorical_values))
-                                filter_dbest = self.parser.get_filter()
-                                self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                                    func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=filter_dbest)  # ",".join(x_categorical_values)
-                            else:
-                                pass
+                            pass
+                            # print("OK")
+                            # if not self.config.get_config()["b_use_gg"]:
+                            #     # print("x_categorical_values",
+                            #     #       x_categorical_values)
+                            #     # print(",".join(x_categorical_values))
+                            #     filter_dbest = self.parser.get_filter()
+                            #     self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
+                            #         func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=filter_dbest)  # ",".join(x_categorical_values)
+                            # else:
+                            #     pass
 
                     if self.config.get_config()['verbose']:
                         end = datetime.now()

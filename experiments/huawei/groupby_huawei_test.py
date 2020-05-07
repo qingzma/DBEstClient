@@ -29,8 +29,8 @@ def run():
 
 
 def build_models(sqlExecutor):
-    sqlExecutor.execute("create table huawei_p1(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical )  "  #
-                        "FROM '/data/huawei/percent1.csv' "
+    sqlExecutor.execute("create table huawei_test(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical )  "  #
+                        "FROM '/data/huawei/sample.csv' "
                         # "WHERE  ts between 0 and 10 "
                         # "AND tenantId = 'default-organization-id' "
                         # "AND kpiCount = 0 "
@@ -43,11 +43,11 @@ def build_models(sqlExecutor):
 
 
 def query(sqlExecutor):
-    sqlExecutor.execute("select ts, count(usermac) from huawei_p1 "
-                        "where ts between unix_timestamp('2020-01-28T16:00:00.000Z') and unix_timestamp('2020-04-28T16:00:00.000Z') "
+    sqlExecutor.execute("select ts, count(usermac) from huawei_test "
+                        "where   unix_timestamp('2020-01-28T16:00:00.000Z') <=ts<= unix_timestamp('2020-04-28T16:00:00.000Z') "
                         "AND tenantId = 'default-organization-id' "
                         "AND ssid = 'Tencent' "
-                        "AND kpiCount >= 2 "
+                        "AND kpiCount = 2 "
                         "AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'"
 
 
