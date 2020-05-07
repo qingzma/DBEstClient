@@ -69,5 +69,47 @@ Currently, there is no backend server, and DBEst handles csv files with headers.
 	time cost: 0.014005
 	------------------------
 	```
+### Huawei Dataset
+The entry point for the code is experiments/huawei/groupby_huawei_test.py, you could run ```python experiments/huawei/groupby_huawei_test.py``` instead of using the SQL interface.
+
+The sample data is used for testing purposes.
+
+To create a model to support the following simplied query (Q1), 
+```
+SELECT ts, COUNT( DISTINCT usermac) 
+FROM hw_sample 
+WHERE ts BETWEEN unix_timestamp('2020-01-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND  unix_timestamp('2020-04-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Tencent' 
+GROUP BY ts;
+```
+We need to  train a model based on following SQL format:
+```
+create table huawei_test(usermac CATEGORICAL DISTINCT, ts REAL, tenantId CATEGORICAL, ssid  CATEGORICAL)  
+FROM '/data/huawei/sample.csv' 
+GROUP BY ts 
+METHOD UNIFORM 
+SIZE 118567 
+SCALE data;
+```
+Here, 
+- The first attribute in huawei_test(*) is usermac, which is the dependent variable, and the following attributes are the independent variables.
+- CATEGORICAL means usermac should be treated as a categorical attribute instead of a real value.
+- DISTINCT means this model is used for answer query involving DISTINCT on usermac.
+- ts is REAL, which means a density function will be trained on attribute ts, and the SQL is expected to have a range selector on ts, like ``` WHERE ts BETWEEN * AND * ```.
+-  tenantId and ssid are of type CATEGORICAL, which means there will be a equal clause in the WHERE clause, like ```AND ssid = 'Tencent'  ```
+- SIZE is the sample size you want the sample to be, 118567 is the data size, so it is a 100% sample.
+
+To execute a SQL query from the model, you could use the following SQL format:
+```
+SELECT ts, COUNT(DISTINCT usermac) FROM huawei_test 
+WHERE ts between to_timestamp('2020-01-28T16:00:00.000Z') and to_timestamp('2020-04-28T16:00:00.000Z') 
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Tencent' 
+GROUP BY ts;
+```
+Where,
+- to_timestamp() is the function to convert the date strings into timestamps.
+- the condition on ```kpiCount>0``` is currently not supported, only ```=``` is supported at this moment. It will be soon supported.
 
 ## Documentation

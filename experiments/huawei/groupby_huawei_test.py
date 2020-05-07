@@ -33,7 +33,7 @@ def run():
 
 
 def build_models(sqlExecutor):
-    sqlExecutor.execute("create table huawei_test(usermac categorical distinct , ts real,tenantId categorical, ssid  categorical)  "  #
+    sqlExecutor.execute("create table huawei_test(usermac categorical , ts real,tenantId categorical, ssid  categorical)  "  #
                         "FROM '/data/huawei/sample.csv' "
                         # "WHERE  ts between 0 and 10 "
                         # "AND tenantId = 'default-organization-id' "

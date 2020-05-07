@@ -144,3 +144,13 @@ SELECT ts, COUNT(DISTINCT usermac)  FROM ci_campusclient_clientstat_5m WHERE  ts
 
 
 # to support the SQL where GROUP BY and X is the same attriubte,  I remove the X attribute from the X columns, and only use X in the GB columns, then add a filter to choose the propriate groups from all predictions.
+
+
+
+select ts, count( usermac) from hw_sample 
+where ts between unix_timestamp('2020-01-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 and  unix_timestamp('2020-04-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Tencent' 
+GROUP BY ts;
+                        # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
+                        # "AND kpiCount = 0 "
