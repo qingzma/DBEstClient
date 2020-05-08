@@ -32,12 +32,26 @@ Then you can input your SQL queries.
 ## Syntax
 Supported SQL queries include model creation and query answering:
 
+To create a model to answer a DML SQL as the following format:
+```
+SELECT [gb1 [, gb2,...]], COUNT([DISTINCT] y) 
+FROM tbl
+WHERE 0<=x1<=99
+AND x2='15'
+AND x3=unix_timestamp('2020-03-05T12:00:00.000Z')
+[GROUP BY gb1 [, gb2,... ]];
+```
+you need to create a model:
 - **model creation**
 	```
-	CREATE TABLE t_m(y REAL|CATEGORICAL [DISTINCT], x0 REAL, x1 CATEGORICAL)  
+	CREATE TABLE tbl_mdl(
+		y REAL|CATEGORICAL [DISTINCT], 
+		x1 REAL, 
+		x2 CATEGORICAL, 
+		x3 CATEGORICAL)  
 	FROM '/data/sample.csv'  
-	[GROUP BY z1, z2]  
-	[SIZE 10000]  
+	[GROUP BY gb1 [, gb2,... ]]  
+	[SIZE 10000|0.1]  
 	[METHOD UNIFROM|HASH]
 	[SCALE FILE|DATA (file_name)]
 	```
@@ -45,10 +59,12 @@ Supported SQL queries include model creation and query answering:
 
 - **query answering** 
 	```
-	SELECT AF(y)  
-	FROM t_m  
-	[WHERE x BETWEEN a AND b]  
-	[GROUP BY z]
+	SELECT [gb1 [, gb2,... ],] AF(y)  
+	FROM tbl_mdl  
+	WHERE 0<=x1<=99
+	AND x2='15'
+	AND x3=unix_timestamp('2020-03-05T12:00:00.000Z'
+	[GROUP BY gb1 [, gb2,... ]]
 	```
 ## Example
 Currently, there is no backend server, and DBEst handles csv files with headers.

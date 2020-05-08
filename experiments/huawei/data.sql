@@ -94,7 +94,7 @@ hdfs dfs -put /data/huawei/ci_campusclient_clientstat_5m/* /data/huawei/ci_campu
 hdfs dfs -put /data/huawei/ci_campusnetwork_radiokpi_1m/* /data/huawei/ci_campusnetwork_radiokpi_1m
 
 select ts, count(usermac) from ci_campusclient_clientstat_5m 
-where ts between unix_timestamp('2020-01-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 and unix_timestamp('2020-04-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 
+where ts between unix_timestamp('2020-03-05T12:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 and unix_timestamp('2020-03-06T12:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 
 AND tenantId = 'default-organization-id' 
 AND ssid = 'Tencent' 
 AND kpiCount >= 2 

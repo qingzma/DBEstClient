@@ -37,6 +37,7 @@ class ReservoirSampling:
         self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(
             1 for _ in open(file)) - 1
 
+        print("Reading data file...")
         with open(file, 'r') as data:
             if verbose:
                 def p(s, *args):
@@ -388,7 +389,7 @@ class ReservoirSampling:
 
         categorical_distinct_values = {}
         for col in self.usecols["x_categorical"]:
-            print("col", col)
+            # print("col", col)
             try:
                 float(self.sampledf[col].iloc[0])
                 distinct_values = self.sampledf[col].unique().tolist()

@@ -547,7 +547,7 @@ class MdnQueryEngineXCategorical:
         device = self.config.get_config()["device"]
         encoding = self.config.get_config()["encoding"]
         b_grid_search = self.config.get_config()["b_grid_search"]
-        print("total_points", total_points)
+        # print("total_points", total_points)
         idx = 0
         for categorical_attributes in total_points:
             print("start training  sub_model " +
