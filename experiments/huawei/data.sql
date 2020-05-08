@@ -113,51 +113,11 @@ AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18'
 GROUP BY ts;
 
 
-select ts,regionLevelEight,ssid, COUNT(DISTINCT usermac) 
-FROM ci_campusclient_clientstat_5m
-WHERE 
-ts >= unix_timestamp('2020-03-09T02:10:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
-AND ts <= unix_timestamp('2020-03-10T02:10:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
-AND tenantId = 'default-organization-id' 
-AND kpiCount > 0 
-GROUP BY ts,regionLevelEight,ssid;
-
-AND ssid = 'Apple' 
-Apple, Huawei, Tencent
-
-select distinct ts FROM ci_campusclient_clientstat_5m;
-select distinct regionLevelEight FROM ci_campusclient_clientstat_5m;
-
-select kpiCount,count(kpiCount) from ci_campusclient_clientstat_5m group by kpiCount;
-
-select tenantId,count(tenantId) from ci_campusclient_clientstat_5m group by tenantId;
-select ssid,count(ssid) from ci_campusclient_clientstat_5m group by ssid;
-
-
-select tenantId,kpiCount,regionLevelEight,ssid, count(*) 
-from ci_campusclient_clientstat_5m 
-WHERE 
-ts >= unix_timestamp('2020-03-09T02:10:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
-AND ts <= unix_timestamp('2020-03-10T02:10:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
-group by tenantId,kpiCount,regionLevelEight,ssid;
-
-
-
-
-
-SELECT ts, COUNT(DISTINCT usermac)  FROM ci_campusclient_clientstat_5m WHERE  ts >= unix_timestamp('2019-03-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND ts <= unix_timestamp('2020-03-29T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND tenantId = 'default-organization-id' AND kpiCount >= 0 AND ssid = 'Apple' AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18'GROUP BY ts;
-
-
-
-# to support the SQL where GROUP BY and X is the same attriubte,  I remove the X attribute from the X columns, and only use X in the GB columns, then add a filter to choose the propriate groups from all predictions.
-
-
-
-select ts, count( usermac) from hw_sample 
-where ts between unix_timestamp('2020-01-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 and  unix_timestamp('2020-04-28T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
+select ts, count(usermac) from huawei_q1 
+where   unix_timestamp('2020-03-05T12:00:00.000Z') <=ts<= unix_timestamp('2020-03-06T12:00:00.000Z') 
 AND tenantId = 'default-organization-id' 
 AND ssid = 'Tencent' 
+AND kpiCount >=2  
+AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'
 GROUP BY ts;
-                        # "AND regionLevelEight = '9f642594-20c2-4ccb-8f5d-97d5f59a1e18' "
-                        # "AND kpiCount = 0 "
 
