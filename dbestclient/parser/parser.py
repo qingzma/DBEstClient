@@ -15,14 +15,13 @@ class DBEstParser:
     parse a single SQL query, of the following form:
 
     - **DDL**
-        >>> CREATE TABLE t_m(y real, x real)
+        >>> CREATE TABLE t_m(y real, x real) 
         >>> FROM tbl
         >>> [GROUP BY z]
         >>> [SIZE 0.01]
         >>> [METHOD UNIFROM|HASH]
         >>> [SCALE FILE|DATA]
         >>> [ENCODING ONEHOT|BINARY]
-
     - **DML**
         >>> SELECT AF(y)
         >>> FROM t_m

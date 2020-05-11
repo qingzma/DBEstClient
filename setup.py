@@ -1,21 +1,25 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from setuptools import find_packages, setup
 
 with open('README.rst') as f:
     readme = f.read()
 
-with open('LICENSE') as f:
-    license = f.read()
+
+# with open('LICENSE.txt') as f:
+#     licenses = f.read()
+
 
 setup(
     name='dbestclient',
-    version='1.2',
+    version='2.0',
     description='Model-based Approximate Query Processing (AQP) engine.',
     classifiers=[
-        'Development Status :: 1.2',
+        'Development Status :: 2.0',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Approximate Query Processing :: AQP :: Data Warehouse',
     ],
     keywords='Approximate Query Processing AQP',
@@ -23,14 +27,15 @@ setup(
     author='Qingzhi Ma',
     author_email='Q.Ma.2@warwick.ac.uk',
     long_description=readme,
-    license=license,
-    packages=['dbestclient'],  # find_packages(exclude=('examples', 'docs')),
+    # license=licenses,
+    # packages=['dbestclient'],
+    packages=find_packages(exclude=('experiments', 'tests', 'docs')),
     entry_points={
         'console_scripts': ['dbestclient=dbestclient.main:main', 'dbestcmd=dbestclient.main:cmd'],
     },
     zip_safe=False,
     install_requires=[
-        'numpy', 'sqlparse', 'pandas', 'scikit-learn', 'qregpy', 'scipy', 'dill', 'matplotlib', 'torch', 'category_encoders'
+        'numpy', 'sqlparse', 'pandas', 'scikit-learn', 'qregpy', 'scipy', 'dill', 'matplotlib', 'torch', 'category_encoders', 'tox', 'sphinx',
     ],
     test_suite='nose.collector',
     tests_require=['nose'],

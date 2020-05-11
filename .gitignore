@@ -11,3 +11,6 @@ MNIST_data/
 dbest.sublime-workspace
 .vscode/
 notebook/
+.tox/
+.eggs/
+
