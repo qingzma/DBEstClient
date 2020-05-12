@@ -212,6 +212,7 @@ class MdnQueryEngine:
 
         if self.config.get_config()["accept_filter"]:
             results = self.n_total_point
+            # print("results,", results)
             # print("filter_dbest", filter_dbest)
             results = {key: results[key] for key in results if float(
                 key) >= filter_dbest[0] and float(key) <= filter_dbest[1]}
@@ -593,7 +594,7 @@ class MdnQueryEngineXCategorical:
             key = ",".join(sorted_keys)
 
             self.models[key].config.set_parameter(
-                            "b_print_to_screen", False)
+                "b_print_to_screen", False)
 
             # make the predictions
             predictions = self.models[key].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
@@ -627,10 +628,13 @@ class MdnQueryEngineXCategorical:
                         predictions = predictions + Counter(pred)
                         keys_list.append(key)
 
+        # print("preditions,", predictions)
+
         if self.config.get_config()["b_print_to_screen"]:
             headers = list(self.group_by_columns)
             headers.append("value")
             print(" ".join(headers))
+
             for pred in predictions:
                 print(pred, predictions[pred])
 

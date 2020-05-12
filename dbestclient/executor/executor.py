@@ -79,8 +79,8 @@ class SqlExecutor:
                                                                         x_max_value=model.x_max_value)
                         groupby_model_wrapper.add_simple_model(model)
 
-                self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
-                n_model += 1
+                    self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
+                    n_model += 1
 
         if n_model > 0:
             print("Loaded " + str(n_model) + " models.")
