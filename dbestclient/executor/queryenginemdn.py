@@ -623,8 +623,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                         # make the predictions
                         self.models[key].config.set_parameter(
                             "b_print_to_screen", False)
-                        pred = self.models[key].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                                 n_jobs=n_jobs, filter_dbest=filter_dbest)
+                        pred = self.models[key].predicts(func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions,
+                                                         n_jobs=n_jobs, filter_dbest=filter_dbest)
                         predictions = predictions + Counter(pred)
                         keys_list.append(key)
             predictions = dict(predictions)
