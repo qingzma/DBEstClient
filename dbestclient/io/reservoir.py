@@ -398,6 +398,10 @@ class ReservoirSampling:
             except ValueError:
                 pass
         total_frequency["categorical_distinct_values"] = categorical_distinct_values
+        if not total_frequency['if_contain_x_categorical']:
+            total_frequency.pop("categorical_distinct_values")
+            total_frequency.pop("x_categorical_columns")
+        # print("total_frequency,", total_frequency)
         return total_frequency, data
 
 

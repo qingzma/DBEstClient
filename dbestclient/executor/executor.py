@@ -316,6 +316,7 @@ class SqlExecutor:
                 gb_to_print, [
                     func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
                 if self.parser.if_where_exists():
+                    start = datetime.now()
                     print("OK")
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
                     # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
@@ -327,112 +328,110 @@ class SqlExecutor:
                     filter_dbest = dict(where_conditions[2])
                     filter_dbest = [filter_dbest[next(iter(filter_dbest))][i]
                                     for i in [0, 1]]
-                    print("where_conditions", where_conditions)
-                    print("filter_dbest", filter_dbest)
-                    print("type of model,", type(model))
-                    # predictions = model.predicts(func, x_lb, x_ub, where_conditions,
-                    #                              n_jobs=n_jobs, filter_dbest=filter_dbest)
-                    predictions = model.predict_one_pass(
-                        func, x_lb, x_ub, n_jobs=n_jobs)
+
+                    predictions = model.predicts(func, x_lb, x_ub, where_conditions,
+                                                 n_jobs=n_jobs, filter_dbest=filter_dbest)
+                    # predictions = model.predict_one_pass(
+                    #     func, x_lb, x_ub, n_jobs=n_jobs)
 
                 else:
                     print(
                         "support for query without where clause is not implemented yet! abort!")
 
-                if not self.parser.if_contain_groupby():  # if group by is not involved in the query
-                    simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
-                        mdl)]
-                    reg = simple_model_wrapper.reg
+                # if not self.parser.if_contain_groupby():  # if group by is not involved in the query
+                #     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
+                #         mdl)]
+                #     reg = simple_model_wrapper.reg
 
-                    density = simple_model_wrapper.density
-                    n_sample_point = int(simple_model_wrapper.n_sample_point)
-                    n_total_point = int(simple_model_wrapper.n_total_point)
-                    x_min_value = float(simple_model_wrapper.x_min_value)
-                    x_max_value = float(simple_model_wrapper.x_max_value)
-                    query_engine = QueryEngine(reg, density, n_sample_point,
-                                               n_total_point, x_min_value, x_max_value,
-                                               self.config)
-                    p, t = query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)
-                    print("OK")
-                    print(p)
-                    if self.config.get_config()['verbose']:
-                        print("time cost: " + str(t))
-                    print("------------------------")
-                    return p, t
+                #     density = simple_model_wrapper.density
+                #     n_sample_point = int(simple_model_wrapper.n_sample_point)
+                #     n_total_point = int(simple_model_wrapper.n_total_point)
+                #     x_min_value = float(simple_model_wrapper.x_min_value)
+                #     x_max_value = float(simple_model_wrapper.x_max_value)
+                #     query_engine = QueryEngine(reg, density, n_sample_point,
+                #                                n_total_point, x_min_value, x_max_value,
+                #                                self.config)
+                #     p, t = query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)
+                #     print("OK")
+                #     print(p)
+                #     if self.config.get_config()['verbose']:
+                #         print("time cost: " + str(t))
+                #     print("------------------------")
+                #     return p, t
 
-                else:  # if group by is involved in the query
-                    if self.config.get_config()['reg_type'] == "qreg":
-                        start = datetime.now()
-                        predictions = {}
-                        groupby_attribute = self.parser.get_groupby_value()
-                        groupby_key = mdl + "_groupby_" + groupby_attribute
+                # else:  # if group by is involved in the query
+                #     if self.config.get_config()['reg_type'] == "qreg":
+                #         start = datetime.now()
+                #         predictions = {}
+                #         groupby_attribute = self.parser.get_groupby_value()
+                #         groupby_key = mdl + "_groupby_" + groupby_attribute
 
-                        for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
-                            reg = model_wrapper.reg
-                            density = model_wrapper.density
-                            n_sample_point = int(model_wrapper.n_sample_point)
-                            n_total_point = int(model_wrapper.n_total_point)
-                            x_min_value = float(model_wrapper.x_min_value)
-                            x_max_value = float(model_wrapper.x_max_value)
-                            query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
-                                                       x_max_value,
-                                                       self.config)
-                            predictions[model_wrapper.groupby_value] = query_engine.predict(
-                                func, x_lb=x_lb, x_ub=x_ub)[0]
+                #         for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
+                #             reg = model_wrapper.reg
+                #             density = model_wrapper.density
+                #             n_sample_point = int(model_wrapper.n_sample_point)
+                #             n_total_point = int(model_wrapper.n_total_point)
+                #             x_min_value = float(model_wrapper.x_min_value)
+                #             x_max_value = float(model_wrapper.x_max_value)
+                #             query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
+                #                                        x_max_value,
+                #                                        self.config)
+                #             predictions[model_wrapper.groupby_value] = query_engine.predict(
+                #                 func, x_lb=x_lb, x_ub=x_ub)[0]
 
-                        print("OK")
-                        for key, item in predictions.items():
-                            print(key, item)
+                #         print("OK")
+                #         for key, item in predictions.items():
+                #             print(key, item)
 
-                    else:  # use mdn models to give the predictions.
-                        start = datetime.now()
-                        # predictions = {}
-                        groupby_attribute = self.parser.get_groupby_value()
-                        # no categorical x attributes
-                        # x_categorical_attributes, x_categorical_values, x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
-                        x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                #     else:  # use mdn models to give the predictions.
+                #         start = datetime.now()
+                #         # predictions = {}
+                #         groupby_attribute = self.parser.get_groupby_value()
+                #         # no categorical x attributes
+                #         # x_categorical_attributes, x_categorical_values, x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                #         x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
 
-                        # no x categrical attributes, use a single model to predict.
-                        if not x_categorical_conditions[0]:
-                            if not self.config.get_config()["b_use_gg"]:
-                                # qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
-                                #                         self.config)
-                                where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
-                                # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
+                #         # no x categrical attributes, use a single model to predict.
+                #         if not x_categorical_conditions[0]:
+                #             if not self.config.get_config()["b_use_gg"]:
+                #                 # qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
+                #                 #                         self.config)
+                #                 where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                #                 # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
 
-                                qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
-                                x_header_density = qe_mdn.density_column
-                                [x_lb, x_ub] = [where_conditions[2][x_header_density][i]
-                                                for i in [0, 1]]
-                                print("OK")
-                                predictions = qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                                      n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division
-                            else:
-                                qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
-                                # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
-                                print("OK")
-                                predictions = qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                                              n_jobs=n_jobs, )
+                #                 qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
+                #                 x_header_density = qe_mdn.density_column
+                #                 [x_lb, x_ub] = [where_conditions[2][x_header_density][i]
+                #                                 for i in [0, 1]]
+                #                 print("OK")
+                #                 predictions = qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                #                                                       n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division
+                #             else:
+                #                 qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
+                #                 # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
+                #                 print("OK")
+                #                 predictions = qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
+                #                                               n_jobs=n_jobs, )
 
-                        else:
-                            pass
-                            # print("OK")
-                            # if not self.config.get_config()["b_use_gg"]:
-                            #     # print("x_categorical_values",
-                            #     #       x_categorical_values)
-                            #     # print(",".join(x_categorical_values))
-                            #     filter_dbest = self.parser.get_filter()
-                            #     self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                            #         func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=filter_dbest)  # ",".join(x_categorical_values)
-                            # else:
-                            #     pass
+                #         else:
+                #             pass
+                #             # print("OK")
+                #             # if not self.config.get_config()["b_use_gg"]:
+                #             #     # print("x_categorical_values",
+                #             #     #       x_categorical_values)
+                #             #     # print(",".join(x_categorical_values))
+                #             #     filter_dbest = self.parser.get_filter()
+                #             #     self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
+                #             #         func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=filter_dbest)  # ",".join(x_categorical_values)
+                #             # else:
+                #             #     pass
 
-                    if self.config.get_config()['verbose']:
-                        end = datetime.now()
-                        time_cost = (end - start).total_seconds()
-                        print("Time cost: %.4fs." % time_cost)
-                    print("------------------------")
-                    return predictions
+                if self.config.get_config()['verbose']:
+                    end = datetime.now()
+                    time_cost = (end - start).total_seconds()
+                    print("Time cost: %.4fs." % time_cost)
+                print("------------------------")
+                return predictions
             else:  # process SET query
                 if self.last_config:
                     self.config = self.last_config

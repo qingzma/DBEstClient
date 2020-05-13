@@ -49,10 +49,7 @@ class GenericQueryEngine:
         pass
 
 
-
-
-
-class MdnQueryEngine:
+class MdnQueryEngine(GenericQueryEngine):
     def __init__(self, kdeModelWrapper, config=None):
         # self.n_training_point = kdeModelWrapper.n_sample_point
         self.n_total_point = kdeModelWrapper.n_total_point
@@ -65,21 +62,6 @@ class MdnQueryEngine:
         self.density_column = kdeModelWrapper.x
         self.mdl_name = kdeModelWrapper.mdl
 
-        # if config is None:
-        #     self.config = config = {
-        #         'warehousedir': 'dbestwarehouse',
-        #         'verbose': 'True',
-        #         'b_show_latency': 'True',
-        #         'backend_server': 'None',
-        #         'epsabs': 10.0,
-        #         'epsrel': 0.1,
-        #         'mesh_grid_num': 20,
-        #         'limit': 30,
-        #         'csv_split_char': '|',
-        #         'num_epoch': 400,
-        #         "reg_type": "mdn",
-        #     }
-        # else:
         self.config = config
         self.b_use_integral = config.get_config()["b_use_integral"]
 
@@ -110,7 +92,6 @@ class MdnQueryEngine:
         if self.config['verbose']:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
-            # print("Time spent for approximate AVG: %.4fs." % time_cost)
         return result, time_cost
 
     def approx_sum(self, x_min, x_max, groupby_value):
@@ -119,25 +100,17 @@ class MdnQueryEngine:
         def f_pRx(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=True) \
                 * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
-            # * self.reg.predict(np.array(args))
 
-        # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
         if self.b_use_integral:
             result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
                 0] * float(self.n_total_point[str(int(groupby_value))])
         else:
             result = approx_integrate(
                 f_pRx, x_min, x_max) * float(self.n_total_point[str(int(groupby_value))])
-        # return result
-
-        # result = result / float(self.n_training_point) * float(self.n_total_point)
-
-        # print("Approximate SUM: %.4f." % result)
 
         if self.config['verbose'] and result != None:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
-            # print("Time spent for approximate SUM: %.4fs." % time_cost)
         return result, time_cost
 
     def approx_count(self, x_min, x_max, groupby_value):
@@ -154,11 +127,10 @@ class MdnQueryEngine:
             result = approx_integrate(f_p, x_min, x_max)
         result = result * float(self.n_total_point[str(int(groupby_value))])
 
-        # print("Approximate COUNT: %.4f." % result)
         if self.config['verbose'] and result != None:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
-            # print("Time spent for approximate COUNT: %.4fs." % time_cost)
+
         return result, time_cost
 
     def predict(self, func, x_lb, x_ub, groupby_value):
@@ -172,57 +144,55 @@ class MdnQueryEngine:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
 
-    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, filter_dbest=None):  # result2file=None
-        result2file = self.config.get_config()["result2file"]
-        predictions = {}
-        times = {}
-        if not b_parallel:  # single process implementation
-            for groupby_value in self.groupby_values:
-                if groupby_value == "":
-                    continue
-                print("func, x_lb, x_ub, groupby_value",
-                      func, x_lb, x_ub, groupby_value)
-                pre, t = self.predict(func, x_lb, x_ub, groupby_value)
-                predictions[groupby_value] = pre
-                times[groupby_value] = t
-                # print(groupby_value, pre)
-        else:  # multiple threads implementation
+    # def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, filter_dbest=None):  # result2file=None
+    #     result2file = self.config.get_config()["result2file"]
+    #     predictions = {}
+    #     times = {}
+    #     if not b_parallel:  # single process implementation
+    #         for groupby_value in self.groupby_values:
+    #             if groupby_value == "":
+    #                 continue
+    #             print("func, x_lb, x_ub, groupby_value",
+    #                   func, x_lb, x_ub, groupby_value)
+    #             pre, t = self.predict(func, x_lb, x_ub, groupby_value)
+    #             predictions[groupby_value] = pre
+    #             times[groupby_value] = t
+    #             # print(groupby_value, pre)
+    #     else:  # multiple threads implementation
 
-            width = int(len(self.groupby_values) / n_jobs)
-            subgroups = [self.groupby_values[inde:inde + width]
-                         for inde in range(0, len(self.groupby_values), width)]
-            if len(self.groupby_values) % n_jobs != 0:
-                subgroups[n_jobs - 1] = subgroups[n_jobs - 1] + \
-                    subgroups[n_jobs]
-                del subgroups[-1]
-            # index_in_groups = [[self.groupby_values.index(sgname) for sgname in sgnames] for sgnames in subgroups]
+    #         width = int(len(self.groupby_values) / n_jobs)
+    #         subgroups = [self.groupby_values[inde:inde + width]
+    #                      for inde in range(0, len(self.groupby_values), width)]
+    #         if len(self.groupby_values) % n_jobs != 0:
+    #             subgroups[n_jobs - 1] = subgroups[n_jobs - 1] + \
+    #                 subgroups[n_jobs]
+    #             del subgroups[-1]
+    #         # index_in_groups = [[self.groupby_values.index(sgname) for sgname in sgnames] for sgnames in subgroups]
 
-            instances = []
+    #         instances = []
 
-            with Pool(processes=n_jobs) as pool:
-                for subgroup in subgroups:
-                    i = pool.apply_async(
-                        query_partial_group, (self, subgroup, func, x_lb, x_ub))
-                    instances.append(i)
-                    # print(i.get())
-                    # print(instances[0].get(timeout=1))
-                for i in instances:
-                    result = i.get()
-                    pred = result[0]
-                    t = result[1]
-                    predictions.update(pred)
-                    times.update(t)
-                    # predictions += pred
-                    # times += t
-        if result2file is not None:
-            with open(result2file, 'w') as f:
-                for key in predictions:
-                    f.write(key + "," + str(predictions[key]))
-        return predictions, times
+    #         with Pool(processes=n_jobs) as pool:
+    #             for subgroup in subgroups:
+    #                 i = pool.apply_async(
+    #                     query_partial_group, (self, subgroup, func, x_lb, x_ub))
+    #                 instances.append(i)
+    #                 # print(i.get())
+    #                 # print(instances[0].get(timeout=1))
+    #             for i in instances:
+    #                 result = i.get()
+    #                 pred = result[0]
+    #                 t = result[1]
+    #                 predictions.update(pred)
+    #                 times.update(t)
+    #                 # predictions += pred
+    #                 # times += t
+    #     if result2file is not None:
+    #         with open(result2file, 'w') as f:
+    #             for key in predictions:
+    #                 f.write(key + "," + str(predictions[key]))
+    #     return predictions, times
 
-    def predict_one_pass(self, func: str, x_lb: float, x_ub: float, groups: list = None,  n_jobs: int = 1, filter_dbest=None):
-        # b_print_to_screen=True, n_division: int = 20, result2file: str = None,
-
+    def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, groups: list = None,  n_jobs: int = 1, filter_dbest=None):
         b_print_to_screen = self.config.get_config()["b_print_to_screen"]
         n_division = self.config.get_config()["n_division"]
         result2file = self.config.get_config()["result2file"]
@@ -248,7 +218,8 @@ class MdnQueryEngine:
             # print("self.n_total_point", self.n_total_point)
             if b_print_to_screen:
                 for key in results:
-                    print(",".join(key.split("-")) + "," + str(results[key]))
+                    print(",".join(key.split("-")) +
+                          "," + str(results[key]))
 
             if result2file is not None:
                 with open(result2file, 'w') as f:
@@ -291,7 +262,7 @@ class MdnQueryEngine:
         else:
             instances = []
             results = {}
-            print("n_jobs,n_jobs", n_jobs)
+            # print("n_jobs,", n_jobs)
             n_per_chunk = math.ceil(len(groups)/n_jobs)
             group_chunks = [groups[i:i+n_per_chunk]
                             for i in range(0, len(groups), n_per_chunk)]
@@ -302,7 +273,7 @@ class MdnQueryEngine:
                     # engine = self.enginesContainer[index]
                     # print(sub_group)
                     i = pool.apply_async(
-                        self.predict_one_pass, (func, x_lb, x_ub, sub_group, 1))
+                        self.predicts, (func, x_lb, x_ub, {}, sub_group, 1))
                     instances.append(i)
 
                 for i in instances:
@@ -310,7 +281,8 @@ class MdnQueryEngine:
                     results.update(result)
         if b_print_to_screen:
             for key in results:
-                print(",".join(key.split("-")) + "," + str(results[key]))
+                print(",".join(key.split("-")) +
+                      "," + str(results[key]))
 
         if result2file is not None:
             with open(result2file, 'w') as f:
@@ -537,7 +509,7 @@ class MdnQueryEngineBundle():
             dill.dump(self, f)
 
 
-class MdnQueryEngineXCategorical:
+class MdnQueryEngineXCategorical(GenericQueryEngine):
     """ This class is the query engine for x with categorical attributes
     """
 
@@ -601,7 +573,7 @@ class MdnQueryEngineXCategorical:
         #     kdeModelWrapper)
 
     # result2file=False,n_division=20
-    def predicts(self, func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=None):
+    def predicts(self, func, x_lb, x_ub, x_categorical_conditions, groups: list = None, n_jobs=1, filter_dbest=None):
         # print(self.models.keys())
         # print(x_categorical_conditions)
         x_categorical_conditions[2].pop(self.density_column)
@@ -625,8 +597,8 @@ class MdnQueryEngineXCategorical:
                 "b_print_to_screen", False)
 
             # make the predictions
-            predictions = self.models[key].predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                            n_jobs=n_jobs, filter_dbest=filter_dbest)
+            predictions = self.models[key].predicts(func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions,
+                                                    n_jobs=n_jobs, filter_dbest=filter_dbest)
 
         else:
             # prepare the keys of the models to be called.
