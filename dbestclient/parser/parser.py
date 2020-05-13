@@ -1,4 +1,5 @@
 import re
+import warnings
 from dataclasses import replace
 from os.path import abspath
 
@@ -15,7 +16,7 @@ class DBEstParser:
     parse a single SQL query, of the following form:
 
     - **DDL**
-        >>> CREATE TABLE t_m(y real, x real) 
+        >>> CREATE TABLE t_m(y real, x real)
         >>> FROM tbl
         >>> [GROUP BY z]
         >>> [SIZE 0.01]
@@ -139,13 +140,13 @@ class DBEstParser:
     def get_dml_where_categorical_equal_and_range(self):
         """ get the equal and range selection for categorical attributes.
 
-        For example, 
+        For example,
 
-        321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 produces 
+        321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 produces
 
         ['x2', 'x3'],
 
-        ["'HaHaHa'", "''"], 
+        ["'HaHaHa'", "''"],
 
         {'X1': ['321', '1123', False, False], 'x4': [None, 5.0, False, False]}
 
@@ -184,13 +185,13 @@ class DBEstParser:
                                 left = unix_timestamp(splits[0].replace(
                                     "unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', ''))
                             else:
-                                left = splits[0]
+                                left = float(splits[0])
 
                             if "unix_timestamp" in splits[2]:
                                 right = unix_timestamp(splits[2].replace(
                                     "unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', ''))
                             else:
-                                right = splits[2]
+                                right = float(splits[2])
                             cond = [left, right]
                             key = splits[1]
 
@@ -416,30 +417,73 @@ class DBEstParser:
         else:
             return False
 
-    # def get_filter(self):
-    #     x_between_and = self.get_where_x_and_range()
-    #     gbs = self.get_groupby_value()
+    def get_query_type(self):
+        item = self.parsed.tokens
+        if item[0].ttype is Keyword and item[0].normalized == "SET":
+            return "set"
+        elif item[0].ttype is DDL:
+            return "ddl"
+        elif item[0].ttype is DML:
+            return "dml"
+        else:
+            warnings.warn("Unexpected SQL:")
 
-    #     # print("x_between_and", x_between_and)
-    #     if x_between_and[0] not in gbs:
-    #         return None
-    #     else:
-    #         try:
-    #             return [float(item) for item in x_between_and[1:]]
-    #         except ValueError:
-    #             # check if timestamp exists
-    #             if "unix_timestamp" in x_between_and[1]:
-    #                 # print([unix_timestamp(item.replace("unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]])
-    #                 return [unix_timestamp(item.replace("unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]]
-    #             else:
-    #                 raise ValueError("Error parse SQL.")
+    def get_set_variable_value(self):
+        item = self.parsed.tokens
+        if item[0].ttype is Keyword and item[0].normalized == "SET":
+            for comparison in item:
+                # print("comparison", comparison)
+                if isinstance(comparison, sql.Comparison) or isinstance(comparison, sql.IdentifierList):
+                    # print("SQL contain comparison.")
+                    splits = comparison.value.split("=")
+                    # print("splits[1]", splits[1])
+                    if any(i in splits[1] for i in ["'", '"']):
+                        # value is a string
+                        # print("value is string")
+                        splits[1] = splits[1].replace("'", "").replace('"', '')
+                        # print("splits[1] BEFORE", splits[1])
+                        if splits[1].lower() == "true":
+                            splits[1] = True
+                        if splits[1].lower() == "false":
+                            splits[1] = False
+
+                        # print("splits[1]", splits[1])
+                    elif "." in splits[1]:
+                        splits[1] = float(splits[1])
+                    else:
+                        splits[1] = int(float(splits[1]))
+                    return splits[0], splits[1]
+        warnings.warn(
+            "error parsing the SQL. Possible solution is set val='True' instead of set val=True")
+        return
+
+        # def get_filter(self):
+        #     x_between_and = self.get_where_x_and_range()
+        #     gbs = self.get_groupby_value()
+
+        #     # print("x_between_and", x_between_and)
+        #     if x_between_and[0] not in gbs:
+        #         return None
+        #     else:
+        #         try:
+        #             return [float(item) for item in x_between_and[1:]]
+        #         except ValueError:
+        #             # check if timestamp exists
+        #             if "unix_timestamp" in x_between_and[1]:
+        #                 # print([unix_timestamp(item.replace("unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]])
+        #                 return [unix_timestamp(item.replace("unix_timestamp(", "").replace(")", "").replace("'", "").replace('"', '')) for item in x_between_and[1:]]
+        #             else:
+        #                 raise ValueError("Error parse SQL.")
 
 
 if __name__ == "__main__":
     parser = DBEstParser()
+    # ---------------------------------------------------------------------------------------------------------------------------------
+    # DDL
     # parser.parse(
-    #     "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1 ")
+    #     "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1")
 
+    # print(parser.get_query_type())
     # if parser.if_contain_groupby():
     #     print("yes, group by")
     #     print(parser.get_groupby_value())
@@ -459,30 +503,42 @@ if __name__ == "__main__":
     # parser.parse(
     #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
     # print(parser.if_contain_scaling_factor())
-    parser.parse(
-        "select z, count ( y ) from t_m where x BETWEEN  unix_timestamp('2019-02-28T16:00:00.000Z') and unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
-    parser.parse(
-        "select z, count ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
-    print(parser.if_contain_scaling_factor())
-    if parser.if_contain_groupby():
-        print("yes, group by")
-        print(parser.get_groupby_value())
-    else:
-        print("no group by")
-    if not parser.if_ddl():
-        print("DML")
-        print(parser.get_dml_aggregate_function_and_variable())
 
-    if parser.if_where_exists():
-        print("where exists!")
-        # print(parser.get_where_x_and_range())
-        # print(parser.get_dml_where_categorical_equal_and_range())
+    # ---------------------------------------------------------------------------------------------------------------------------------
+    # DML
+    # parser.parse(
+    #     "select z, count ( y ) from t_m where x BETWEEN  unix_timestamp('2019-02-28T16:00:00.000Z') and unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+    # parser.parse(
+    #     "select z, count ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+    # print(parser.if_contain_scaling_factor())
+    # if parser.if_contain_groupby():
+    #     print("yes, group by")
+    #     print(parser.get_groupby_value())
+    # else:
+    #     print("no group by")
+    # if not parser.if_ddl():
+    #     print("DML")
+    #     print(parser.get_dml_aggregate_function_and_variable())
 
-    print("method, ", parser.get_sampling_method())
+    # if parser.if_where_exists():
+    #     print("where exists!")
+    #     # print(parser.get_where_x_and_range())
+    #     # print(parser.get_dml_where_categorical_equal_and_range())
 
-    print("scaling factor ", parser.get_scaling_method())
+    # print("method, ", parser.get_sampling_method())
 
-    # print(parser.get_where_x_and_range())
-    print(parser.get_dml_where_categorical_equal_and_range())
+    # print("scaling factor ", parser.get_scaling_method())
 
-    # print(parser.get_filter())
+    # # print(parser.get_where_x_and_range())
+    # print(parser.get_dml_where_categorical_equal_and_range())
+
+    # print(parser.get_query_type())
+
+    # # print(parser.get_filter())
+
+    # ---------------------------------------------------------------------------------------------------------------------------------
+    # set SQL
+    parser.parse("set AAA=5;")
+    print(parser.parsed)
+    print(parser.get_query_type())
+    print((parser.get_set_variable_value()))

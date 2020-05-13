@@ -4,19 +4,19 @@ from cmd import Cmd
 
 from dbestclient.executor.executor import SqlExecutor
 
-config = {
-    'warehousedir': 'dbestwarehouse',
-    'verbose': 'True',
-    'b_show_latency': 'True',
-    'backend_server': 'None',
-    'epsabs': 10.0,
-    'epsrel': 0.1,
-    'mesh_grid_num': 20,
-    'limit': 30,
-    'csv_split_char': ',',
-    "num_epoch": 400,
-    "reg_type": "mdn",
-}
+# config = {
+#     'warehousedir': 'dbestwarehouse',
+#     'verbose': 'True',
+#     'b_show_latency': 'True',
+#     'backend_server': 'None',
+#     'epsabs': 10.0,
+#     'epsrel': 0.1,
+#     'mesh_grid_num': 20,
+#     'limit': 30,
+#     'csv_split_char': ',',
+#     "num_epoch": 400,
+#     "reg_type": "mdn",
+# }
 
 
 class DBEstPrompt(Cmd):

@@ -31,9 +31,9 @@ class DbestConfig:
             'b_show_latency': True,
             "b_print_to_screen": True,
             "reg_type": "mdn",
-            "density_type": "mdn",
+            "density_type": "mdn",  # qreg
             'backend_server': 'None',
-            "n_jobs": 4,
+            # "n_jobs": 4,
             "b_grid_search": True,
             "device": "cpu",
             # "b_reg_mean":'True',
@@ -42,6 +42,7 @@ class DbestConfig:
             'n_total_point': None,
             'scaling_factor': None,
             'csv_split_char': ',',
+            'table_header': None,
 
             "accept_filter": False,
             # MDN related parameters
@@ -51,7 +52,7 @@ class DbestConfig:
             "n_per_gg": 10,
             "result2file": None,
             "n_mdn_layer_node": 10,
-            "encoding": "binary",  # one-hot
+            "encoding": "binary",  # one-hot, embedding
 
             # integral related parameters
             "b_use_integral": False,
@@ -97,8 +98,7 @@ if __name__ == "__main__":
     print(conf.get_config()["n_per_gg"])
     new_conf = conf.copy()
 
-    conf.set_parameter("n_per_gg",20)
+    conf.set_parameter("n_per_gg", 20)
 
     print(conf.get_config()["n_per_gg"])
     print(new_conf.get_config()["n_per_gg"])
-

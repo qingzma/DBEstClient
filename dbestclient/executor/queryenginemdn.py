@@ -32,7 +32,7 @@ from dbestclient.ml.modeltrainer import KdeModelTrainer
 
 
 class MdnQueryEngine:
-    def __init__(self, kdeModelWrapper, config=None, b_use_integral=False):
+    def __init__(self, kdeModelWrapper, config=None):
         # self.n_training_point = kdeModelWrapper.n_sample_point
         self.n_total_point = kdeModelWrapper.n_total_point
         self.reg = kdeModelWrapper.reg
@@ -42,6 +42,7 @@ class MdnQueryEngine:
         self.groupby_attribute = kdeModelWrapper.groupby_attribute
         self.groupby_values = kdeModelWrapper.groupby_values
         self.density_column = kdeModelWrapper.x
+        self.mdl_name = kdeModelWrapper.mdl
 
         # if config is None:
         #     self.config = config = {
@@ -65,7 +66,7 @@ class MdnQueryEngine:
         start = datetime.now()
 
         def f_pRx(*args):
-            # print(self.cregression.predict(x))
+            print("asdfksd", np.array([[args[0], groupby_value]]))
             return self.kde.predict([[groupby_value]], args[0], b_plot=False) \
                 * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
 
@@ -151,7 +152,7 @@ class MdnQueryEngine:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
 
-    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, ):  # result2file=None
+    def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, filter_dbest=None):  # result2file=None
         result2file = self.config.get_config()["result2file"]
         predictions = {}
         times = {}
@@ -251,7 +252,7 @@ class MdnQueryEngine:
                 # print("n-d")
                 scaling_factor = np.array([self.n_total_point[key]
                                            for key in groups])
-            print("self.n_total_point", self.n_total_point)
+            # print("self.n_total_point", self.n_total_point)
             pre_density, pre_reg, step = prepare_reg_density_data(
                 self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
 
@@ -268,6 +269,7 @@ class MdnQueryEngine:
         else:
             instances = []
             results = {}
+            print("n_jobs,n_jobs", n_jobs)
             n_per_chunk = math.ceil(len(groups)/n_jobs)
             group_chunks = [groups[i:i+n_per_chunk]
                             for i in range(0, len(groups), n_per_chunk)]
@@ -278,7 +280,7 @@ class MdnQueryEngine:
                     # engine = self.enginesContainer[index]
                     # print(sub_group)
                     i = pool.apply_async(
-                        self.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
+                        self.predict_one_pass, (func, x_lb, x_ub, sub_group, 1))
                     instances.append(i)
 
                 for i in instances:
@@ -294,8 +296,12 @@ class MdnQueryEngine:
                     f.write(str(key) + "," + str(results[key]) + "\n")
         return results
 
-    # def set_parameter(self, key, value):
-    #     self.config.get_config()[key] = value
+    def serialize2warehouse(self, warehouse):
+        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+            dill.dump(self, f)
+
+    def init_pickle_file_name(self):
+        return self.mdl_name+".pkl"
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
@@ -578,7 +584,7 @@ class MdnQueryEngineXCategorical:
         # print(x_categorical_conditions)
         x_categorical_conditions[2].pop(self.density_column)
         # configuration-related parameters.
-        n_jobs = self.config.get_config()["n_jobs"]
+        # n_jobs = self.config.get_config()["n_jobs"]
 
         # check the condition when only one model is involved.
         cols = [item.lower() for item in x_categorical_conditions[0]]

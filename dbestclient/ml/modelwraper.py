@@ -135,9 +135,10 @@ class KdeModelWrapper:
         self.init_pickle_file_name()
         # self.pickle_string = None
 
-    def load_model(self, density, reg=None):
+    def load_model(self, mdl_name, density, reg=None):
         self.reg = reg
         self.density = density
+        self.mdl = mdl_name
 
     def init_pickle_file_name(self):
         self.pickle_file_name = self.mdl

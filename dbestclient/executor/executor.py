@@ -6,6 +6,7 @@
 
 import os
 import os.path
+import warnings
 from datetime import datetime
 
 import dill
@@ -22,7 +23,7 @@ from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
 from dbestclient.ml.modelwraper import (GroupByModelWrapper,
                                         get_pickle_file_name)
 from dbestclient.parser.parser import DBEstParser
-from dbestclient.tools.date import unix_timestamp
+# from dbestclient.tools.date import unix_timestamp
 from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
@@ -37,10 +38,11 @@ class SqlExecutor:
     def __init__(self):
         self.parser = None
         self.config = DbestConfig()
+        self.last_config = None
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
         self.save_sample = False
-        self.table_header = None
+        # self.table_header = None
         self.n_total_records = None
         self.use_kde = True
 
@@ -99,11 +101,15 @@ class SqlExecutor:
 
         # execute the query
         if self.parser.if_nested_query():
-            print("Nested query is currently not supported!")
+            warnings.warn("Nested query is currently not supported!")
         else:
-            if self.parser.if_ddl():
+            sql_type = self.parser.get_query_type()
+            if sql_type == "ddl":
                 # initialize the configure for each model creation.
-                self.config = DbestConfig()
+                if self.last_config:
+                    self.config = self.last_config
+                else:
+                    self.config = DbestConfig()
                 # DDL, create the model as requested
                 mdl = self.parser.get_ddl_model_name()
                 tbl = self.parser.get_from_name()
@@ -128,14 +134,19 @@ class SqlExecutor:
 
                 ratio = self.parser.get_sampling_ratio()
                 method = self.parser.get_sampling_method()
+                table_header = self.config.get_config()['table_header']
+                # print("table_header", table_header)
+                if table_header is not None:
+                    table_header = table_header.split(
+                        self.config.get_config()['csv_split_char'])
 
                 # make samples
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     sampler = DBEstSampling(
-                        headers=self.table_header, usecols={"y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": None})
+                        headers=table_header, usecols={"y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": None})
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
-                    sampler = DBEstSampling(headers=self.table_header, usecols={
+                    sampler = DBEstSampling(headers=table_header, usecols={
                                             "y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": groupby_attribute})
 
                 # print(self.config)
@@ -198,7 +209,7 @@ class SqlExecutor:
                         n_total_point = get_group_count_from_table(
                             original_data_file, groupby_attribute, sep=self.config.get_config()[
                                 'csv_split_char'],
-                            headers=self.table_header)
+                            headers=table_header)
 
                         n_sample_point = get_group_count_from_df(
                             xys, groupby_attribute)
@@ -251,13 +262,16 @@ class SqlExecutor:
                                             n_total_point.keys()),
                                         n_total_point=n_total_point,
                                         x_min_value=-np.inf, x_max_value=np.inf,
-                                        config=self.config, device=device).fit_from_df(
+                                        config=self.config.copy(), device=device).fit_from_df(
                                         xys["data"], encoding=self.config.get_config()["encoding"], network_size="large", b_grid_search=self.config.get_config()["b_grid_search"], )
 
-                                    kdeModelWrapper.serialize2warehouse(
+                                    qe_mdn = MdnQueryEngine(
+                                        kdeModelWrapper, config=self.config.copy())
+                                    qe_mdn.serialize2warehouse(
                                         self.config.get_config()['warehousedir'])
+                                    # kdeModelWrapper.serialize2warehouse()
                                     self.model_catalog.add_model_wrapper(
-                                        kdeModelWrapper)
+                                        qe_mdn)
 
                                 else:
                                     # print("n_total_point ", n_total_point)
@@ -292,7 +306,10 @@ class SqlExecutor:
                     print("time cost: " + str(t) + "s.")
                 print("------------------------")
 
-            else:
+                # rest config
+                self.last_config = None
+
+            elif sql_type == "dml":
                 # DML, provide the prediction using models
                 mdl = self.parser.get_from_name()
                 gb_to_print, [
@@ -311,7 +328,7 @@ class SqlExecutor:
                                     for i in [0, 1]]
                     # print("filter_dbest", filter_dbest)
                     model.predicts(func, x_lb, x_ub, where_conditions,
-                                   n_jobs=1, filter_dbest=filter_dbest)
+                                   n_jobs=n_jobs, filter_dbest=filter_dbest)
 
                     # try:
                     #     x_lb = float(x_lb)
@@ -415,34 +432,54 @@ class SqlExecutor:
                         time_cost = (end - start).total_seconds()
                         print("Time cost: %.4fs." % time_cost)
                     print("------------------------")
+            else:  # process SET query
+                if self.last_config:
+                    self.config = self.last_config
+                else:
+                    self.config = DbestConfig()
+                try:
+                    key, value = self.parser.get_set_variable_value()
+                    if key in self.config.get_config():
+                        self.config.get_config()[key] = value
+                        print("OK, " + key + " is updated.")
+                    else:
+                        warnings.warn(
+                            "Variable does not exist in the configuration! Self defined variable is not supported yet.")
+                except TypeError:
+                    # self.parser.get_set_variable_value() does not return correctly
+                    print("Parameter is not changed. Please check your SQL!")
 
-    def set_table_headers(self, strs, split_char=","):
-        if strs is None:
-            self.table_header = None
-        else:
-            self.table_header = strs.split(split_char)
+                # save the config
+                self.last_config = self.config
+
+    # def set_table_headers(self, strs):
+    #     if strs is None:
+    #         self.table_header = None
+    #     else:
+    #         self.table_header = strs.split(
+    #             self.config.get_config()['csv_split_char'])
 
     def set_table_counts(self, dic):
         self.n_total_records = dic
 
 
 if __name__ == "__main__":
-    config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-        'verbose': 'True',
-        'b_show_latency': 'True',
-        'backend_server': 'None',
-        'csv_split_char': ',',
-        "epsabs": 10.0,
-        "epsrel": 0.1,
-        "mesh_grid_num": 20,
-        "limit": 30,
-        # "b_reg_mean":'True',
-        "num_epoch": 400,
-        "reg_type": "mdn",
-        "density_type": "density_type",
-        "num_gaussians": 4,
-    }
+    # config = {
+    #     'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
+    #     'verbose': 'True',
+    #     'b_show_latency': 'True',
+    #     'backend_server': 'None',
+    #     'csv_split_char': ',',
+    #     "epsabs": 10.0,
+    #     "epsrel": 0.1,
+    #     "mesh_grid_num": 20,
+    #     "limit": 30,
+    #     # "b_reg_mean":'True',
+    #     "num_epoch": 400,
+    #     "reg_type": "mdn",
+    #     "density_type": "density_type",
+    #     "num_gaussians": 4,
+    # }
     sqlExecutor = SqlExecutor()
     # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
     # sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")

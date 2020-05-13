@@ -49,6 +49,9 @@ class DBEstSampling:
             #     self.sample = pd.read_csv(file)
             #     self.n_sample_point = len(self.sample)
             #     self.n_total_point = self.n_sample_point
+
+            # delete the headers after models are trained, to save sapce.
+            self.headers = None
         else:
             print("other sampling methods are not implemented, abort.")
 
