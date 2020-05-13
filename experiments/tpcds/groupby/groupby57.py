@@ -29,8 +29,7 @@ def run():
 
 def build_models(sqlExecutor):
     # 10k
-    sqlExecutor.execute(
-        "create table ss40g(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600 scale data num_of_points2.csv", device='cpu', n_jobs=1)  # ,ss_quantity
+    # sqlExecutor.execute("create table ss40g(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600 scale data num_of_points2.csv", device='cpu', n_jobs=1)  # ,ss_quantity
 
     sqlExecutor.execute(
         "create table ss40g_no_categorical(ss_sales_price real, ss_sold_date_sk real,) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600 scale data num_of_points2.csv", device='cpu', n_jobs=1)

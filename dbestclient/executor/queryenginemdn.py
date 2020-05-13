@@ -31,6 +31,27 @@ from dbestclient.ml.modeltrainer import KdeModelTrainer
 #           "for more info.)")
 
 
+class GenericQueryEngine:
+    def __init__(self):
+        self.mdl_name = None
+
+    def serialize2warehouse(self, warehouse):
+        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+            dill.dump(self, f)
+
+    def init_pickle_file_name(self):
+        return self.mdl_name+".pkl"
+
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict):
+        pass
+
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, groups: list = None, n_jobs=1, filter_dbest=None):
+        pass
+
+
+
+
+
 class MdnQueryEngine:
     def __init__(self, kdeModelWrapper, config=None):
         # self.n_training_point = kdeModelWrapper.n_sample_point
@@ -66,7 +87,6 @@ class MdnQueryEngine:
         start = datetime.now()
 
         def f_pRx(*args):
-            print("asdfksd", np.array([[args[0], groupby_value]]))
             return self.kde.predict([[groupby_value]], args[0], b_plot=False) \
                 * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
 
@@ -160,6 +180,8 @@ class MdnQueryEngine:
             for groupby_value in self.groupby_values:
                 if groupby_value == "":
                     continue
+                print("func, x_lb, x_ub, groupby_value",
+                      func, x_lb, x_ub, groupby_value)
                 pre, t = self.predict(func, x_lb, x_ub, groupby_value)
                 predictions[groupby_value] = pre
                 times[groupby_value] = t
@@ -633,7 +655,7 @@ class MdnQueryEngineXCategorical:
                                                                  n_jobs=n_jobs, filter_dbest=filter_dbest)
                         predictions = predictions + Counter(pred)
                         keys_list.append(key)
-
+            predictions = dict(predictions)
         # print("preditions,", predictions)
 
         if self.config.get_config()["b_print_to_screen"]:
@@ -648,6 +670,8 @@ class MdnQueryEngineXCategorical:
             # print(predictions)
 
             # print("need to get predictions from multiple models.")
+
+        return predictions
 
     def serialize2warehouse(self, warehouse):
         with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
@@ -677,49 +701,3 @@ def meet_condition(value: str, condition):
             b2 = True if value < float(condition[1]) else False
 
     return b1 and b2
-
-
-# if __name__ == "__main__":
-#     print(meet_condition("2", [0.0, 1, False, False]))
-    #     config = {
-    #         'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-    #         'verbose': 'True',
-    #         'b_show_latency': 'True',
-    #         'backend_server': 'None',
-    #         'csv_split_char': ',',
-    #         "epsabs": 10.0,
-    #         "epsrel": 0.1,
-    #         "mesh_grid_num": 20,
-    #         "limit": 30,
-    #         # "b_reg_mean":'True',
-    #         "num_epoch": 400,
-    #         "reg_type": "mdn",
-    #         "density_type": "density_type",
-    #         "num_gaussians": 4,
-    #     }
-
-    #     headers = ["ss_sold_date_sk", "ss_sold_time_sk", "ss_item_sk", "ss_customer_sk", "ss_cdemo_sk", "ss_hdemo_sk",
-    #                "ss_addr_sk", "ss_store_sk", "ss_promo_sk", "ss_ticket_number", "ss_quantity", "ss_wholesale_cost",
-    #                "ss_list_price", "ss_sales_price", "ss_ext_discount_amt", "ss_ext_sales_price",
-    #                "ss_ext_wholesale_cost", "ss_ext_list_price", "ss_ext_tax", "ss_coupon_amt", "ss_net_paid",
-    #                "ss_net_paid_inc_tax", "ss_net_profit", "none"]
-    #     groupby_attribute = "ss_store_sk"
-    #     xheader = "ss_wholesale_cost"
-    #     yheader = "ss_list_price"
-
-    #     sampler = DBEstSampling(headers=headers, usecols=[
-    #         xheader, yheader, groupby_attribute])
-    #     total_count = {'total': 2879987999}
-    #     original_data_file = "/data/tpcds/40G/ss_600k_headers.csv"
-
-    #     sampler.make_sample(original_data_file, 60000, "uniform", split_char="|",
-    #                         num_total_records=total_count)
-    #     xyzs = sampler.getyx(yheader, xheader, groupby=groupby_attribute)
-    #     n_total_point = get_group_count_from_summary_file(
-    #         config['warehousedir'] + "/num_of_points57.txt", sep=',')
-
-    #     bundles = MdnQueryEngineBundle(config=config, device="cpu")
-    #     bundles.fit(xyzs, groupby_attribute, n_total_point, "mdl", "tbl",
-    #                 xheader, yheader, n_per_group=30, b_grid_search=False,)
-
-    #     bundles.predicts("count", 2451119, 2451483)

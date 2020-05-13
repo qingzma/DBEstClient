@@ -133,7 +133,7 @@ class ReservoirSampling:
                 # print(self.sampledf)
                 # print(self.sampledf["tenantid"])
                 # print(usecols)
-                print("usecols_list", usecols_list)
+                # print("usecols_list", usecols_list)
 
                 self.sampledf = self.sampledf[usecols_list]
                 # print(self.sampledf)

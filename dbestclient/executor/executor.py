@@ -310,6 +310,7 @@ class SqlExecutor:
                 self.last_config = None
 
             elif sql_type == "dml":
+                predictions = None
                 # DML, provide the prediction using models
                 mdl = self.parser.get_from_name()
                 gb_to_print, [
@@ -326,22 +327,13 @@ class SqlExecutor:
                     filter_dbest = dict(where_conditions[2])
                     filter_dbest = [filter_dbest[next(iter(filter_dbest))][i]
                                     for i in [0, 1]]
-                    # print("filter_dbest", filter_dbest)
-                    model.predicts(func, x_lb, x_ub, where_conditions,
-                                   n_jobs=n_jobs, filter_dbest=filter_dbest)
-
-                    # try:
-                    #     x_lb = float(x_lb)
-                    #     x_ub = float(x_ub)
-                    # except ValueError:
-                    #     # check if timestamp exists
-                    #     if "unix_timestamp" in x_lb:
-                    #         x_lb = unix_timestamp(x_lb.replace("unix_timestamp(", "").replace(
-                    #             ")", "").replace("'", "").replace('"', ''))
-                    #         x_ub = unix_timestamp(x_ub.replace("unix_timestamp(", "").replace(
-                    #             ")", "").replace("'", "").replace('"', ''))
-                    #     else:
-                    #         raise ValueError("Error parse SQL.")
+                    print("where_conditions", where_conditions)
+                    print("filter_dbest", filter_dbest)
+                    print("type of model,", type(model))
+                    # predictions = model.predicts(func, x_lb, x_ub, where_conditions,
+                    #                              n_jobs=n_jobs, filter_dbest=filter_dbest)
+                    predictions = model.predict_one_pass(
+                        func, x_lb, x_ub, n_jobs=n_jobs)
 
                 else:
                     print(
@@ -394,7 +386,7 @@ class SqlExecutor:
 
                     else:  # use mdn models to give the predictions.
                         start = datetime.now()
-                        predictions = {}
+                        # predictions = {}
                         groupby_attribute = self.parser.get_groupby_value()
                         # no categorical x attributes
                         # x_categorical_attributes, x_categorical_values, x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
@@ -403,17 +395,25 @@ class SqlExecutor:
                         # no x categrical attributes, use a single model to predict.
                         if not x_categorical_conditions[0]:
                             if not self.config.get_config()["b_use_gg"]:
-                                qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
-                                                        self.config)
+                                # qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
+                                #                         self.config)
+                                where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                                # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
+
+                                qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
+                                x_header_density = qe_mdn.density_column
+                                [x_lb, x_ub] = [where_conditions[2][x_header_density][i]
+                                                for i in [0, 1]]
                                 print("OK")
-                                qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                                                        n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division
+                                predictions = qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
+                                                                      n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division
                             else:
                                 qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
                                 # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
                                 print("OK")
-                                qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                                                n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division, b_print_to_screen=True
+                                predictions = qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
+                                                              n_jobs=n_jobs, )
+
                         else:
                             pass
                             # print("OK")
@@ -432,6 +432,7 @@ class SqlExecutor:
                         time_cost = (end - start).total_seconds()
                         print("Time cost: %.4fs." % time_cost)
                     print("------------------------")
+                    return predictions
             else:  # process SET query
                 if self.last_config:
                     self.config = self.last_config
@@ -452,74 +453,5 @@ class SqlExecutor:
                 # save the config
                 self.last_config = self.config
 
-    # def set_table_headers(self, strs):
-    #     if strs is None:
-    #         self.table_header = None
-    #     else:
-    #         self.table_header = strs.split(
-    #             self.config.get_config()['csv_split_char'])
-
     def set_table_counts(self, dic):
         self.n_total_records = dic
-
-
-if __name__ == "__main__":
-    # config = {
-    #     'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-    #     'verbose': 'True',
-    #     'b_show_latency': 'True',
-    #     'backend_server': 'None',
-    #     'csv_split_char': ',',
-    #     "epsabs": 10.0,
-    #     "epsrel": 0.1,
-    #     "mesh_grid_num": 20,
-    #     "limit": 30,
-    #     # "b_reg_mean":'True',
-    #     "num_epoch": 400,
-    #     "reg_type": "mdn",
-    #     "density_type": "density_type",
-    #     "num_gaussians": 4,
-    # }
-    sqlExecutor = SqlExecutor()
-    # sqlExecutor.execute("create table mdl(pm25 real, PRES real) from pm25.csv group by z method uniform size 0.1")
-    # sqlExecutor.execute("create table pm25_qreg_2k(pm25 real, PRES real) from pm25_torch_2k.csv method uniform size 2000")
-    # sqlExecutor.execute(
-    #     "select avg(pm25)  from pm25_qreg_2k where PRES between 1010 and 1020")
-
-    # sqlExecutor.execute("create table pm25_torch_2k(pm25 real, PRES real) from pm25.csv method uniform size 2000")
-    # sqlExecutor.execute(
-    #     "select sum(pm25)  from pm25_torch_2k where PRES between 1000 and 1040")
-    # sqlExecutor.execute(
-    #     "select avg(pm25)  from mdl1 where PRES between 1000 and 1010")
-    # print(sqlExecutor.parser.parsed)
-
-    sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
-                                  "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
-                                  "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
-                                  "ss_ext_wholesale_cost,ss_ext_list_price,ss_ext_tax,ss_coupon_amt,ss_net_paid," +
-                                  "ss_net_paid_inc_tax,ss_net_profit,none")
-    # # sqlExecutor.set_table_counts({"total":10000})
-    # sqlExecutor.execute("create table ss_9k_ss_list_price_ss_wholesale_cost(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' method uniform size 9000")
-    # sqlExecutor.execute("select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost where ss_wholesale_cost between 1 and 10")
-    #
-    # sqlExecutor.execute(
-    #     "create table ss_9k_ss_list_price_ss_wholesale_cost1(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
-    # sqlExecutor.execute(
-    #     "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost1 where ss_wholesale_cost between 1 and 10")
-
-    # sqlExecutor.set_table_counts({'total':2880404})
-    # sqlExecutor.execute(
-    #     "create table ss_9k_ss_list_price_ss_wholesale_cost2(ss_list_price float, ss_wholesale_cost float) from ss_9k_ss_list_price_ss_wholesale_cost.csv method uniform size 9000")
-    # sqlExecutor.execute(
-    #     "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost2 where ss_wholesale_cost between 1 and 10")
-
-    sqlExecutor.set_table_counts({'total': 2879987999})
-    sqlExecutor.execute(
-        "create table ss_40g_ss_list_price_ss_wholesale_cost(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/40G/ss_9k_ss_list_price_ss_wholesale_cost.csv' method uniform size 115203420")
-    sqlExecutor.execute(
-        "select count(ss_list_price) from ss_9k_ss_list_price_ss_wholesale_cost2 where ss_wholesale_cost between 1 and 10")
-
-    # sqlExecutor.execute(
-    #     "create table ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk(ss_list_price float, ss_wholesale_cost float) from '/data/tpcds/1G/store_sales.dat' group by ss_store_sk method uniform size 2000")
-    # sqlExecutor.execute(
-    #     "select avg(ss_list_price) from ss_10k_ss_list_price_ss_wholesale_cost_gb_ss_store_sk where ss_wholesale_cost between 1 and 10 group by ss_store_sk")
