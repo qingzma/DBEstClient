@@ -9,6 +9,8 @@ import itertools as it
 import math
 import random
 import sys
+from concurrent import futures
+from multiprocessing import Pool
 from os import remove
 from os.path import abspath
 
@@ -130,6 +132,33 @@ def sample(pi, sigma, mu):
     for i, idx in enumerate(pis):
         sample[i] = sample[i].mul(sigma[i, idx]).add(mu[i, idx])
     return sample
+
+
+def gaussion_predict(weights: list, mus: list, sigmas: list, xs: list, n_jobs=1):
+    if n_jobs == 1:
+        result = np.array([np.multiply(stats.norm(mus, sigmas).pdf(x),
+                                       weights).sum(axis=1).tolist() for x in xs]).transpose()
+    else:
+        with Pool(processes=n_jobs) as pool:
+            instances = []
+            results = []
+            for x in xs:
+                i = pool.apply_async(
+                    gaussion_predict, (weights, mus, sigmas, [x], 1))
+                instances.append(i)
+            for i in instances:
+                result = i.get()
+                # print("partial result", result)
+                results.append(result)
+            result = np.concatenate(results, axis=1)
+
+            # with futures.ThreadPoolExecutor() as executor:
+            #     for x in xs:
+            #         future = executor.submit(
+            #             gaussion_predict, weights, mus, sigmas, [x], 1)
+            #         results.append(future.result())
+            # result = np.concatenate(results, axis=1)
+    return result
 
 
 def gm(weights: list, mus: list, vars: list, x: list, b_plot=False, n_division=100):
@@ -437,6 +466,7 @@ class RegMdnGroupBy():
         Returns:
             list: the predictions.
         """
+        torch.set_num_threads(8)
         # check input data type, and convert to np.array
         if type(z_group) is list:
             z_group = np.array(z_group)
@@ -1207,6 +1237,7 @@ class KdeMdn:
         Returns:
             list: the predictions.
         """
+        torch.set_num_threads(8)
         # convert group zs from string to int
         if self.encoding == "no":
             convert2float = True
@@ -1246,14 +1277,34 @@ class KdeMdn:
         sigmas = sigmas.cpu()
         mus = mus.cpu()
 
+        # print("mus,", mus)
+        # print("pis,", pis)
+        # print("sigmas,", sigmas)
+
         mus = mus.detach().numpy().reshape(len(zs), -1)  # [0]
         pis = pis.detach().numpy()  # [0]  # .reshape(-1,2)
         sigmas = sigmas.detach().numpy().reshape(
             len(sigmas), -1)  # [0]
+        # print("mus,", mus)
+        # print("pis,", pis)
+        # print("sigmas,", sigmas)
+        # with open('/home/u1796377/Desktop/tmp/mus.pkl', 'wb') as f:
+        #     dill.dump(mus, f)
+        # with open('/home/u1796377/Desktop/tmp/pis.pkl', 'wb') as f:
+        #     dill.dump(pis, f)
+        # with open('/home/u1796377/Desktop/tmp/sigmas.pkl', 'wb') as f:
+        #     dill.dump(sigmas, f)
+        # with open('/home/u1796377/Desktop/tmp/xs.pkl', 'wb') as f:
+        #     dill.dump(xs, f)
 
         if not b_plot:
-            result = [gm(pi, mu,
-                         sigma, xs, b_plot=False) for pi, mu, sigma in zip(pis, mus, sigmas)]
+            # result = [gm(pi, mu,
+            #              sigma, xs, b_plot=False) for pi, mu, sigma in zip(pis, mus, sigmas)]
+            # print("result", result, type(result))
+            result = np.array([np.multiply(stats.norm(mus, sigmas).pdf(x),
+                                           pis).sum(axis=1).tolist() for x in xs]).transpose()
+            # print("result", result, type(result))
+            # raise Exception
             # scale up the probability, due to normalization of the x axis.
             result = result / self.widthx * 2
             return result

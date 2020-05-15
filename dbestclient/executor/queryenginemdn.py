@@ -248,6 +248,8 @@ class MdnQueryEngine(GenericQueryEngine):
             # print("self.n_total_point", self.n_total_point)
             pre_density, pre_reg, step = prepare_reg_density_data(
                 self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
+            # print("pre_density, pre_reg",pre_density,)
+            # print(pre_reg)
 
             if func.lower() == "count":
                 preds = approx_count(pre_density, step)

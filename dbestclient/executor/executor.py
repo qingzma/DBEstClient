@@ -323,6 +323,7 @@ class SqlExecutor:
                     model = self.model_catalog.model_catalog[mdl + '.pkl']
                     x_header_density = model.density_column
 
+                    # print("where_conditions", where_conditions)
                     [x_lb, x_ub] = [where_conditions[2][x_header_density][i]
                                     for i in [0, 1]]
                     filter_dbest = dict(where_conditions[2])
