@@ -8,21 +8,7 @@ from dbestclient.executor.executor import SqlExecutor
 
 
 def run():
-    config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-        'verbose': 'True',
-        'b_show_latency': 'True',
-        'backend_server': 'None',
-        'csv_split_char': '|',
-        "epsabs": 10.0,
-        "epsrel": 0.1,
-        "mesh_grid_num": 20,
-        "limit": 30,
-        # "b_reg_mean":'True',
-        "num_epoch": 400,
-        "reg_type": "mdn",
-        "num_gaussians": 4,
-    }
+    #
     sqlExecutor = SqlExecutor(config)
     sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
                                   "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
@@ -158,7 +144,7 @@ def run_10k(sqlExecutor):
         "select count(ss_list_price) from tpcds40g_storesales_10k_ss_list_price_ss_wholesale_cost where ss_wholesale_cost between 60     and 80",
     ]
 
-    avgs=[
+    avgs = [
         "select avg(ss_ext_discount_amt) from tpcds40g_storesales_10k_ss_ext_discount_amt_ss_quantity where ss_quantity       between 1      and 20",
         "select avg(ss_ext_discount_amt) from tpcds40g_storesales_10k_ss_ext_discount_amt_ss_quantity where ss_quantity       between 21     and 40",
         "select avg(ss_ext_discount_amt) from tpcds40g_storesales_10k_ss_ext_discount_amt_ss_quantity where ss_quantity       between 41     and 60",
@@ -224,14 +210,14 @@ def run_10k(sqlExecutor):
     ]
 
     # counts
-    pres=[]
-    ts=[]
+    pres = []
+    ts = []
     for query in counts:
         # print(query)
-        p,t = sqlExecutor.execute(query)
+        p, t = sqlExecutor.execute(query)
         pres.append(p)
         ts.append(t)
-    print("counts",pres)
+    print("counts", pres)
     print("time", ts)
 
     # sums
@@ -253,6 +239,7 @@ def run_10k(sqlExecutor):
         ts.append(t)
     print("avgs", pres)
     print("time", ts)
+
 
 def run_100k(sqlExecutor):
     sums = [
@@ -295,7 +282,7 @@ def run_100k(sqlExecutor):
         "select count(ss_list_price) from tpcds40g_storesales_100k_ss_list_price_ss_wholesale_cost where ss_wholesale_cost between 60     and 80",
     ]
 
-    avgs=[
+    avgs = [
         "select avg(ss_ext_discount_amt) from tpcds40g_storesales_100k_ss_ext_discount_amt_ss_quantity where ss_quantity       between 1      and 20",
         "select avg(ss_ext_discount_amt) from tpcds40g_storesales_100k_ss_ext_discount_amt_ss_quantity where ss_quantity       between 21     and 40",
         "select avg(ss_ext_discount_amt) from tpcds40g_storesales_100k_ss_ext_discount_amt_ss_quantity where ss_quantity       between 41     and 60",
@@ -361,13 +348,13 @@ def run_100k(sqlExecutor):
     ]
 
     # counts
-    pres=[]
-    ts=[]
+    pres = []
+    ts = []
     for query in counts:
-        p,t = sqlExecutor.execute(query)
+        p, t = sqlExecutor.execute(query)
         pres.append(p)
         ts.append(t)
-    print("counts",pres)
+    print("counts", pres)
     print("time", ts)
 
     # sums

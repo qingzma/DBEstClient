@@ -10,7 +10,6 @@ import math
 import random
 import sys
 from concurrent import futures
-from multiprocessing import Pool
 from os import remove
 from os.path import abspath
 
@@ -29,6 +28,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from sklearn.preprocessing import OneHotEncoder
 from torch.autograd import Variable
 from torch.distributions import Categorical
+from torch.multiprocessing import Pool
 
 from dbestclient.ml.integral import approx_count, prepare_reg_density_data
 
@@ -466,7 +466,7 @@ class RegMdnGroupBy():
         Returns:
             list: the predictions.
         """
-        torch.set_num_threads(8)
+        # torch.set_num_threads(4)
         # check input data type, and convert to np.array
         if type(z_group) is list:
             z_group = np.array(z_group)
@@ -1237,7 +1237,7 @@ class KdeMdn:
         Returns:
             list: the predictions.
         """
-        torch.set_num_threads(8)
+        # torch.set_num_threads(4)
         # convert group zs from string to int
         if self.encoding == "no":
             convert2float = True

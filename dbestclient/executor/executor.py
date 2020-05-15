@@ -27,7 +27,7 @@ from dbestclient.parser.parser import DBEstParser
 from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
-from dbestclient.tools.running_parameters import DbestConfig
+from dbestclient.tools.running_parameters import RUNTIME_CONF, DbestConfig
 
 
 class SqlExecutor:
@@ -37,7 +37,8 @@ class SqlExecutor:
 
     def __init__(self):
         self.parser = None
-        self.config = DbestConfig()
+        self.config = DbestConfig()  # model-related configuration
+        self.runtime_config = RUNTIME_CONF
         self.last_config = None
         self.model_catalog = DBEstModelCatalog()
         self.init_model_catalog()
@@ -87,7 +88,7 @@ class SqlExecutor:
         if n_model > 0:
             print("Loaded " + str(n_model) + " models.")
 
-    def execute(self, sql, n_jobs=4, device="cpu", ):
+    def execute(self, sql):
         # b_use_gg=False, n_per_gg=10, result2file=None,n_mdn_layer_node = 10, encoding = "onehot",n_jobs = 4, b_grid_search = True,device = "cpu", n_division = 20
         # prepare the parser
         if type(sql) == str:
@@ -113,10 +114,6 @@ class SqlExecutor:
                 # DDL, create the model as requested
                 mdl = self.parser.get_ddl_model_name()
                 tbl = self.parser.get_from_name()
-
-                # save the parameters for model.
-                self.config.set_parameter("n_jobs", n_jobs)
-                self.config.set_parameter("device", device)
 
                 if self.parser.if_model_need_filter():
                     self.config.set_parameter("accept_filter", True)
@@ -196,7 +193,7 @@ class SqlExecutor:
                     xys = sampler.getyx(yheader, xheader_continous)
 
                     simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader_continous, yheader,
-                                                              n_total_point, ratio, config=self.config).fit_from_df(
+                                                              n_total_point, ratio, config=self.config.copy()).fit_from_df(
                         xys)
 
                     simple_model_wrapper.serialize2warehouse(
@@ -216,7 +213,7 @@ class SqlExecutor:
                         groupby_model_wrapper = GroupByModelTrainer(mdl, tbl, xheader_continous, yheader, groupby_attribute,
                                                                     n_total_point, n_sample_point,
                                                                     x_min_value=-np.inf, x_max_value=np.inf,
-                                                                    config=self.config).fit_from_df(
+                                                                    config=self.config.copy()).fit_from_df(
                             xys)
                         groupby_model_wrapper.serialize2warehouse(
                             self.config.get_config()['warehousedir'] + "/" + groupby_model_wrapper.dir)
@@ -262,7 +259,7 @@ class SqlExecutor:
                                             n_total_point.keys()),
                                         n_total_point=n_total_point,
                                         x_min_value=-np.inf, x_max_value=np.inf,
-                                        config=self.config.copy(), device=device).fit_from_df(
+                                        config=self.config.copy()).fit_from_df(
                                         xys["data"], encoding=self.config.get_config()["encoding"], network_size="large", b_grid_search=self.config.get_config()["b_grid_search"], )
 
                                     qe_mdn = MdnQueryEngine(
@@ -276,10 +273,10 @@ class SqlExecutor:
                                 else:
                                     # print("n_total_point ", n_total_point)
                                     queryEngineBundle = MdnQueryEngineBundle(
-                                        config=self.config.copy(), device=device).fit(xys, groupby_attribute,
-                                                                                      n_total_point, mdl, tbl,
-                                                                                      xheader_continous, yheader,
-                                                                                      )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
+                                        config=self.config.copy()).fit(xys, groupby_attribute,
+                                                                       n_total_point, mdl, tbl,
+                                                                       xheader_continous, yheader,
+                                                                       self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
 
                                     self.model_catalog.add_model_wrapper(
                                         queryEngineBundle)
@@ -302,7 +299,7 @@ class SqlExecutor:
                                         "GoG support for categorical attributes is not supported.")
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
-                if self.config.get_config()['verbose']:
+                if self.runtime_config['b_show_latency']:
                     print("time cost: " + str(t) + "s.")
                 print("------------------------")
 
@@ -331,7 +328,7 @@ class SqlExecutor:
                                     for i in [0, 1]]
 
                     predictions = model.predicts(func, x_lb, x_ub, where_conditions,
-                                                 n_jobs=n_jobs, filter_dbest=filter_dbest)
+                                                 runtime_config=self.runtime_config, groups=None, filter_dbest=filter_dbest)
                     # predictions = model.predict_one_pass(
                     #     func, x_lb, x_ub, n_jobs=n_jobs)
 
@@ -427,7 +424,7 @@ class SqlExecutor:
                 #             # else:
                 #             #     pass
 
-                if self.config.get_config()['verbose']:
+                if self.runtime_config['b_show_latency']:
                     end = datetime.now()
                     time_cost = (end - start).total_seconds()
                     print("Time cost: %.4fs." % time_cost)
@@ -444,8 +441,11 @@ class SqlExecutor:
                         self.config.get_config()[key] = value
                         print("OK, " + key + " is updated.")
                     else:
-                        warnings.warn(
-                            "Variable does not exist in the configuration! Self defined variable is not supported yet.")
+                        self.runtime_config[key] = value
+                        if key in self.runtime_config:
+                            print("OK, " + key + " is updated.")
+                        else:
+                            print("OK, local variable "+key+" is defined.")
                 except TypeError:
                     # self.parser.get_set_variable_value() does not return correctly
                     print("Parameter is not changed. Please check your SQL!")

@@ -45,12 +45,12 @@ class GenericQueryEngine:
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict):
         pass
 
-    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, groups: list = None, n_jobs=1, filter_dbest=None):
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, n_jobs=1, filter_dbest=None):
         pass
 
 
 class MdnQueryEngine(GenericQueryEngine):
-    def __init__(self, kdeModelWrapper, config=None):
+    def __init__(self, kdeModelWrapper, config):
         # self.n_training_point = kdeModelWrapper.n_sample_point
         self.n_total_point = kdeModelWrapper.n_total_point
         self.reg = kdeModelWrapper.reg
@@ -63,9 +63,9 @@ class MdnQueryEngine(GenericQueryEngine):
         self.mdl_name = kdeModelWrapper.mdl
 
         self.config = config
-        self.b_use_integral = config.get_config()["b_use_integral"]
+        # self.b_use_integral = runtime_config["b_use_integral"]
 
-    def approx_avg(self, x_min, x_max, groupby_value):
+    def approx_avg(self, x_min, x_max, groupby_value, runtime_config):
         start = datetime.now()
 
         def f_pRx(*args):
@@ -75,7 +75,7 @@ class MdnQueryEngine(GenericQueryEngine):
         def f_p(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=False)
 
-        if self.b_use_integral:
+        if runtime_config["b_use_integral"]:
             a = integrate.quad(f_pRx, x_min, x_max,
                                epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
             b = integrate.quad(f_p, x_min, x_max,
@@ -89,57 +89,57 @@ class MdnQueryEngine(GenericQueryEngine):
         else:
             result = None
 
-        if self.config['verbose']:
+        if runtime_config['b_show_latency']:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
         return result, time_cost
 
-    def approx_sum(self, x_min, x_max, groupby_value):
+    def approx_sum(self, x_min, x_max, groupby_value, runtime_config):
         start = datetime.now()
 
         def f_pRx(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=True) \
                 * self.reg.predict(np.array([[args[0], groupby_value]]))[0]
 
-        if self.b_use_integral:
+        if runtime_config["b_use_integral"]:
             result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[
                 0] * float(self.n_total_point[str(int(groupby_value))])
         else:
             result = approx_integrate(
                 f_pRx, x_min, x_max) * float(self.n_total_point[str(int(groupby_value))])
 
-        if self.config['verbose'] and result != None:
+        if runtime_config['b_show_latency'] and result != None:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
         return result, time_cost
 
-    def approx_count(self, x_min, x_max, groupby_value):
+    def approx_count(self, x_min, x_max, groupby_value, runtime_config):
         start = datetime.now()
 
         def f_p(*args):
             return self.kde.predict([[groupby_value]], args[0], b_plot=False)
             # return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
-        if self.b_use_integral:
+        if runtime_config["b_use_integral"]:
             result = integrate.quad(
                 f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
         else:
             result = approx_integrate(f_p, x_min, x_max)
         result = result * float(self.n_total_point[str(int(groupby_value))])
 
-        if self.config['verbose'] and result != None:
+        if runtime_config['b_show_latency'] and result != None:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
 
         return result, time_cost
 
-    def predict(self, func, x_lb, x_ub, groupby_value):
+    def predict(self, func, x_lb, x_ub, groupby_value, runtime_config):
         if func.lower() == "count":
-            p, t = self.approx_count(x_lb, x_ub, groupby_value)
+            p, t = self.approx_count(x_lb, x_ub, groupby_value, runtime_config)
         elif func.lower() == "sum":
-            p, t = self.approx_sum(x_lb, x_ub, groupby_value)
+            p, t = self.approx_sum(x_lb, x_ub, groupby_value, runtime_config)
         elif func.lower() == "avg":
-            p, t = self.approx_avg(x_lb, x_ub, groupby_value)
+            p, t = self.approx_avg(x_lb, x_ub, groupby_value, runtime_config)
         else:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
@@ -192,10 +192,11 @@ class MdnQueryEngine(GenericQueryEngine):
     #                 f.write(key + "," + str(predictions[key]))
     #     return predictions, times
 
-    def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, groups: list = None,  n_jobs: int = 1, filter_dbest=None):
-        b_print_to_screen = self.config.get_config()["b_print_to_screen"]
-        n_division = self.config.get_config()["n_division"]
-        result2file = self.config.get_config()["result2file"]
+    def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, runtime_config=None, groups: list = None, filter_dbest=None):
+        b_print_to_screen = runtime_config["b_print_to_screen"]
+        n_division = runtime_config["n_division"]
+        result2file = runtime_config["result2file"]
+        n_jobs = runtime_config["n_jobs"]
         # result2file = self.config.get_config()["result2file"]
 
         if func.lower() not in ("count", "sum", "avg"):
@@ -274,8 +275,9 @@ class MdnQueryEngine(GenericQueryEngine):
                     # print(sub_group)
                     # engine = self.enginesContainer[index]
                     # print(sub_group)
+                    runtime_config["n_jobs"] = 1
                     i = pool.apply_async(
-                        self.predicts, (func, x_lb, x_ub, {}, sub_group, 1))
+                        self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest))
                     instances.append(i)
 
                 for i in instances:
@@ -306,18 +308,18 @@ def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
 
 
 class MdnQueryEngineBundle():
-    def __init__(self, config, device):
+    # __init__(self, config, device):
+    def __init__(self, config):
         self.enginesContainer = {}
         self.config = config
         self.n_total_point = None
         self.group_keys_chunk = None
         self.group_keys = None
         self.pickle_file_name = None
-        self.device = device
         self.density_column = None
 
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
-            mdl: str, tbl: str, xheader: str, yheader: str, ):  # n_per_group: int = 10, n_mdn_layer_node=10, encoding = "onehot", b_grid_search = True
+            mdl: str, tbl: str, xheader: str, yheader: str, runtime_config: dict):  # n_per_group: int = 10, n_mdn_layer_node=10, encoding = "onehot", b_grid_search = True
         # configuration-related parameters.
         n_per_group = self.config.get_config()["n_per_group"]
         n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node"]
@@ -458,11 +460,12 @@ class MdnQueryEngineBundle():
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
                                               n_total_point=n_total_point_chunk,
-                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config, device=self.device).fit_from_df(
+                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config, device=runtime_config["device"]).fit_from_df(
                 chunk_group, network_size="small", n_mdn_layer_node=n_mdn_layer_node,
                 encoding=encoding, b_grid_search=b_grid_search)
 
-            engine = MdnQueryEngine(kdeModelWrapper, config=self.config.copy())
+            engine = MdnQueryEngine(
+                kdeModelWrapper, config=self.config.copy())
             self.enginesContainer[index] = engine
         return self
 
@@ -566,7 +569,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                 config=self.config, device=device).fit_from_df(
                 data[categorical_attributes], encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
 
-            qe_mdn = MdnQueryEngine(kdeModelWrapper, self.config.copy())
+            qe_mdn = MdnQueryEngine(
+                kdeModelWrapper, self.config.copy())
             self.models[categorical_attributes] = qe_mdn
 
         # kdeModelWrapper.serialize2warehouse(
@@ -575,12 +579,12 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
         #     kdeModelWrapper)
 
     # result2file=False,n_division=20
-    def predicts(self, func, x_lb, x_ub, x_categorical_conditions, groups: list = None, n_jobs=1, filter_dbest=None):
+    def predicts(self, func, x_lb, x_ub, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None,):
         # print(self.models.keys())
         # print(x_categorical_conditions)
         x_categorical_conditions[2].pop(self.density_column)
         # configuration-related parameters.
-        # n_jobs = self.config.get_config()["n_jobs"]
+        n_jobs = runtime_config["n_jobs"]
 
         # check the condition when only one model is involved.
         cols = [item.lower() for item in x_categorical_conditions[0]]

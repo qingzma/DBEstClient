@@ -18,6 +18,23 @@
 #
 from copy import deepcopy
 
+RUNTIME_CONF = {
+    "device": "cpu",
+    "n_jobs": 1,
+    # 'verbose': True,
+    'b_show_latency': True,
+    "b_print_to_screen": True,
+    "result2file": None,
+
+    # integral related parameters
+    "b_use_integral": False,
+    "n_division": 20,
+    # integral package related parameters
+    "epsabs": 10.0,
+    "epsrel": 0.1,
+    "limit": 30,
+}
+
 
 class DbestConfig:
     """ This is the configuration file for DBEstClient.
@@ -27,15 +44,12 @@ class DbestConfig:
         self.config = {
             # system-level configuration.
             'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-            'verbose': True,
-            'b_show_latency': True,
-            "b_print_to_screen": True,
             "reg_type": "mdn",
             "density_type": "mdn",  # qreg
             'backend_server': 'None',
             # "n_jobs": 4,
             "b_grid_search": True,
-            "device": "cpu",
+            # "device": "cpu",
             # "b_reg_mean":'True',
 
             # file format configuration.
@@ -50,17 +64,8 @@ class DbestConfig:
             "num_gaussians": 4,
             "b_use_gg": False,
             "n_per_gg": 10,
-            "result2file": None,
             "n_mdn_layer_node": 10,
             "encoding": "binary",  # one-hot, embedding
-
-            # integral related parameters
-            "b_use_integral": False,
-            "n_division": 20,
-            # integral package related parameters
-            "epsabs": 10.0,
-            "epsrel": 0.1,
-            "limit": 30,
         }
 
     def set_parameters(self, config: dict):

@@ -12,22 +12,7 @@ from dbestclient.executor.executor import SqlExecutor
 
 
 def run():
-    config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-        'verbose': 'True',
-        'b_show_latency': 'True',
-        'backend_server': 'None',
-        'csv_split_char': '|',
-        "epsabs": 20.0,  # 10
-        "epsrel": 0.4,  # 0.1
-        "mesh_grid_num": 15,  # 20
-        "limit": 20,  # 30
-        # "b_reg_mean":'True',
-        "num_epoch": 400,
-        "reg_type": "mdn",
-        "density_type": "mdn",
-        "num_gaussians": 4,
-    }
+
     sqlExecutor = SqlExecutor(config)
     sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
                                   "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
@@ -186,22 +171,7 @@ def query_workload(sqlExecutor, model_name, n_jobs):
 
 
 def run_dbest1():
-    config = {
-        'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-        'verbose': 'True',
-        'b_show_latency': 'True',
-        'backend_server': 'None',
-        'csv_split_char': '|',
-        "epsabs": 10.0,  # 20
-        "epsrel": 0.1,  # 0.4
-        "mesh_grid_num": 15,  # 20
-        "limit": 20,  # 30
-        # "b_reg_mean":'True',
-        "num_epoch": 400,
-        "reg_type": "qreg",
-        "density_type": "kde",
-        "num_gaussians": 4,
-    }
+
     sqlExecutor = SqlExecutor(config)
     sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
                                   "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +

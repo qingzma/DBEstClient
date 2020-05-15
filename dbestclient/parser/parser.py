@@ -1,14 +1,15 @@
 import re
 import warnings
-from dataclasses import replace
-from os.path import abspath
 
 import sqlparse
 from sqlparse import sql
-from sqlparse.sql import Function, Identifier, IdentifierList
+# from sqlparse.sql import Function, Identifier, IdentifierList
 from sqlparse.tokens import DDL, DML, Keyword
 
 from dbestclient.tools.date import unix_timestamp
+
+# from dataclasses import replace
+# from os.path import abspath
 
 
 class DBEstParser:
@@ -444,8 +445,10 @@ class DBEstParser:
                         # print("splits[1] BEFORE", splits[1])
                         if splits[1].lower() == "true":
                             splits[1] = True
-                        if splits[1].lower() == "false":
+                        elif splits[1].lower() == "false":
                             splits[1] = False
+                        else:
+                            pass
 
                         # print("splits[1]", splits[1])
                     elif "." in splits[1]:
