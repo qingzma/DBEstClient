@@ -62,6 +62,9 @@ class DBEstParser:
         """
 
         self.query = re.sub(' +', ' ', query).replace(" (", "(")  # query
+        if "between" in self.query.lower():
+            raise ValueError(
+                "BETWEEN clause is not supported, please use 0<=x<=10 instead.")
         self.parsed = sqlparse.parse(self.query)[0]
 
     def if_nested_query(self):
@@ -485,29 +488,29 @@ if __name__ == "__main__":
     parser = DBEstParser()
     # ---------------------------------------------------------------------------------------------------------------------------------
     # DDL
-    # parser.parse(
-    #     "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1")
+    parser.parse(
+        "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1")
 
-    # print(parser.get_query_type())
-    # if parser.if_contain_groupby():
-    #     print("yes, group by")
-    #     print(parser.get_groupby_value())
-    # else:
-    #     print("no group by")
+    print(parser.get_query_type())
+    if parser.if_contain_groupby():
+        print("yes, group by")
+        print(parser.get_groupby_value())
+    else:
+        print("no group by")
 
-    # if parser.if_ddl():
-    #     print("ddl")
-    #     print(parser.get_ddl_model_name())
-    #     print(parser.get_y())
-    #     print(parser.get_x())
-    #     print(parser.get_from_name())
-    #     print(parser.get_sampling_method())
-    #     print(parser.get_sampling_ratio())
-    #     print(parser.if_model_need_filter())
+    if parser.if_ddl():
+        print("ddl")
+        print(parser.get_ddl_model_name())
+        print(parser.get_y())
+        print(parser.get_x())
+        print(parser.get_from_name())
+        print(parser.get_sampling_method())
+        print(parser.get_sampling_ratio())
+        print(parser.if_model_need_filter())
 
-    # parser.parse(
-    #     "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
-    # print(parser.if_contain_scaling_factor())
+    parser.parse(
+        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    print(parser.if_contain_scaling_factor())
 
     # ---------------------------------------------------------------------------------------------------------------------------------
     # DML
@@ -543,7 +546,7 @@ if __name__ == "__main__":
 
     # ---------------------------------------------------------------------------------------------------------------------------------
     # set SQL
-    parser.parse("set encoder='gpu'")
-    print(parser.parsed)
-    print(parser.get_query_type())
-    print((parser.get_set_variable_value()))
+    # parser.parse("set encoder='gpu'")
+    # print(parser.parsed)
+    # print(parser.get_query_type())
+    # print((parser.get_set_variable_value()))
