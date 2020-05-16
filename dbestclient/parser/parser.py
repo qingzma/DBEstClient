@@ -409,6 +409,8 @@ class DBEstParser:
         return "uniform"
 
     def if_model_need_filter(self):
+        if not self.if_contain_groupby():
+            return False
         x = self.get_x()
         gbs = self.get_groupby_value()
 

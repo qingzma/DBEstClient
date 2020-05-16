@@ -21,7 +21,7 @@ from copy import deepcopy
 RUNTIME_CONF = {
     "device": "cpu",
     "n_jobs": 1,
-    'verbose': True,
+    'v': True,
     'b_show_latency': True,
     "b_print_to_screen": True,
     "result2file": None,
@@ -48,9 +48,10 @@ class DbestConfig:
             "density_type": "mdn",  # qreg
             'backend_server': 'None',
             # "n_jobs": 4,
-            "b_grid_search": True,
+            "b_grid_search": False,
             # "device": "cpu",
             # "b_reg_mean":'True',
+            "b_dummy_gb": False,
 
             # file format configuration.
             'n_total_point': None,
@@ -60,7 +61,7 @@ class DbestConfig:
 
             "accept_filter": False,
             # MDN related parameters
-            "n_epoch": 400,
+            "n_epoch": 20,
             "n_gaussians": 4,
             "b_use_gg": False,
             "n_per_gg": 10,

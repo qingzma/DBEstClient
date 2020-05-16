@@ -144,8 +144,12 @@ class ReservoirSampling:
                 # convert continuous X attributes to float, execept for those that repeated in the GROUP BY clause.
                 # print(usecols)
                 # print(usecols['x_continous'])
-                columns_to_float = [
-                    item for item in usecols['x_continous'] if item not in usecols["gb"]]
+                if usecols["gb"] is not None:
+                    columns_to_float = [
+                        item for item in usecols['x_continous'] if item not in usecols["gb"]]
+                else:
+                    columns_to_float = [
+                        item for item in usecols['x_continous']]
                 # print("columns_to_float", columns_to_float)
                 for col in columns_to_float:
                     self.sampledf[col] = self.sampledf[col].apply(
@@ -169,12 +173,13 @@ class ReservoirSampling:
                     self.sampledf[col] = self.sampledf[col].astype(str)
 
                 # if col in both X and Group BY, convert it to float
-                columns_common = [
-                    item for item in usecols['x_continous'] if item in usecols["gb"]]
+                if usecols["gb"] is not None:
+                    columns_common = [
+                        item for item in usecols['x_continous'] if item in usecols["gb"]]
 
-                for col in columns_common:
-                    self.sampledf[col] = self.sampledf[col].apply(
-                        pd.to_numeric, errors='coerce')
+                    for col in columns_common:
+                        self.sampledf[col] = self.sampledf[col].apply(
+                            pd.to_numeric, errors='coerce')
 
                 if usecols['y'][1] == "categorical":
                     self.sampledf[usecols['y'][0]

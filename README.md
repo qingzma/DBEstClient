@@ -131,7 +131,7 @@ Where,
 ## Documentation
 
 ## TODO 
-- check CPU parameter.
+- SimpleModelTrainer
 - SQL size cluase to include num_count.csv
 - scaling factor for AVG is not correct.
 - embedding.

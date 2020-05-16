@@ -15,13 +15,15 @@ import numpy as np
 import pandas as pd
 from scipy import integrate
 from torch.multiprocessing import Pool as PoolGPU
-from torch.multiprocessing import set_start_method
 
 # from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
                                      prepare_reg_density_data)
 from dbestclient.ml.modeltrainer import KdeModelTrainer
+
+# from torch.multiprocessing import set_start_method
+
 
 # from torch.multiprocessing import Pool, set_start_method
 
@@ -47,15 +49,16 @@ class GenericQueryEngine:
     def init_pickle_file_name(self):
         return self.mdl_name+".pkl"
 
-    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict):
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
         pass
 
-    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, n_jobs=1, filter_dbest=None):
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         pass
 
 
 class MdnQueryEngine(GenericQueryEngine):
     def __init__(self, kdeModelWrapper, config):
+        super().__init__()
         # self.n_training_point = kdeModelWrapper.n_sample_point
         self.n_total_point = kdeModelWrapper.n_total_point
         self.reg = kdeModelWrapper.reg
@@ -199,7 +202,7 @@ class MdnQueryEngine(GenericQueryEngine):
 
     def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, runtime_config=None, groups: list = None, filter_dbest=None):
         b_print_to_screen = runtime_config["b_print_to_screen"]
-        n_division = runtime_config["n_division"]
+        # n_division = runtime_config["n_division"]
         result2file = runtime_config["result2file"]
         n_jobs = runtime_config["n_jobs"]
         # result2file = self.config.get_config()["result2file"]
@@ -340,7 +343,7 @@ class MdnQueryEngineBundle():
         # configuration-related parameters.
         n_per_group = self.config.get_config()["n_per_group"]
         n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node"]
-        encoding = self.config.get_config()["encoding"]
+        encoding = self.config.get_config()["encoder"]
         b_grid_search = self.config.get_config()["b_grid_search"]
 
         self.density_column = xheader
@@ -477,38 +480,42 @@ class MdnQueryEngineBundle():
             kdeModelWrapper = KdeModelTrainer(mdl, tbl, xheader, yheader, groupby_attribute=groupby_attribute,
                                               groupby_values=chunk_key,
                                               n_total_point=n_total_point_chunk,
-                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config, device=runtime_config["device"]).fit_from_df(
-                chunk_group, network_size="small", n_mdn_layer_node=n_mdn_layer_node,
-                encoding=encoding, b_grid_search=b_grid_search)
+                                              x_min_value=-np.inf, x_max_value=np.inf, config=self.config).fit_from_df(
+                chunk_group, network_size="small", runtime_config=runtime_config)
 
             engine = MdnQueryEngine(
                 kdeModelWrapper, config=self.config.copy())
             self.enginesContainer[index] = engine
         return self
 
-    def predicts(self, func, x_lb, x_ub, n_jobs=4, ):
+    def predicts(self, func, x_lb, x_ub, runtime_config):
         # result2file=None, n_division=20, b_print_to_screen=True
-        result2file = self.config.get_config()["result2file"]
-        n_division = self.config.get_config()["n_division"]
-        b_print_to_screen = self.config.get_config()["b_print_to_screen"]
+        result2file = runtime_config["result2file"]
+        n_division = runtime_config["n_division"]
+        b_print_to_screen = runtime_config["b_print_to_screen"]
+        n_jobs = runtime_config["n_jobs"]
         instances = []
         predictions = {}
         # times = {}
-        with Pool(processes=n_jobs) as pool:
-            # print(self.group_keys_chunk)
-            for index, sub_group in enumerate(self.group_keys_chunk):
-                # print(sub_group)
-                engine = self.enginesContainer[index]
-                i = pool.apply_async(
-                    engine.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
-                instances.append(i)
+        if runtime_config["device"] == "cpu":
+            pool = PoolCPU(processes=n_jobs)
+        else:
+            pool = PoolGPU(processes=n_jobs)
+        # with Pool(processes=n_jobs) as pool:
+        # print(self.group_keys_chunk)
+        for index, sub_group in enumerate(self.group_keys_chunk):
+            # print(sub_group)
+            engine = self.enginesContainer[index]
+            i = pool.apply_async(
+                engine.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
+            instances.append(i)
 
-            for i in instances:
-                result = i.get()
-                # pred = result[0]
-                # t = result[1]
-                predictions.update(result)
-                # times.update(t)
+        for i in instances:
+            result = i.get()
+            # pred = result[0]
+            # t = result[1]
+            predictions.update(result)
+            # times.update(t)
         if b_print_to_screen:
             for key in predictions:
                 print(key + "," + str(predictions[key]))
@@ -536,6 +543,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
     """
 
     def __init__(self, config):
+        super().__init__()
         self.models = {}
         self.config = config
         self.mdl_name = None
@@ -547,7 +555,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
 
     # device: str, encoding="binary", b_grid_search=False
 
-    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict):
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
         if not total_points["if_contain_x_categorical"]:
             raise ValueError("The data provided is not a dict.")
 
@@ -567,8 +575,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
         # print("x_categorical_columns", self.x_categorical_columns)
 
         # configuration-related parameters.
-        device = self.config.get_config()["device"]
-        encoding = self.config.get_config()["encoding"]
+        device = runtime_config["device"]
+        encoding = self.config.get_config()["encoder"]
         b_grid_search = self.config.get_config()["b_grid_search"]
         # print("total_points", total_points)
         idx = 0
@@ -583,8 +591,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                     total_points[categorical_attributes].keys()),
                 n_total_point=total_points[categorical_attributes],
                 x_min_value=-np.inf, x_max_value=np.inf,
-                config=self.config, device=device).fit_from_df(
-                data[categorical_attributes], encoding=encoding, network_size="large", b_grid_search=b_grid_search, )
+                config=self.config).fit_from_df(
+                data[categorical_attributes], runtime_config=runtime_config, network_size="large",)
 
             qe_mdn = MdnQueryEngine(
                 kdeModelWrapper, self.config.copy())
@@ -601,7 +609,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
         # print(x_categorical_conditions)
         x_categorical_conditions[2].pop(self.density_column)
         # configuration-related parameters.
-        n_jobs = runtime_config["n_jobs"]
+        # n_jobs = runtime_config["n_jobs"]
 
         # check the condition when only one model is involved.
         cols = [item.lower() for item in x_categorical_conditions[0]]
@@ -620,8 +628,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                 "b_print_to_screen", False)
 
             # make the predictions
-            predictions = self.models[key].predicts(func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions,
-                                                    n_jobs=n_jobs, filter_dbest=filter_dbest)
+            predictions = self.models[key].predicts(
+                func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config, filter_dbest=filter_dbest)
 
         else:
             # prepare the keys of the models to be called.
@@ -647,13 +655,13 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                         self.models[key].config.set_parameter(
                             "b_print_to_screen", False)
                         pred = self.models[key].predicts(func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions,
-                                                         n_jobs=n_jobs, filter_dbest=filter_dbest)
+                                                         runtime_config=runtime_config, filter_dbest=filter_dbest)
                         predictions = predictions + Counter(pred)
                         keys_list.append(key)
             predictions = dict(predictions)
         # print("preditions,", predictions)
 
-        if self.config.get_config()["b_print_to_screen"]:
+        if runtime_config["b_print_to_screen"]:
             headers = list(self.group_by_columns)
             headers.append("value")
             print(" ".join(headers))

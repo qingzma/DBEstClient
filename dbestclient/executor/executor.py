@@ -20,12 +20,11 @@ from dbestclient.executor.queryenginemdn import (MdnQueryEngine,
                                                  MdnQueryEngineBundle,
                                                  MdnQueryEngineXCategorical)
 from dbestclient.io.sampling import DBEstSampling
-# SimpleModelTrainer
-from dbestclient.ml.modeltrainer import GroupByModelTrainer, KdeModelTrainer
+from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
+                                         SimpleModelTrainer)
 from dbestclient.ml.modelwraper import (GroupByModelWrapper,
                                         get_pickle_file_name)
 from dbestclient.parser.parser import DBEstParser
-# from dbestclient.tools.date import unix_timestamp
 from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
@@ -185,22 +184,46 @@ class SqlExecutor:
                 # print("scaling_factor is ", sampler.scaling_factor)
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
-                    # check whether this model exists, if so, skip training
-                    # if os.path.exists(self.config['warehousedir'] + "/" + mdl + '.pkl'):
-                    #     print(
-                    #         "Model {0} exists in the warehouse, please use another model name to train it.".format(mdl))
-                    #     return
 
-                    n_total_point = sampler.n_total_point
-                    xys = sampler.getyx(yheader, xheader_continous)
+                    # n_total_point = sampler.n_total_point
+                    # xys = sampler.getyx(yheader, xheader_continous)
 
-                    simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader_continous, yheader,
-                                                              n_total_point, ratio, config=self.config.copy()).fit_from_df(
-                        xys)
+                    # simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader_continous, yheader,
+                    #                                           n_total_point, ratio, config=self.config.copy()).fit_from_df(
+                    #     xys, self.runtime_config)
 
-                    simple_model_wrapper.serialize2warehouse(
+                    # reg = simple_model_wrapper.reg
+                    # density = simple_model_wrapper.density
+                    # n_sample_point = int(simple_model_wrapper.n_sample_point)
+                    # n_total_point = int(simple_model_wrapper.n_total_point)
+                    # x_min_value = float(simple_model_wrapper.x_min_value)
+                    # x_max_value = float(simple_model_wrapper.x_max_value)
+                    # query_engine = QueryEngine(mdl, reg, density, n_sample_point,
+                    #                            n_total_point, x_min_value, x_max_value, xheader_continous[
+                    #                                0],
+                    #                            self.config)
+                    sampler.sample.sampledf["dummy_gb"] = "dummy"
+                    sampler.sample.usecols = {"y": yheader, "x_continous": xheader_continous,
+                                              "x_categorical": xheader_categorical, "gb": "dummy_gb"}
+                    n_total_point, xys = sampler.get_groupby_frequency_data()
+                    # if not n_total_point['if_contain_x_categorical']:
+                    n_total_point.pop("if_contain_x_categorical")
+                    kdeModelWrapper = KdeModelTrainer(
+                        mdl, tbl, xheader_continous[0], yheader,
+                        groupby_attribute=["dummy_gb"],
+                        groupby_values=list(
+                            n_total_point.keys()),
+                        n_total_point=n_total_point,
+                        x_min_value=-np.inf, x_max_value=np.inf,
+                        config=self.config.copy()).fit_from_df(
+                        xys["data"], self.runtime_config, network_size="large")
+
+                    qe_mdn = MdnQueryEngine(
+                        kdeModelWrapper, config=self.config.copy())
+
+                    qe_mdn.serialize2warehouse(
                         self.config.get_config()['warehousedir'])
-                    self.model_catalog.add_model_wrapper(simple_model_wrapper)
+                    self.model_catalog.add_model_wrapper(qe_mdn)
 
                 else:  # if group by is involved in the query
                     if self.config.get_config()['reg_type'] == "qreg":
@@ -216,7 +239,7 @@ class SqlExecutor:
                                                                     n_total_point, n_sample_point,
                                                                     x_min_value=-np.inf, x_max_value=np.inf,
                                                                     config=self.config.copy()).fit_from_df(
-                            xys)
+                            xys, self.runtime_config)
                         groupby_model_wrapper.serialize2warehouse(
                             self.config.get_config()['warehousedir'] + "/" + groupby_model_wrapper.dir)
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
@@ -290,7 +313,7 @@ class SqlExecutor:
                                         self.config.copy())
                                     qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
                                         "y": yheader, "x_continous": xheader_continous,
-                                        "x_categorical": xheader_categorical, "gb": groupby_attribute},
+                                        "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
                                     )  # device=device, encoding=encoding, b_grid_search=b_grid_search
                                     qeXContinuous.serialize2warehouse(
                                         self.config.get_config()['warehousedir'])
@@ -465,7 +488,7 @@ class SqlExecutor:
                                             print("Fail to set start method as spawn for pytorch multiprocessing, " +
                                                   "use default in advance. (see queryenginemdn "
                                                   "for more info.)")
-                                    if self.runtime_config["verbose"]:
+                                    if self.runtime_config["v"]:
                                         print("device is set to " + value)
                                 else:
                                     if value == "gpu":
@@ -473,7 +496,7 @@ class SqlExecutor:
                                             "GPU is not available, use CPU instead")
                                         value = "cpu"
                                     if value == "cpu":
-                                        if self.runtime_config["verbose"]:
+                                        if self.runtime_config["v"]:
                                             print("device is set to " + value)
                             else:
                                 print("Only GPU or CPU is supported.")

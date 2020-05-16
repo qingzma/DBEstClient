@@ -3,53 +3,42 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
-from datetime import  datetime
-from scipy import integrate
+from datetime import datetime
+
+import dill
 import numpy as np
-
-
+from scipy import integrate
 
 
 class QueryEngine:
-    def __init__(self, reg, kde, n_training_point, n_total_point, x_min, x_max, config=None):
+    def __init__(self, mdl, reg, kde, n_training_point, n_total_point, x_min, x_max, density_column, config=None):
         self.n_training_point = n_training_point
         self.n_total_point = n_total_point
         self.reg = reg
         self.kde = kde
         self.x_min = x_min
         self.x_max = x_max
-        if config is None:
-            self.config = config = {
-                'warehousedir': 'dbestwarehouse',
-                'verbose': 'True',
-                'b_show_latency': 'True',
-                'backend_server': 'None',
-                'epsabs': 10.0,
-                'epsrel': 0.1,
-                'mesh_grid_num': 20,
-                'limit': 30,
-                'csv_split_char': '|',
-                'num_epoch':400,
-                "reg_type": "mdn",
-            }
-        else:
-            self.config = config
+        self.config = config
+        self.density_column = density_column
+        self.mdl_name = mdl
 
-    def approx_avg(self, x_min, x_max):
+    def approx_avg(self, x_min, x_max, runtime_config):
         start = datetime.now()
 
         def f_pRx(*args):
             # print(self.cregression.predict(x))
+            print(args[0])
+            print([[args[0]]])
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1))) * self.reg.predict(
-                [[args[0]]])[0]
+                np.array([[args[0]]]).reshape(1, -1))[0]
 
         def f_p(*args):
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
         a = integrate.quad(f_pRx, x_min, x_max,
-                           epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+                           epsabs=runtime_config['epsabs'], epsrel=runtime_config['epsrel'])[0]
         b = integrate.quad(f_p, x_min, x_max,
-                           epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+                           epsabs=runtime_config['epsabs'], epsrel=runtime_config['epsrel'])[0]
 
         if b:
             result = a / b
@@ -60,62 +49,74 @@ class QueryEngine:
         # else:
         #     print("Nan")
 
-        if self.config['verbose']:
+        if runtime_config['verbose']:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
             # print("Time spent for approximate AVG: %.4fs." % time_cost)
         return result, time_cost
 
-    def approx_sum(self, x_min, x_max):
+    def approx_sum(self, x_min, x_max, runtime_config):
         start = datetime.now()
 
         def f_pRx(*args):
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1))) \
-                   * self.reg.predict([[args[0]]])[0]
+                * self.reg.predict([[args[0]]])[0]
             # * self.reg.predict(np.array(args))
 
         # print(integrate.quad(f_pRx, x_min, x_max, epsabs=epsabs, epsrel=epsrel)[0])
-        result = integrate.quad(f_pRx, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0] * float(self.n_total_point)
+        result = integrate.quad(f_pRx, x_min, x_max, epsabs=runtime_config['epsabs'], epsrel=runtime_config['epsrel'])[
+            0] * float(self.n_total_point)
         # return result
 
         # result = result / float(self.n_training_point) * float(self.n_total_point)
 
         # print("Approximate SUM: %.4f." % result)
 
-        if self.config['verbose'] and result != None:
+        if runtime_config['verbose'] and result != None:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
             # print("Time spent for approximate SUM: %.4fs." % time_cost)
         return result, time_cost
 
-    def approx_count(self, x_min, x_max):
+    def approx_count(self, x_min, x_max, runtime_config):
         start = datetime.now()
 
         def f_p(*args):
             return np.exp(self.kde.score_samples(np.array(args).reshape(1, -1)))
 
-        result = integrate.quad(f_p, x_min, x_max, epsabs=self.config['epsabs'], epsrel=self.config['epsrel'])[0]
+        result = integrate.quad(
+            f_p, x_min, x_max, epsabs=runtime_config['epsabs'], epsrel=runtime_config['epsrel'])[0]
         result = result * float(self.n_total_point)
 
         # print("Approximate COUNT: %.4f." % result)
-        if self.config['verbose'] and result != None:
+        if runtime_config['verbose'] and result != None:
             end = datetime.now()
             time_cost = (end - start).total_seconds()
             # print("Time spent for approximate COUNT: %.4fs." % time_cost)
         return result, time_cost
 
-    def predict(self,func, x_lb, x_ub):
+    def predict(self, func, x_lb, x_ub, runtime_config):
         if func.lower() == "count":
-            p,t = self.approx_count(x_lb, x_ub)
+            p, t = self.approx_count(x_lb, x_ub, runtime_config)
         elif func.lower() == "sum":
-            p,t = self.approx_sum(x_lb, x_ub)
+            p, t = self.approx_sum(x_lb, x_ub, runtime_config)
         elif func.lower() == "avg":
-            p,t = self.approx_avg(x_lb, x_ub)
+            p, t = self.approx_avg(x_lb, x_ub, runtime_config)
         else:
             print("Aggregate function " + func + " is not implemented yet!")
-        return p,t
+        return p, t
+
+    def predicts(self, func, x_lb, x_ub, where_conditions,
+                 runtime_config, groups=None, filter_dbest=None):
+        return self.predict(func, x_lb, x_ub, runtime_config)
+
+    def serialize2warehouse(self, warehouse):
+        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+            dill.dump(self, f)
+
+    def init_pickle_file_name(self):
+        return self.mdl_name+".pkl"
+
 
 if __name__ == "__main__":
     pass
-
-

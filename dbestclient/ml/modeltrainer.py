@@ -3,48 +3,48 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
-from copy import deepcopy
+
 
 import numpy as np
-import torch
 
-# from dbestclient.ml.density import DBEstDensity
+from dbestclient.ml.density import DBEstDensity
 from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy  # RegMdn
 from dbestclient.ml.modelwraper import (GroupByModelWrapper, KdeModelWrapper,
                                         SimpleModelWrapper)
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.tools.dftools import convert_df_to_yx
 
-# class SimpleModelTrainer:
 
-#     def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point, groupby_attribute=None,
-#                  groupby_value=None, config=None):
-#         self.xheader = xheader
-#         self.yheader = yheader
-#         self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
-#                                                       n_sample_point=n_sample_point,
-#                                                       groupby_attribute=groupby_attribute, groupby_value=groupby_value)
-#         self.config = config
+class SimpleModelTrainer:
 
-#     def fit(self, x, y):
-#         # print(x,y)
-#         # if x_reg is None:
-#         #     reg = DBEstReg(config=self.config).fit(x_kde, y_kde)
-#         # else:
-#         reg = DBEstReg(config=self.config).fit(x, y)
-#         density = DBEstDensity(config=self.config).fit(x)
-#         # print("in modeltrainer",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
-#         self.simpe_model_wrapper.load_model(density, reg)
-#         return self.simpe_model_wrapper
+    def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point, groupby_attribute=None,
+                 groupby_value=None, config=None):
+        self.xheader = xheader
+        self.yheader = yheader
+        self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
+                                                      n_sample_point=n_sample_point,
+                                                      groupby_attribute=groupby_attribute, groupby_value=groupby_value)
+        self.config = config
 
-#     def fit_from_df(self, df):
-#         # if df_reg is None:
-#         #     y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
-#         #     return self.fit(x_kde, y_kde)
-#         # else:
-#         y, x = convert_df_to_yx(df, self.xheader, self.yheader)
-#         # y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
-#         return self.fit(x, y)
+    def fit(self, x, y, runtime_config):
+        # print(x,y)
+        # if x_reg is None:
+        #     reg = DBEstReg(config=self.config).fit(x_kde, y_kde)
+        # else:
+        reg = DBEstReg(config=self.config).fit(x, y, runtime_config)
+        density = DBEstDensity(config=self.config).fit(x, None, runtime_config)
+        # print("in modeltrainer",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
+        self.simpe_model_wrapper.load_model(density, reg)
+        return self.simpe_model_wrapper
+
+    def fit_from_df(self, df, runtime_config):
+        # if df_reg is None:
+        #     y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
+        #     return self.fit(x_kde, y_kde)
+        # else:
+        y, x = convert_df_to_yx(df, self.xheader[0], self.yheader[0])
+        # y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
+        return self.fit(x, y, runtime_config)
 
 
 class GroupByModelTrainer:
@@ -63,14 +63,14 @@ class GroupByModelTrainer:
         self.x_max_value = x_max_value
         self.config = config
 
-    def fit_from_df(self, df):
+    def fit_from_df(self, df, runtime_config):
         sample_grouped = df.groupby(by=self.groupby_attribute)
         for name, group in sample_grouped:
             print("training " + name)
             simple_model_wrapper = SimpleModelTrainer(self.mdl, self.tbl, self.xheader, self.yheader,
                                                       self.n_total_point[name], self.n_sample_point[name],
                                                       groupby_attribute=self.groupby_attribute, groupby_value=name,
-                                                      config=self.config).fit_from_df(group)
+                                                      config=self.config).fit_from_df(group, runtime_config)
             self.groupby_model_wrapper.add_simple_model(simple_model_wrapper)
         # print(self.groupby_model_wrapper)
         return self.groupby_model_wrapper
