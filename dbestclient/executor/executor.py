@@ -270,17 +270,33 @@ class SqlExecutor:
                                     " stated in the SQL. However, the file is not found.")
                         else:
                             n_total_point, xys = sampler.get_groupby_frequency_data()
-
+                            # print(n_total_point)
                             # for cases when the data file is treated as a sample, we need to scale up the frequency for each group.
                             if ratio > 1:
                                 file_size = sampler.n_total_point
                                 ratio = float(ratio)/file_size
                             # if 0 < ratio < 1:
-                            scaled_n_total_point = {
-                                "if_contain_x_categorical": n_total_point.pop("if_contain_x_categorical")}
+                            scaled_n_total_point = {}
+                            if "if_contain_x_categorical" in n_total_point:
+                                scaled_n_total_point["if_contain_x_categorical"] = n_total_point.pop(
+                                    "if_contain_x_categorical")
+                            if "categorical_distinct_values" in n_total_point:
+                                scaled_n_total_point["categorical_distinct_values"] = n_total_point.pop(
+                                    "categorical_distinct_values")
+                            if "x_categorical_columns" in n_total_point:
+                                scaled_n_total_point["x_categorical_columns"] = n_total_point.pop(
+                                    "x_categorical_columns")
                             for key in n_total_point:
-                                scaled_n_total_point[key] = n_total_point[key]/ratio
+                                # print("key", key, n_total_point[key])
+
+                                if not isinstance(n_total_point[key], dict):
+                                    scaled_n_total_point[key] = n_total_point[key]/ratio
+                                else:
+                                    scaled_n_total_point[key] = {}
+                                    for sub_key in n_total_point[key]:
+                                        scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
                             n_total_point = scaled_n_total_point
+                            # print("scaled_n_total_point", scaled_n_total_point)
 
                         # no categorical x attributes
                         if not n_total_point['if_contain_x_categorical']:

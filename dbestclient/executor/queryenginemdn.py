@@ -297,6 +297,7 @@ class MdnQueryEngine(GenericQueryEngine):
                 # engine = self.enginesContainer[index]
                 # print(sub_group)
                 runtime_config["n_jobs"] = 1
+                runtime_config["b_print_to_screen"] = False
                 i = pool.apply_async(
                     self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest))
                 instances.append(i)
@@ -585,6 +586,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
             print("start training  sub_model " +
                   str(idx) + " for "+mdl_name+"...")
             idx += 1
+            # print("total_points", total_points)
+            # print(list(total_points[categorical_attributes].keys()))
             kdeModelWrapper = KdeModelTrainer(
                 mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
                 groupby_attribute=usecols["gb"],
@@ -608,6 +611,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
     def predicts(self, func, x_lb, x_ub, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None,):
         # print(self.models.keys())
         # print(x_categorical_conditions)
+        b_print_to_screen = runtime_config["b_print_to_screen"]
         x_categorical_conditions[2].pop(self.density_column)
         # configuration-related parameters.
         # n_jobs = runtime_config["n_jobs"]
@@ -625,8 +629,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                            for col in self.x_categorical_columns]
             key = ",".join(sorted_keys)
 
-            self.models[key].config.set_parameter(
-                "b_print_to_screen", False)
+            runtime_config["b_print_to_screen"] = False
 
             # make the predictions
             predictions = self.models[key].predicts(
@@ -653,8 +656,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                         key = ",".join(key)
 
                         # make the predictions
-                        self.models[key].config.set_parameter(
-                            "b_print_to_screen", False)
+                        runtime_config["b_print_to_screen"] = False
                         pred = self.models[key].predicts(func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions,
                                                          runtime_config=runtime_config, filter_dbest=filter_dbest)
                         predictions = predictions + Counter(pred)
@@ -662,7 +664,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
             predictions = dict(predictions)
         # print("preditions,", predictions)
 
-        if runtime_config["b_print_to_screen"]:
+        if b_print_to_screen:
             headers = list(self.group_by_columns)
             headers.append("value")
             print(" ".join(headers))

@@ -55,7 +55,7 @@ class TestTpcDs(unittest.TestCase):
                             "ss_net_paid_inc_tax|ss_net_profit|none'"
                             )
         sqlExecutor.execute(
-            "create table test_ss40g_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600 scale data num_of_points2.csv")
+            "create table test_ss40g_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600")
         predictions = sqlExecutor.execute(
             "select avg(ss_sales_price)  from test_ss40g_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk")
         self.assertTrue(predictions)
