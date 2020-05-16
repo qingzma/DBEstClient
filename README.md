@@ -131,8 +131,6 @@ Where,
 ## Documentation
 
 ## TODO 
-- SimpleModelTrainer
 - SQL size cluase to include num_count.csv
-- scaling factor for AVG is not correct.
 - embedding.
 - one mdn model instead of many.

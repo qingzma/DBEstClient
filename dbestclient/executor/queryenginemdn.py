@@ -219,10 +219,11 @@ class MdnQueryEngine(GenericQueryEngine):
             results = {key: results[key] for key in results if float(
                 key) >= filter_dbest[0] and float(key) <= filter_dbest[1]}
 
-            # scale up the result
-            scaling_factor = self.config.get_config()["scaling_factor"]
-            # print("scaling_factor", scaling_factor)
-            results = {key: results[key]*scaling_factor for key in results}
+            if func.lower() not in ("count", "sum"):
+                # scale up the result
+                scaling_factor = self.config.get_config()["scaling_factor"]
+                # print("scaling_factor", scaling_factor)
+                results = {key: results[key]*scaling_factor for key in results}
 
             # print("self.n_total_point", self.n_total_point)
             if b_print_to_screen:
