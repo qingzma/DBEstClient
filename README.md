@@ -131,6 +131,6 @@ Where,
 ## Documentation
 
 ## TODO 
-- SQL size cluase to include num_count.csv
+- ~~SQL size cluase to include num_count.csv~~
 - embedding.
 - one mdn model instead of many.

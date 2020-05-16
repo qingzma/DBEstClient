@@ -22,7 +22,6 @@ class DBEstParser:
         >>> [GROUP BY z]
         >>> [SIZE 0.01]
         >>> [METHOD UNIFROM|HASH]
-        >>> [SCALE FILE|DATA]
         >>> [ENCODING ONEHOT|BINARY]
     - **DML**
         >>> SELECT AF(y)
@@ -49,7 +48,6 @@ class DBEstParser:
             >>> [GROUP BY z]
             >>> [SIZE 0.01]
             >>> [METHOD UNIFROM|HASH]
-            >>> [SCALE FILE|DATA]
 
         - **DML**
             >>> SELECT AF(y)
@@ -279,30 +277,30 @@ class DBEstParser:
                 return True
         return False
 
-    def if_contain_scaling_factor(self):
-        for item in self.parsed.tokens:
-            if item.ttype is Keyword and item.value.lower() == "scale":
-                return True
-        return False
+    # def if_contain_scaling_factor(self):
+    #     for item in self.parsed.tokens:
+    #         if item.ttype is Keyword and item.value.lower() == "scale":
+    #             return True
+    #     return False
 
-    def get_scaling_method(self):
-        if not self.if_contain_scaling_factor():
-            return "data"
-        else:
-            for item in self.parsed.tokens:
-                if item.ttype is Keyword and item.value.lower() == "scale":
-                    idx = self.parsed.token_index(item, 0) + 2
-                    if self.parsed.tokens[idx].value.lower() not in ["data", "file"]:
-                        raise ValueError(
-                            "Scaling method is not set properly, wrong argument provided.")
-                    else:
+    # def get_scaling_method(self):
+    #     if not self.if_contain_scaling_factor():
+    #         return "data"
+    #     else:
+    #         for item in self.parsed.tokens:
+    #             if item.ttype is Keyword and item.value.lower() == "scale":
+    #                 idx = self.parsed.token_index(item, 0) + 2
+    #                 if self.parsed.tokens[idx].value.lower() not in ["data", "file"]:
+    #                     raise ValueError(
+    #                         "Scaling method is not set properly, wrong argument provided.")
+    #                 else:
 
-                        method = self.parsed.tokens[idx].value.lower()
-                        if method == "file":
-                            file = self.parsed.tokens[idx+2].value.lower()
-                            return method, file
-                        else:
-                            return method, None
+    #                     method = self.parsed.tokens[idx].value.lower()
+    #                     if method == "file":
+    #                         file = self.parsed.tokens[idx+2].value.lower()
+    #                         return method, file
+    #                     else:
+    #                         return method, None
 
     def get_groupby_value(self):
         for item in self.parsed.tokens:
@@ -401,8 +399,17 @@ class DBEstParser:
         for item in self.parsed.tokens:
             if item.ttype is Keyword and item.value.lower() == "size":
                 idx = self.parsed.token_index(item, 0) + 2
-                return self.parsed.tokens[idx].value
-        return 0.01  # if sampling ratio is not passed, the whole dataset will be used to train the model
+                value = self.parsed.tokens[idx].value
+                try:
+                    value_float = float(value)
+                    if "." not in value:
+                        value = int(value_float)
+                    else:
+                        value = float(value)
+                except ValueError:
+                    value = value.replace("'", "")
+                return value
+        return 1  # if sampling ratio is not passed, the whole dataset will be used to train the model
 
     def get_sampling_method(self):
         for item in self.parsed.tokens:
@@ -489,7 +496,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------------------------------------------------------------
     # DDL
     parser.parse(
-        "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z,x0 method uniform size 0.1")
+        "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'")
 
     print(parser.get_query_type())
     if parser.if_contain_groupby():
@@ -508,9 +515,9 @@ if __name__ == "__main__":
         print(parser.get_sampling_ratio())
         print(parser.if_model_need_filter())
 
-    parser.parse(
-        "select count(y) from t_m where x BETWEEN  1 and 2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
-    print(parser.if_contain_scaling_factor())
+    # parser.parse(
+    #     "select count(y) from t_m where    1 <=x <=2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
+    # print(parser.if_contain_scaling_factor())
 
     # ---------------------------------------------------------------------------------------------------------------------------------
     # DML

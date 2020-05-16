@@ -23,6 +23,12 @@ class DBEstSampling:
         if method == 'uniform':
             # # if  ratio is provided, then make samples using the ratio (or size)
             # if ratio is not None:
+            if isinstance(ratio, str):
+                print("The given table is treated as a uniform sample")
+                self.sample = ReservoirSampling(headers=self.headers)
+                self.sample.build_reservoir(
+                    file, None, split_char=split_char, save2file=file2save, n_total_point=num_total_records, usecols=self.usecols)
+                return
             if float(ratio) > 1:  # here the ratio is the number of tuples in the sample
                 ratio = int(ratio)
                 self.n_sample_point = ratio
@@ -52,6 +58,7 @@ class DBEstSampling:
 
             # delete the headers after models are trained, to save sapce.
             self.headers = None
+            return
         else:
             print("other sampling methods are not implemented, abort.")
 

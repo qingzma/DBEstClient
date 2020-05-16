@@ -68,6 +68,7 @@ class DbestConfig:
             "n_hidden_layer": 1,
             "n_mdn_layer_node": 10,
             "encoder": "binary",  # one-hot, embedding
+            "batch_size": 1000,
         }
 
     def set_parameters(self, config: dict):

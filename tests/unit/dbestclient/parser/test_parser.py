@@ -30,7 +30,7 @@ class TestParser(unittest.TestCase):
         self.parser = DBEstParser()
         self.q_set = "set a = 5;"
         self.q_ddl = "create table ss40g_1(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 60000 scale data num_of_points2.csv"
-        self.q_dml = "select avg(ss_sales_price)  from ss40g_1 where ss_sold_date_sk between 2451119  and 2451483 and ss_coupon_amt=''  group by ss_store_sk"
+        self.q_dml = "select avg(ss_sales_price)  from ss40g_1 where   2451119 <= ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk"
         self.sqls = [self.q_set, self.q_ddl, self.q_dml]
 
     def test_query_type_set(self):
@@ -53,6 +53,20 @@ class TestParser(unittest.TestCase):
         """Test ddl
         """
         self.assertEqual(1, 1)
+
+    def test_get_sampling_ratio(self):
+        """ test get_sampling_ratio()
+        """
+
+        sql1 = "create table test(y float, x float) from '/path/to/data/file.csv' group by g method uniform size 0.1"
+        sql2 = "create table test(y float, x float) from '/path/to/data/file.csv' group by g method uniform size 1000"
+        sql3 = "create table test(y float, x float) from '/path/to/data/file.csv' group by g method uniform size '/data/file/haha.csv'"
+        sqls = [sql1, sql2, sql3]
+        sizes = []
+        for sql in sqls:
+            self.parser.parse(sql)
+            sizes.append(self.parser.get_sampling_ratio())
+        self.assertEqual(sizes, [0.1, 1000, '/data/file/haha.csv'])
 
 
 if __name__ == "__main__":

@@ -342,7 +342,7 @@ class RegMdnGroupBy():
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_xzs, tensor_ys)  # create your dataloader
             my_dataloader = torch.utils.data.DataLoader(
-                my_dataset, batch_size=1000, shuffle=True, num_workers=n_workers)
+                my_dataset, batch_size=self.config.config["batch_size"], shuffle=True, num_workers=n_workers)
 
             if encoder == "onehot":
                 input_dim = sum([len(i) for i in self.enc.categories_]) + 1
@@ -764,7 +764,7 @@ class RegMdn():
             tensor_xzs, tensor_ys)  # create your datset
         # , num_workers=8) # create your dataloader
         my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
+            my_dataset, batch_size=self.config.config["batch_size"], shuffle=False, num_workers=n_workers)
 
         input_dim = len(self.enc.categories_[0]) + 1
         # initialize the model
@@ -889,7 +889,7 @@ class RegMdn():
             tensor_xs, tensor_ys)  # create your datset
         # , num_workers=8) # create your dataloader
         my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
+            my_dataset, batch_size=self.config.config["batch_size"], shuffle=False, num_workers=n_workers)
 
         # initialize the model
         self.model = nn.Sequential(
@@ -1150,7 +1150,7 @@ class KdeMdn:
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_zs, tensor_xs)  # create your dataloader
             my_dataloader = torch.utils.data.DataLoader(
-                my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
+                my_dataset, batch_size=self.config.config["batch_size"], shuffle=False, num_workers=n_workers)
 
             # initialize the model
             if hidden == 1:

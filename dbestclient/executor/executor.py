@@ -8,11 +8,12 @@ import os
 import os.path
 import warnings
 from datetime import datetime
+from multiprocessing import set_start_method as set_start_method_cpu
 
 import dill
 import numpy as np
 import torch
-from torch.multiprocessing import set_start_method
+from torch.multiprocessing import set_start_method as set_start_method_torch
 
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
@@ -177,10 +178,10 @@ class SqlExecutor:
                         num_total_records=self.n_total_records)
 
                 # set the n_total_point and scaling factor for each model.
-                self.config.set_parameter(
-                    "n_total_point", sampler.n_total_point)
-                self.config.set_parameter(
-                    "scaling_factor", sampler.scaling_factor)
+                # self.config.set_parameter(
+                #     "n_total_point", sampler.n_total_point)
+                # self.config.set_parameter(
+                #     "scaling_factor", sampler.scaling_factor)
                 # print("scaling_factor is ", sampler.scaling_factor)
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
@@ -253,75 +254,85 @@ class SqlExecutor:
                         # n_total_point = get_group_count_from_table(
                         #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
                         #     headers=self.table_header)
-                        if self.parser.get_scaling_method()[0] == "file":
-                            frequency_file = self.config.get_config()['warehousedir'] + "/" + self.parser.get_scaling_method()[
-                                1]
+                        if isinstance(ratio, str):
+                            frequency_file = self.config.get_config()[
+                                'warehousedir'] + "/" + ratio
                             # "/num_of_points.csv"
                             if os.path.exists(frequency_file):
                                 n_total_point = get_group_count_from_summary_file(
                                     frequency_file, sep=',')
+                                n_total_point_sample, xys = sampler.get_groupby_frequency_data()
+                                n_total_point["if_contain_x_categorical"] = n_total_point_sample["if_contain_x_categorical"]
                             else:
                                 raise FileNotFoundError(
                                     "scaling factor should come from the " +
-                                    self.parser.get_scaling_method(
-                                    )[1]+" in the warehouse folder, as"
+                                    ratio + " in the warehouse folder, as"
                                     " stated in the SQL. However, the file is not found.")
                         else:
                             n_total_point, xys = sampler.get_groupby_frequency_data()
-                            # print("n_total_point", n_total_point)
-                            # raise Exception
 
-                            # no categorical x attributes
-                            if not n_total_point['if_contain_x_categorical']:
-                                if not self.config.get_config()["b_use_gg"]:
-                                    n_total_point.pop(
-                                        "if_contain_x_categorical")
-                                    # xys.pop("if_contain_x_categorical")
-                                    kdeModelWrapper = KdeModelTrainer(
-                                        mdl, tbl, xheader_continous[0], yheader,
-                                        groupby_attribute=groupby_attribute,
-                                        groupby_values=list(
-                                            n_total_point.keys()),
-                                        n_total_point=n_total_point,
-                                        x_min_value=-np.inf, x_max_value=np.inf,
-                                        config=self.config.copy()).fit_from_df(
-                                        xys["data"], self.runtime_config, network_size="large")
+                            # for cases when the data file is treated as a sample, we need to scale up the frequency for each group.
+                            if ratio > 1:
+                                file_size = sampler.n_total_point
+                                ratio = float(ratio)/file_size
+                            # if 0 < ratio < 1:
+                            scaled_n_total_point = {
+                                "if_contain_x_categorical": n_total_point.pop("if_contain_x_categorical")}
+                            for key in n_total_point:
+                                scaled_n_total_point[key] = n_total_point[key]/ratio
+                            n_total_point = scaled_n_total_point
 
-                                    qe_mdn = MdnQueryEngine(
-                                        kdeModelWrapper, config=self.config.copy())
-                                    qe_mdn.serialize2warehouse(
-                                        self.config.get_config()['warehousedir'])
-                                    # kdeModelWrapper.serialize2warehouse()
-                                    self.model_catalog.add_model_wrapper(
-                                        qe_mdn)
+                        # no categorical x attributes
+                        if not n_total_point['if_contain_x_categorical']:
+                            if not self.config.get_config()["b_use_gg"]:
+                                n_total_point.pop(
+                                    "if_contain_x_categorical")
+                                # xys.pop("if_contain_x_categorical")
+                                kdeModelWrapper = KdeModelTrainer(
+                                    mdl, tbl, xheader_continous[0], yheader,
+                                    groupby_attribute=groupby_attribute,
+                                    groupby_values=list(
+                                        n_total_point.keys()),
+                                    n_total_point=n_total_point,
+                                    x_min_value=-np.inf, x_max_value=np.inf,
+                                    config=self.config.copy()).fit_from_df(
+                                    xys["data"], self.runtime_config, network_size="large")
 
-                                else:
-                                    # print("n_total_point ", n_total_point)
-                                    queryEngineBundle = MdnQueryEngineBundle(
-                                        config=self.config.copy()).fit(xys, groupby_attribute,
-                                                                       n_total_point, mdl, tbl,
-                                                                       xheader_continous, yheader,
-                                                                       self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
+                                qe_mdn = MdnQueryEngine(
+                                    kdeModelWrapper, config=self.config.copy())
+                                qe_mdn.serialize2warehouse(
+                                    self.config.get_config()['warehousedir'])
+                                # kdeModelWrapper.serialize2warehouse()
+                                self.model_catalog.add_model_wrapper(
+                                    qe_mdn)
 
-                                    self.model_catalog.add_model_wrapper(
-                                        queryEngineBundle)
-                                    queryEngineBundle.serialize2warehouse(
-                                        self.config.get_config()['warehousedir'])
-                            else:  # x has categorical attributes
-                                if not self.config.get_config()["b_use_gg"]:
-                                    qeXContinuous = MdnQueryEngineXCategorical(
-                                        self.config.copy())
-                                    qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
-                                        "y": yheader, "x_continous": xheader_continous,
-                                        "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
-                                    )  # device=device, encoding=encoding, b_grid_search=b_grid_search
-                                    qeXContinuous.serialize2warehouse(
-                                        self.config.get_config()['warehousedir'])
-                                    self.model_catalog.add_model_wrapper(
-                                        qeXContinuous)
-                                else:
-                                    raise ValueError(
-                                        "GoG support for categorical attributes is not supported.")
+                            else:
+                                # print("n_total_point ", n_total_point)
+                                queryEngineBundle = MdnQueryEngineBundle(
+                                    config=self.config.copy()).fit(xys, groupby_attribute,
+                                                                   n_total_point, mdl, tbl,
+                                                                   xheader_continous, yheader,
+                                                                   self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
+
+                                self.model_catalog.add_model_wrapper(
+                                    queryEngineBundle)
+                                queryEngineBundle.serialize2warehouse(
+                                    self.config.get_config()['warehousedir'])
+                        else:  # x has categorical attributes
+                            if not self.config.get_config()["b_use_gg"]:
+                                qeXContinuous = MdnQueryEngineXCategorical(
+                                    self.config.copy())
+                                qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
+                                    "y": yheader, "x_continous": xheader_continous,
+                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
+                                )  # device=device, encoding=encoding, b_grid_search=b_grid_search
+                                qeXContinuous.serialize2warehouse(
+                                    self.config.get_config()['warehousedir'])
+                                self.model_catalog.add_model_wrapper(
+                                    qeXContinuous)
+                            else:
+                                raise ValueError(
+                                    "GoG support for categorical attributes is not supported.")
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.runtime_config['b_show_latency']:
@@ -483,11 +494,13 @@ class SqlExecutor:
                                     if value == "gpu":
                                         value = "cuda:0"
                                         try:
-                                            set_start_method('spawn')
+                                            set_start_method_torch('spawn')
                                         except RuntimeError:
                                             print("Fail to set start method as spawn for pytorch multiprocessing, " +
                                                   "use default in advance. (see queryenginemdn "
                                                   "for more info.)")
+                                    else:
+                                        set_start_method_cpu("spawn")
                                     if self.runtime_config["v"]:
                                         print("device is set to " + value)
                                 else:
