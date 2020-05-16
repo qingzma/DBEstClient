@@ -10,6 +10,7 @@ import math
 import random
 import sys
 from concurrent import futures
+from copy import deepcopy
 from os import remove
 from os.path import abspath
 
@@ -239,7 +240,7 @@ class RegMdnGroupBy():
     """ This class implements the regression using mixture density network for group by queries.
     """
 
-    def __init__(self, device, b_store_training_data=True, encoding="onehot", b_normalize_data=True):
+    def __init__(self, config,  b_store_training_data=True,  b_normalize_data=True):
         if b_store_training_data:
             self.x_points = None  # query range
             self.y_points = None  # aggregate value
@@ -257,19 +258,10 @@ class RegMdnGroupBy():
         self.last_pi = None
         self.last_mu = None
         self.last_sigma = None
-
-        if encoding.lower() in ["onehot", "binary", "no"]:
-            self.encoding = encoding.lower()
-            self.enc = None
-        else:
-            raise ValueError(
-                "The embeddint type must be onehot, binary or no.")
+        self.config = config
         self.b_normalize_data = b_normalize_data
-        self.device = device
 
-    def fit(self, z_group: list, x_points: list, y_points: list,
-            n_epoch: int = 100, n_gaussians: int = 5, n_hidden_layer: int = 1,
-            n_mdn_layer_node: int = 10, lr: float = 0.001, b_grid_search=True, n_workers=0):
+    def fit(self, z_group: list, x_points: list, y_points: list, runtime_config, lr: float = 0.001, n_workers=0):
         """fit the MDN regression model.
 
         Args:
@@ -288,12 +280,20 @@ class RegMdnGroupBy():
         Returns:
             RegMdnGroupBy: The regression model.
         """
+        n_epoch = self.config.config["n_epoch"]
+        n_gaussians = self.config.config["n_gaussians"]
+        n_hidden_layer = self.config.config["n_hidden_layer"]
+        n_mdn_layer_node = self.config.config["n_mdn_layer_node"]
+        b_grid_search = self.config.config["b_grid_search"]
+        encoder = self.config.config["encoder"]
+        device = runtime_config["device"]
+
         if not b_grid_search:
-            if self.encoding == "onehot":
+            if encoder == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
                 zs_encoded = z_group
                 zs_encoded = self.enc.fit_transform(zs_encoded).toarray()
-            elif self.encoding == "binary":
+            elif encoder == "binary":
                 # print(z_group)
                 # prepare column names for binary encoding
                 columns = list(range(len(z_group[0])))
@@ -320,7 +320,7 @@ class RegMdnGroupBy():
                 self.y_points = None
                 self.z_points = None
 
-            if self.encoding in["onehot", "binary"]:
+            if encoder in["onehot", "binary"]:
                 xs_encoded = x_points[:, np.newaxis]
                 xzs_encoded = np.concatenate(
                     [xs_encoded, zs_encoded], axis=1).tolist()
@@ -336,17 +336,17 @@ class RegMdnGroupBy():
             tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
 
             # move variables to cuda
-            tensor_xzs = tensor_xzs.to(self.device)
-            tensor_ys = tensor_ys.to(self.device)
+            tensor_xzs = tensor_xzs.to(device)
+            tensor_ys = tensor_ys.to(device)
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_xzs, tensor_ys)  # create your dataloader
             my_dataloader = torch.utils.data.DataLoader(
                 my_dataset, batch_size=1000, shuffle=True, num_workers=n_workers)
 
-            if self.encoding == "onehot":
+            if encoder == "onehot":
                 input_dim = sum([len(i) for i in self.enc.categories_]) + 1
-            elif self.encoding == "binary":
+            elif encoder == "binary":
                 input_dim = len(self.enc.base_n_encoder.feature_names) + 1
             else:
                 raise ValueError("Encoding should be binary or onehot")
@@ -357,7 +357,7 @@ class RegMdnGroupBy():
                     nn.Linear(input_dim, n_mdn_layer_node),
                     nn.Tanh(),
                     nn.Dropout(0.1),
-                    MDN(n_mdn_layer_node, 1, n_gaussians, self.device)
+                    MDN(n_mdn_layer_node, 1, n_gaussians, device)
                 )
             elif n_hidden_layer == 2:
                 self.model = nn.Sequential(
@@ -366,13 +366,13 @@ class RegMdnGroupBy():
                     nn.Linear(n_mdn_layer_node, n_mdn_layer_node),
                     nn.Tanh(),
                     nn.Dropout(0.1),
-                    MDN(n_mdn_layer_node, 1, n_gaussians, self.device)
+                    MDN(n_mdn_layer_node, 1, n_gaussians, device)
                 )
             else:
                 raise ValueError(
                     "The hidden layer should be 1 or 2, but you provided "+str(n_hidden_layer))
 
-            self.model = self.model.to(self.device)
+            self.model = self.model.to(device)
 
             optimizer = optim.Adam(self.model.parameters(), lr=lr)
             decay_rate = 0.96
@@ -383,11 +383,11 @@ class RegMdnGroupBy():
                     print("< Epoch {}".format(epoch))
                 # train the model
                 for minibatch, labels in my_dataloader:
-                    minibatch.to(self.device)
-                    labels.to(self.device)
+                    minibatch.to(device)
+                    labels.to(device)
                     self.model.zero_grad()
                     pi, sigma, mu = self.model(minibatch)
-                    loss = mdn_loss(pi, sigma, mu, labels, self.device)
+                    loss = mdn_loss(pi, sigma, mu, labels, device)
                     loss.backward()
                     optimizer.step()
                 my_lr_scheduler.step()
@@ -395,9 +395,9 @@ class RegMdnGroupBy():
             print("Finish regression training.")
             return self
         else:
-            return self.fit_grid_search(z_group, x_points, y_points)
+            return self.fit_grid_search(z_group, x_points, y_points, runtime_config)
 
-    def fit_grid_search(self, z_group: list, x_points: list, y_points: list):
+    def fit_grid_search(self, z_group: list, x_points: list, y_points: list, runtime_config):
         """use grid search to tune the hyper parameters.
 
         Args:
@@ -429,9 +429,16 @@ class RegMdnGroupBy():
         self.b_store_training_data = True
         for para in combs:
             print("Grid search for parameter set :", para)
-            instance = self.fit(z_group, x_points, y_points, n_gaussians=para['gaussian'], n_epoch=para['epoch'],
-                                n_mdn_layer_node=para['node'], lr=para['lr'], n_hidden_layer=para['hidden'], b_grid_search=False)
-            errors.append(instance.score())
+            config = self.config.copy()
+            config["n_gaussians"] = para['gaussian']
+            config["n_epoch"] = para['n_epoch']
+            config["n_hidden_layer"] = para['n_hidden_layer']
+            config["n_mdn_layer_node"] = para['n_mdn_layer_node']
+            config["b_grid_search"] = False
+
+            instance = RegMdnGroupBy(config).fit(z_group, x_points, y_points,
+                                                 runtime_config, lr=para['lr'])
+            errors.append(instance.score(runtime_config))
 
         print("errors for grid search ", errors)
         index = errors.index(min(errors))
@@ -447,12 +454,19 @@ class RegMdnGroupBy():
         self.sample_g = None
         self.sample_average_y = None
 
-        instance = self.fit(z_group, x_points, y_points, n_gaussians=para['gaussian'], n_epoch=20,
-                            n_mdn_layer_node=para['node'], lr=para['lr'], n_hidden_layer=para['hidden'], b_grid_search=False)
+        config = self.config.copy()
+        config["n_gaussians"] = para['gaussian']
+        config["n_epoch"] = para['n_epoch']
+        config["n_hidden_layer"] = para['n_hidden_layer']
+        config["n_mdn_layer_node"] = para['n_mdn_layer_node']
+        config["b_grid_search"] = False
+
+        instance = RegMdnGroupBy(config).fit(z_group, x_points, y_points,
+                                             runtime_config, lr=para['lr'])
         print("-"*80)
         return instance
 
-    def predict(self, z_group: list, x_points: list, b_plot=False) -> list:
+    def predict(self, z_group: list, x_points: list, runtime_config, b_plot=False) -> list:
         """provide predictions for given groups and points.
 
         Args:
@@ -472,8 +486,10 @@ class RegMdnGroupBy():
             z_group = np.array(z_group)
         if type(x_points) is list:
             x_points = np.array(x_points)
+        encoder = self.config.config["encoder"]
+        device = runtime_config["device"]
 
-        if self.encoding == 'no':
+        if encoder == 'no':
             convert2float = True
             if convert2float:
                 try:
@@ -490,7 +506,7 @@ class RegMdnGroupBy():
         if self.b_normalize_data:
             x_points = normalize(x_points, self.meanx, self.widthx)
 
-        if self.encoding == "onehot":
+        if encoder == "onehot":
             # zs_encoded = z_group  # [:, np.newaxis]
             zs_encoded = self.enc.transform(z_group).toarray()
             x_points = x_points[:, np.newaxis]
@@ -498,7 +514,7 @@ class RegMdnGroupBy():
                 [x_points, zs_encoded], axis=1).tolist()
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
-        elif self.encoding == "binary":
+        elif encoder == "binary":
             zs_encoded = self.enc.transform(z_group).to_numpy()
             x_points = x_points[:, np.newaxis]
             xzs_encoded = np.concatenate(
@@ -511,7 +527,8 @@ class RegMdnGroupBy():
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs])
 
-        tensor_xzs = tensor_xzs.to(self.device)
+        tensor_xzs = tensor_xzs.to(device)
+        self.model = self.model.to(device)
 
         pis, sigmas, mus = self.model(tensor_xzs)
         if not b_plot:
@@ -561,7 +578,7 @@ class RegMdnGroupBy():
             plt.show()
             return samples
 
-    def score(self) -> float:
+    def score(self, runtime_config) -> float:
         """ evaluate the error for this model. currenltly, 
         it is the sum of all absolute errors, for a random sample of points.
 
@@ -613,414 +630,414 @@ class RegMdnGroupBy():
 
                 self.sample_average_y = df["mean_y"].values
 
-            predictions = self.predict(self.sample_g, self.sample_x)
+            predictions = self.predict(
+                self.sample_g, self.sample_x, runtime_config)
             errors = [abs(pred-tru)
                       for pred, tru in zip(predictions, self.sample_average_y)]
             errors = sum(sorted(errors)[10:-10])
             return errors
 
 
-class RegMdn():
-    """ This class implements the regression using mixture density network.
-    """
+# class RegMdn():
+#     """ This class implements the regression using mixture density network.
+#     """
 
-    def __init__(self, dim_input, device, b_store_training_data=False, n_mdn_layer_node=20, b_one_hot=True):
-        if b_store_training_data:
-            self.xs = None  # query range
-            self.ys = None  # aggregate value
-            self.zs = None  # group by balue
-        self.b_store_training_data = b_store_training_data
-        self.meanx = None
-        self.widthx = None
-        self.meany = None
-        self.widthy = None
-        self.meanz = None
-        self.widthz = None
-        self.model = None
-        self.is_normalized = False
-        self.dim_input = dim_input
-        self.is_training_data_denormalized = False
-        self.n_mdn_layer_node = n_mdn_layer_node
-        self.last_xs = None
-        self.last_pi = None
-        self.last_mu = None
-        self.last_sigma = None
-        self.enc = None
-        self.b_one_hot = b_one_hot
-        self.device = device
+#     def __init__(self, dim_input, device, b_store_training_data=False, n_mdn_layer_node=20, b_one_hot=True):
+#         if b_store_training_data:
+#             self.xs = None  # query range
+#             self.ys = None  # aggregate value
+#             self.zs = None  # group by balue
+#         self.b_store_training_data = b_store_training_data
+#         self.meanx = None
+#         self.widthx = None
+#         self.meany = None
+#         self.widthy = None
+#         self.meanz = None
+#         self.widthz = None
+#         self.model = None
+#         self.is_normalized = False
+#         self.dim_input = dim_input
+#         self.is_training_data_denormalized = False
+#         self.n_mdn_layer_node = n_mdn_layer_node
+#         self.last_xs = None
+#         self.last_pi = None
+#         self.last_mu = None
+#         self.last_sigma = None
+#         self.enc = None
+#         self.b_one_hot = b_one_hot
 
-    def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400, num_gaussians=5):
-        """ fit a regression y= R(x)"""
-        if len(xs.shape) != 2:
-            raise Exception("xs should be 2-d, but got unexpected shape.")
-        if self.dim_input == 1:
-            return self.fit2d(xs, ys, b_show_reg_plot=b_show_plot,
-                              b_normalize=b_normalize, num_epoch=num_epoch, num_gaussians=num_gaussians)
-        elif self.dim_input == 2:
-            return self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
-                              b_normalize=b_normalize, num_epoch=num_epoch, num_gaussians=num_gaussians)
-        else:
-            print("dimension mismatch")
-            sys.exit(0)
+#     def fit(self, xs, ys, b_show_plot=False, b_normalize=True, num_epoch=400, num_gaussians=5):
+#         """ fit a regression y= R(x)"""
+#         if len(xs.shape) != 2:
+#             raise Exception("xs should be 2-d, but got unexpected shape.")
+#         if self.dim_input == 1:
+#             return self.fit2d(xs, ys, b_show_reg_plot=b_show_plot,
+#                               b_normalize=b_normalize, num_epoch=num_epoch, num_gaussians=num_gaussians)
+#         elif self.dim_input == 2:
+#             return self.fit3d(xs[:, 0], xs[:, 1], ys, b_show_plot=b_show_plot,
+#                               b_normalize=b_normalize, num_epoch=num_epoch, num_gaussians=num_gaussians)
+#         else:
+#             print("dimension mismatch")
+#             sys.exit(0)
 
-    def predict(self, xs, b_show_plot=False):
-        """ make predictions"""
-        if self.dim_input == 1:
-            return self.predict2d(xs, b_show_plot=b_show_plot)
-        elif self.dim_input == 2:
-            return self.predict3d(xs[:, 0], xs[:, 1], b_show_plot=b_show_plot)
-        else:
-            print("dimension mismatch")
-            sys.exit(0)
+#     def predict(self, xs, b_show_plot=False):
+#         """ make predictions"""
+#         if self.dim_input == 1:
+#             return self.predict2d(xs, b_show_plot=b_show_plot)
+#         elif self.dim_input == 2:
+#             return self.predict3d(xs[:, 0], xs[:, 1], b_show_plot=b_show_plot)
+#         else:
+#             print("dimension mismatch")
+#             sys.exit(0)
 
-    def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5, n_workers=0):
-        """ fit a regression y = R(x,z)
+#     def fit3d(self, xs, zs, ys, b_show_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5, n_workers=0):
+#         """ fit a regression y = R(x,z)
 
-        Args:
-            xs ([float]): query range attribute
-            zs ([float]): group by attribute
-            ys ([float]): aggregate attribute
-            b_show_plot (bool, optional): whether to show the plot. Defaults to True.
-        """
-        if self.b_one_hot:
-            self.enc = OneHotEncoder(handle_unknown='ignore')
-            zs_onehot = zs[:, np.newaxis]
-            zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
+#         Args:
+#             xs ([float]): query range attribute
+#             zs ([float]): group by attribute
+#             ys ([float]): aggregate attribute
+#             b_show_plot (bool, optional): whether to show the plot. Defaults to True.
+#         """
+#         if self.b_one_hot:
+#             self.enc = OneHotEncoder(handle_unknown='ignore')
+#             zs_onehot = zs[:, np.newaxis]
+#             zs_onehot = self.enc.fit_transform(zs_onehot).toarray()
 
-        if b_normalize:
-            self.meanx = (np.max(xs) + np.min(xs)) / 2
-            self.widthx = np.max(xs) - np.min(xs)
-            self.meany = (np.max(ys) + np.min(ys)) / 2
-            self.widthy = np.max(ys) - np.min(ys)
-            # self.meanz = np.mean(zs)
-            # self.widthz = np.max(zs)-np.min(zs)
+#         if b_normalize:
+#             self.meanx = (np.max(xs) + np.min(xs)) / 2
+#             self.widthx = np.max(xs) - np.min(xs)
+#             self.meany = (np.max(ys) + np.min(ys)) / 2
+#             self.widthy = np.max(ys) - np.min(ys)
+#             # self.meanz = np.mean(zs)
+#             # self.widthz = np.max(zs)-np.min(zs)
 
-            # s= [(i-meanx)/1 for i in x]
-            xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            ys = np.array([self.normalize(i, self.meany, self.widthy)
-                           for i in ys])
-            # zs = np.array([self.normalize(i, self.meanz, self.widthz)
-            #                for i in zs])
-            self.is_normalized = True
+#             # s= [(i-meanx)/1 for i in x]
+#             xs = np.array([self.normalize(i, self.meanx, self.widthx)
+#                            for i in xs])
+#             ys = np.array([self.normalize(i, self.meany, self.widthy)
+#                            for i in ys])
+#             # zs = np.array([self.normalize(i, self.meanz, self.widthz)
+#             #                for i in zs])
+#             self.is_normalized = True
 
-        if self.b_store_training_data:
-            self.xs = xs
-            self.ys = ys
-            self.zs = zs
+#         if self.b_store_training_data:
+#             self.xs = xs
+#             self.ys = ys
+#             self.zs = zs
 
-        if b_show_plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(xs, zs, ys)
-            ax.set_xlabel('query range attribute')
-            ax.set_ylabel('group by attribute')
-            ax.set_zlabel('aggregate attribute')
-            plt.show()
+#         if b_show_plot:
+#             fig = plt.figure()
+#             ax = fig.add_subplot(111, projection='3d')
+#             ax.scatter(xs, zs, ys)
+#             ax.set_xlabel('query range attribute')
+#             ax.set_ylabel('group by attribute')
+#             ax.set_zlabel('aggregate attribute')
+#             plt.show()
 
-        if self.b_one_hot:
-            xs_onehot = xs[:, np.newaxis]
-            xzs_onehot = np.concatenate(
-                [xs_onehot, zs_onehot], axis=1).tolist()
-            tensor_xzs = torch.stack([torch.Tensor(i)
-                                      for i in xzs_onehot])  # transform to torch tensors
-        else:
-            xzs = [[xs[i], zs[i]] for i in range(len(xs))]
-            tensor_xzs = torch.stack([torch.Tensor(i)
-                                      for i in xzs])  # transform to torch tensors
-        ys = ys[:, np.newaxis]
-        tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
+#         if self.b_one_hot:
+#             xs_onehot = xs[:, np.newaxis]
+#             xzs_onehot = np.concatenate(
+#                 [xs_onehot, zs_onehot], axis=1).tolist()
+#             tensor_xzs = torch.stack([torch.Tensor(i)
+#                                       for i in xzs_onehot])  # transform to torch tensors
+#         else:
+#             xzs = [[xs[i], zs[i]] for i in range(len(xs))]
+#             tensor_xzs = torch.stack([torch.Tensor(i)
+#                                       for i in xzs])  # transform to torch tensors
+#         ys = ys[:, np.newaxis]
+#         tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
 
-        # move variables to cuda
-        tensor_xzs = tensor_xzs.to(self.device)
-        tensor_ys = tensor_ys.to(self.device)
+#         # move variables to cuda
+#         tensor_xzs = tensor_xzs.to(device)
+#         tensor_ys = tensor_ys.to(device)
 
-        my_dataset = torch.utils.data.TensorDataset(
-            tensor_xzs, tensor_ys)  # create your datset
-        # , num_workers=8) # create your dataloader
-        my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
+#         my_dataset = torch.utils.data.TensorDataset(
+#             tensor_xzs, tensor_ys)  # create your datset
+#         # , num_workers=8) # create your dataloader
+#         my_dataloader = torch.utils.data.DataLoader(
+#             my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
 
-        input_dim = len(self.enc.categories_[0]) + 1
-        # initialize the model
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, self.n_mdn_layer_node),  # self.dim_input
-            nn.Tanh(),
-            nn.Dropout(0.01),
-            MDN(self.n_mdn_layer_node, 1, num_gaussians, self.device)
-        )
+#         input_dim = len(self.enc.categories_[0]) + 1
+#         # initialize the model
+#         self.model = nn.Sequential(
+#             nn.Linear(input_dim, self.n_mdn_layer_node),  # self.dim_input
+#             nn.Tanh(),
+#             nn.Dropout(0.01),
+#             MDN(self.n_mdn_layer_node, 1, num_gaussians, device)
+#         )
 
-        self.model = self.model.to(self.device)
+#         self.model = self.model.to(device)
 
-        optimizer = optim.Adam(self.model.parameters())
-        for epoch in range(num_epoch):
-            if epoch % 100 == 0:
-                print("< Epoch {}".format(epoch))
-            # train the model
-            for minibatch, labels in my_dataloader:
-                minibatch.to(self.device)
-                labels.to(self.device)
-                self.model.zero_grad()
-                pi, sigma, mu = self.model(minibatch)
-                loss = mdn_loss(pi, sigma, mu, labels, self.device)
-                loss.backward()
-                optimizer.step()
-        return self
+#         optimizer = optim.Adam(self.model.parameters())
+#         for epoch in range(num_epoch):
+#             if epoch % 100 == 0:
+#                 print("< Epoch {}".format(epoch))
+#             # train the model
+#             for minibatch, labels in my_dataloader:
+#                 minibatch.to(device)
+#                 labels.to(device)
+#                 self.model.zero_grad()
+#                 pi, sigma, mu = self.model(minibatch)
+#                 loss = mdn_loss(pi, sigma, mu, labels, device)
+#                 loss.backward()
+#                 optimizer.step()
+#         return self
 
-    def fit3d_grid_search(self,  xs: list,  zs: list, ys: list, b_normalize=True):
-        """ fit the regression, using grid search to find the optimal parameters.
+#     def fit3d_grid_search(self,  xs: list,  zs: list, ys: list, b_normalize=True):
+#         """ fit the regression, using grid search to find the optimal parameters.
 
-        Args:
-            xs (list): x points.
-            zs (list): group by attributes
-            ys (list): y values.
-            b_normalize (bool, optional): whether the values should be normalized
-                        for training. Defaults to True.
+#         Args:
+#             xs (list): x points.
+#             zs (list): group by attributes
+#             ys (list): y values.
+#             b_normalize (bool, optional): whether the values should be normalized
+#                         for training. Defaults to True.
 
-        Returns:
-            RegMdn: the model.
-        """
+#         Returns:
+#             RegMdn: the model.
+#         """
 
-        param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
-            5, 10, 20], 'hidden': [1, 2], 'gaussian': [2, 4]}
-        # param_grid = {'epoch': [2], 'lr': [0.001], 'node': [4,  12], 'hidden': [1, 2], 'gaussian': [10]}
-        errors = []
-        combinations = it.product(*(param_grid[Name] for Name in param_grid))
-        combinations = list(combinations)
-        combs = []
-        for combination in combinations:
-            idx = 0
-            comb = {}
-            for key in param_grid:
-                comb[key] = combination[idx]
-                idx += 1
-            combs.append(comb)
+#         param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
+#             5, 10, 20], 'hidden': [1, 2], 'gaussian': [2, 4]}
+#         # param_grid = {'epoch': [2], 'lr': [0.001], 'node': [4,  12], 'hidden': [1, 2], 'gaussian': [10]}
+#         errors = []
+#         combinations = it.product(*(param_grid[Name] for Name in param_grid))
+#         combinations = list(combinations)
+#         combs = []
+#         for combination in combinations:
+#             idx = 0
+#             comb = {}
+#             for key in param_grid:
+#                 comb[key] = combination[idx]
+#                 idx += 1
+#             combs.append(comb)
 
-        self.b_store_training_data = True
-        # for para in combs:
-        #     print("Grid search for parameter set :", para)
-        #     instance = self.fit(zs, xs, b_normalize=b_normalize, num_gaussians=para['gaussian'], num_epoch=para['epoch'],
-        #                         n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
-        #     errors.append(instance.score())
+#         self.b_store_training_data = True
+#         # for para in combs:
+#         #     print("Grid search for parameter set :", para)
+#         #     instance = self.fit(zs, xs, b_normalize=b_normalize, num_gaussians=para['gaussian'], num_epoch=para['epoch'],
+#         #                         n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
+#         #     errors.append(instance.score())
 
-        # index = errors.index(min(errors))
-        # para = combs[index]
-        # print("Finding the best configuration for the network", para)
+#         # index = errors.index(min(errors))
+#         # para = combs[index]
+#         # print("Finding the best configuration for the network", para)
 
-        # self.b_store_training_data = False
-        # instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
-        #                     n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
-        # return instance
+#         # self.b_store_training_data = False
+#         # instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
+#         #                     n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
+#         # return instance
 
-    def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5,
-              b_show_density_plot=False, n_workers=0):
-        """ fit a regression y = R(x)
+#     def fit2d(self, xs, ys, b_show_reg_plot=False, b_normalize=True, num_epoch=200, num_gaussians=5,
+#               b_show_density_plot=False, n_workers=0):
+#         """ fit a regression y = R(x)
 
-        Args:
-            xs([float]): query range attribute
-            ys([float]): aggregate attribute
-            b_show_plot(bool, optional): whether to show the plot. Defaults to True.
-        """
+#         Args:
+#             xs([float]): query range attribute
+#             ys([float]): aggregate attribute
+#             b_show_plot(bool, optional): whether to show the plot. Defaults to True.
+#         """
 
-        if b_normalize:
-            self.meanx = (np.max(xs) + np.min(xs)) / 2
-            self.widthx = np.max(xs) - np.min(xs)
-            self.meany = (np.max(ys) + np.min(ys)) / 2
-            self.widthy = np.max(ys) - np.min(ys)
+#         if b_normalize:
+#             self.meanx = (np.max(xs) + np.min(xs)) / 2
+#             self.widthx = np.max(xs) - np.min(xs)
+#             self.meany = (np.max(ys) + np.min(ys)) / 2
+#             self.widthy = np.max(ys) - np.min(ys)
 
-            # s= [(i-meanx)/1 for i in x]
-            xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            ys = np.array([self.normalize(i, self.meany, self.widthy)
-                           for i in ys])
+#             # s= [(i-meanx)/1 for i in x]
+#             xs = np.array([self.normalize(i, self.meanx, self.widthx)
+#                            for i in xs])
+#             ys = np.array([self.normalize(i, self.meany, self.widthy)
+#                            for i in ys])
 
-            self.is_normalized = True
+#             self.is_normalized = True
 
-        if self.b_store_training_data:
-            self.xs = xs
-            self.ys = ys
+#         if self.b_store_training_data:
+#             self.xs = xs
+#             self.ys = ys
 
-        if b_show_reg_plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.scatter(xs, ys)
-            ax.set_xlabel('query range attribute')
+#         if b_show_reg_plot:
+#             fig = plt.figure()
+#             ax = fig.add_subplot(111)
+#             ax.scatter(xs, ys)
+#             ax.set_xlabel('query range attribute')
 
-            ax.set_ylabel('aggregate attribute')
-            plt.show()
+#             ax.set_ylabel('aggregate attribute')
+#             plt.show()
 
-        # xzs = [[xs[i], zs[i]] for i in range(len(xs))]
-        # xs = xs[:, np.newaxis]
-        ys = ys[:, np.newaxis]
-        tensor_xs = torch.stack([torch.Tensor(i)
-                                 for i in xs])  # transform to torch tensors
+#         # xzs = [[xs[i], zs[i]] for i in range(len(xs))]
+#         # xs = xs[:, np.newaxis]
+#         ys = ys[:, np.newaxis]
+#         tensor_xs = torch.stack([torch.Tensor(i)
+#                                  for i in xs])  # transform to torch tensors
 
-        # tensor_x.flatten(-1)
-        tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
+#         # tensor_x.flatten(-1)
+#         tensor_ys = torch.stack([torch.Tensor(i) for i in ys])
 
-        my_dataset = torch.utils.data.TensorDataset(
-            tensor_xs, tensor_ys)  # create your datset
-        # , num_workers=8) # create your dataloader
-        my_dataloader = torch.utils.data.DataLoader(
-            my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
+#         my_dataset = torch.utils.data.TensorDataset(
+#             tensor_xs, tensor_ys)  # create your datset
+#         # , num_workers=8) # create your dataloader
+#         my_dataloader = torch.utils.data.DataLoader(
+#             my_dataset, batch_size=1000, shuffle=False, num_workers=n_workers)
 
-        # initialize the model
-        self.model = nn.Sequential(
-            nn.Linear(self.dim_input, self.n_mdn_layer_node),
-            nn.Tanh(),
-            nn.Dropout(0.01),
-            MDN(self.n_mdn_layer_node, 1, num_gaussians)
-        )
+#         # initialize the model
+#         self.model = nn.Sequential(
+#             nn.Linear(self.dim_input, self.n_mdn_layer_node),
+#             nn.Tanh(),
+#             nn.Dropout(0.01),
+#             MDN(self.n_mdn_layer_node, 1, num_gaussians)
+#         )
 
-        optimizer = optim.Adam(self.model.parameters())
-        for epoch in range(num_epoch):
-            if epoch % 5 == 0:
-                print("< Epoch {}".format(epoch))
-            # train the model
-            for minibatch, labels in my_dataloader:
-                self.model.zero_grad()
-                pi, sigma, mu = self.model(minibatch)
-                loss = mdn_loss(pi, sigma, mu, labels)
-                loss.backward()
-                optimizer.step()
+#         optimizer = optim.Adam(self.model.parameters())
+#         for epoch in range(num_epoch):
+#             if epoch % 5 == 0:
+#                 print("< Epoch {}".format(epoch))
+#             # train the model
+#             for minibatch, labels in my_dataloader:
+#                 self.model.zero_grad()
+#                 pi, sigma, mu = self.model(minibatch)
+#                 loss = mdn_loss(pi, sigma, mu, labels)
+#                 loss.backward()
+#                 optimizer.step()
 
-        return self
+#         return self
 
-    def predict3d(self, xs, zs, b_show_plot=True, num_points=10, b_generate_samples=False):
-        if self.is_normalized:
-            xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            # zs = np.array([self.normalize(i, self.meanz, self.widthz)
-            #                for i in zs])
+#     def predict3d(self, xs, zs, b_show_plot=True, num_points=10, b_generate_samples=False):
+#         if self.is_normalized:
+#             xs = np.array([self.normalize(i, self.meanx, self.widthx)
+#                            for i in xs])
+#             # zs = np.array([self.normalize(i, self.meanz, self.widthz)
+#             #                for i in zs])
 
-        zs_onehot = zs[:, np.newaxis]
-        zs_onehot = self.enc.transform(zs_onehot).toarray()
+#         zs_onehot = zs[:, np.newaxis]
+#         zs_onehot = self.enc.transform(zs_onehot).toarray()
 
-        xs_onehot = xs[:, np.newaxis]
-        xzs_onehot = np.concatenate([xs_onehot, zs_onehot], axis=1).tolist()
+#         xs_onehot = xs[:, np.newaxis]
+#         xzs_onehot = np.concatenate([xs_onehot, zs_onehot], axis=1).tolist()
 
-        tensor_xzs = torch.stack([torch.Tensor(i)
-                                  for i in xzs_onehot])
+#         tensor_xzs = torch.stack([torch.Tensor(i)
+#                                   for i in xzs_onehot])
 
-        pi, sigma, mu = self.model(tensor_xzs)
+#         pi, sigma, mu = self.model(tensor_xzs)
 
-        if b_generate_samples:
-            samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
-            for i in range(num_points - 1):
-                samples = np.vstack(
-                    (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
-            samples = np.mean(samples, axis=0)
-        else:
-            mu = mu.detach().numpy().reshape(len(xs), -1)
-            pi = pi.detach().numpy()  # .reshape(-1,2)
-            samples = np.sum(np.multiply(pi, mu), axis=1)
+#         if b_generate_samples:
+#             samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+#             for i in range(num_points - 1):
+#                 samples = np.vstack(
+#                     (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
+#             samples = np.mean(samples, axis=0)
+#         else:
+#             mu = mu.detach().numpy().reshape(len(xs), -1)
+#             pi = pi.detach().numpy()  # .reshape(-1,2)
+#             samples = np.sum(np.multiply(pi, mu), axis=1)
 
-        if self.is_normalized:
-            # de-normalize the data
-            samples = [self.denormalize(
-                i, self.meany, self.widthy) for i in samples]
-            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                           for i in xs])
-            # zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-            #                for i in zs])
+#         if self.is_normalized:
+#             # de-normalize the data
+#             samples = [self.denormalize(
+#                 i, self.meany, self.widthy) for i in samples]
+#             xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+#                            for i in xs])
+#             # zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+#             #                for i in zs])
 
-        if b_show_plot:
+#         if b_show_plot:
 
-            if not self.is_training_data_denormalized and self.b_store_training_data:
-                self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                                    for i in self.xs])
-                self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
-                                    for i in self.ys])
-                # self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
-                #                     for i in self.zs])
-                self.is_training_data_denormalized = True
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            if len(self.xs) > 2000:
-                idx = np.random.randint(0, len(self.xs), 2000)
-                ax.scatter(self.xs[idx], self.zs[idx], self.ys[idx])
-            else:
-                ax.scatter(self.xs, self.zs, self.ys)
+#             if not self.is_training_data_denormalized and self.b_store_training_data:
+#                 self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+#                                     for i in self.xs])
+#                 self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
+#                                     for i in self.ys])
+#                 # self.zs = np.array([self.denormalize(i, self.meanz, self.widthz)
+#                 #                     for i in self.zs])
+#                 self.is_training_data_denormalized = True
+#             fig = plt.figure()
+#             ax = fig.add_subplot(111, projection='3d')
+#             if len(self.xs) > 2000:
+#                 idx = np.random.randint(0, len(self.xs), 2000)
+#                 ax.scatter(self.xs[idx], self.zs[idx], self.ys[idx])
+#             else:
+#                 ax.scatter(self.xs, self.zs, self.ys)
 
-            if len(xs) > 2000:
-                idx = np.random.randint(0, len(xs), 2000)
-                ax.scatter(np.array(xs)[idx], np.array(
-                    zs)[idx], np.array(samples)[idx])
-            else:
-                ax.scatter(xs, zs, samples)
-            ax.set_xlabel('query range attribute')
-            ax.set_ylabel('group by attribute')
-            ax.set_zlabel('aggregate attribute')
-            plt.show()
-        return samples
+#             if len(xs) > 2000:
+#                 idx = np.random.randint(0, len(xs), 2000)
+#                 ax.scatter(np.array(xs)[idx], np.array(
+#                     zs)[idx], np.array(samples)[idx])
+#             else:
+#                 ax.scatter(xs, zs, samples)
+#             ax.set_xlabel('query range attribute')
+#             ax.set_ylabel('group by attribute')
+#             ax.set_zlabel('aggregate attribute')
+#             plt.show()
+#         return samples
 
-    def predict2d(self, xs, b_show_plot=False, num_points=10, b_generate_samples=False):
-        if self.is_normalized:
-            xs = np.array([self.normalize(i, self.meanx, self.widthx)
-                           for i in xs])
+#     def predict2d(self, xs, b_show_plot=False, num_points=10, b_generate_samples=False):
+#         if self.is_normalized:
+#             xs = np.array([self.normalize(i, self.meanx, self.widthx)
+#                            for i in xs])
 
-        tensor_xs = torch.stack([torch.Tensor(i)
-                                 for i in xs])
+#         tensor_xs = torch.stack([torch.Tensor(i)
+#                                  for i in xs])
 
-        pi, sigma, mu = self.model(tensor_xs)
-        if b_generate_samples:
-            samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
-            for i in range(num_points - 1):
-                samples = np.vstack(
-                    (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
-            samples = np.mean(samples, axis=0)
-        else:
-            mu = mu.detach().numpy().reshape(len(xs), -1)
-            pi = pi.detach().numpy()  # .reshape(-1,2)
+#         pi, sigma, mu = self.model(tensor_xs)
+#         if b_generate_samples:
+#             samples = sample(pi, sigma, mu).data.numpy().reshape(-1)
+#             for i in range(num_points - 1):
+#                 samples = np.vstack(
+#                     (samples, sample(pi, sigma, mu).data.numpy().reshape(-1)))
+#             samples = np.mean(samples, axis=0)
+#         else:
+#             mu = mu.detach().numpy().reshape(len(xs), -1)
+#             pi = pi.detach().numpy()  # .reshape(-1,2)
 
-            samples = np.sum(np.multiply(pi, mu), axis=1)
+#             samples = np.sum(np.multiply(pi, mu), axis=1)
 
-        if self.is_normalized:
-            # de-normalize the data
-            samples = [self.denormalize(
-                i, self.meany, self.widthy) for i in samples]
-            xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                           for i in xs])
+#         if self.is_normalized:
+#             # de-normalize the data
+#             samples = [self.denormalize(
+#                 i, self.meany, self.widthy) for i in samples]
+#             xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+#                            for i in xs])
 
-        if b_show_plot:
-            if not self.is_training_data_denormalized:
-                self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
-                                    for i in self.xs])
-                self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
-                                    for i in self.ys])
-                self.is_training_data_denormalized = True
-            fig = plt.figure()
-            ax1 = fig.add_subplot(111)
-            ax1.scatter(self.xs, self.ys)
-            ax1.scatter(xs, samples)
-            ax1.set_xlabel('query range attribute')
-            ax1.set_ylabel('aggregate attribute')
-            plt.show()
+#         if b_show_plot:
+#             if not self.is_training_data_denormalized:
+#                 self.xs = np.array([self.denormalize(i, self.meanx, self.widthx)
+#                                     for i in self.xs])
+#                 self.ys = np.array([self.denormalize(i, self.meany, self.widthy)
+#                                     for i in self.ys])
+#                 self.is_training_data_denormalized = True
+#             fig = plt.figure()
+#             ax1 = fig.add_subplot(111)
+#             ax1.scatter(self.xs, self.ys)
+#             ax1.scatter(xs, samples)
+#             ax1.set_xlabel('query range attribute')
+#             ax1.set_ylabel('aggregate attribute')
+#             plt.show()
 
-        samples = list(samples)
-        return samples
+#         samples = list(samples)
+#         return samples
 
-    def normalize(self, x, mean, width):
-        """normalize x
+#     def normalize(self, x, mean, width):
+#         """normalize x
 
-        Args:
-            x([type]): [description]
-            mean([type]): [description]
-            width([type]): [description]
+#         Args:
+#             x([type]): [description]
+#             mean([type]): [description]
+#             width([type]): [description]
 
-        Returns:
-            [type]: [description]
-        """
-        return (x - mean) / width * 2
+#         Returns:
+#             [type]: [description]
+#         """
+#         return (x - mean) / width * 2
 
-    def denormalize(self, x, mean, width):
-        return 0.5 * width * x + mean
+#     def denormalize(self, x, mean, width):
+#         return 0.5 * width * x + mean
 
 
 class KdeMdn:
     """This is the implementation of density estimation using MDN"""
 
-    def __init__(self, device, b_store_training_data=False, encoding="onehot"):
+    def __init__(self, config, b_store_training_data=False, ):
         if b_store_training_data:
             self.xs = None  # query range
             self.zs = None  # group by balue
@@ -1028,15 +1045,9 @@ class KdeMdn:
         self.meanx = None
         self.widthx = None
 
-        if encoding.lower() in ["onehot", "binary", "no"]:
-            self.encoding = encoding.lower()
-            self.enc = None
-        else:
-            raise ValueError(
-                "The embeddint type must be onehot, binary or no.")
-        self.device = device
+        self.config = config
 
-    def fit(self, zs: list, xs: list, b_normalize=True, num_gaussians=20, num_epoch=20, n_mdn_layer_node=20, lr=0.001, hidden=1, b_grid_search=True, n_workers=0):
+    def fit(self, zs: list, xs: list, runtime_config, b_normalize=True, lr=0.001,  n_workers=0):
         """ fit the density for the data, to support group by queries.
 
         Args:
@@ -1057,8 +1068,15 @@ class KdeMdn:
         Returns:
             KdeMdn: the fitted model.
         """
+        num_gaussians = self.config.config["n_gaussians"]
+        num_epoch = self.config.config["n_epoch"]
+        n_mdn_layer_node = self.config.config["n_mdn_layer_node"]
+        hidden = self.config.config["n_hidden_layer"]
+        b_grid_search = self.config.config["b_grid_search"]
+        encoder = self.config.config["encoder"]
+        device = runtime_config["device"]
 
-        if not b_grid_search:
+        if not self.config.config["b_grid_search"]:
             if self.b_store_training_data:
                 self.zs = zs
                 self.xs = xs
@@ -1073,7 +1091,7 @@ class KdeMdn:
                 xs = np.array([self.normalize(i, self.meanx, self.widthx)
                                for i in xs])
                 self.is_normalized = True
-                if self.encoding == "no":
+                if encoder == "no":
                     convert2float = True
                     if convert2float:
                         try:
@@ -1093,14 +1111,14 @@ class KdeMdn:
                     zs = np.array([self.normalize(i, self.meanz, self.widthz)
                                    for i in zs])
 
-            if self.encoding == "onehot":
+            if encoder == "onehot":
                 self.enc = OneHotEncoder(handle_unknown='ignore')
                 zs_encoded = self.enc.fit_transform(zs).toarray()
                 # len(self.enc.categories_[0])
                 input_dim = sum([len(i) for i in self.enc.categories_]) + 0
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])  # transform to torch tensors
-            elif self.encoding == "binary":
+            elif encoder == "binary":
                 columns = list(range(len(zs[0])))
                 self.enc = ce.BinaryEncoder(cols=columns)
                 zs_encoded = self.enc.fit_transform(zs).to_numpy()
@@ -1115,8 +1133,8 @@ class KdeMdn:
             tensor_xs = torch.stack([torch.Tensor(i) for i in xs])
 
             # move variables to device
-            tensor_xs = tensor_xs.to(self.device)
-            tensor_zs = tensor_zs.to(self.device)
+            tensor_xs = tensor_xs.to(device)
+            tensor_zs = tensor_zs.to(device)
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_zs, tensor_xs)  # create your dataloader
@@ -1129,7 +1147,7 @@ class KdeMdn:
                     nn.Linear(input_dim, n_mdn_layer_node),  # self.dim_input
                     nn.Tanh(),
                     nn.Dropout(0.1),
-                    MDN(n_mdn_layer_node, 1, num_gaussians, self.device)
+                    MDN(n_mdn_layer_node, 1, num_gaussians, device)
                 )
             elif hidden == 2:
                 self.model = nn.Sequential(
@@ -1138,12 +1156,12 @@ class KdeMdn:
                     nn.Linear(n_mdn_layer_node, n_mdn_layer_node),
                     nn.Tanh(),
                     nn.Dropout(0.1),
-                    MDN(n_mdn_layer_node, 1, num_gaussians, self.device)
+                    MDN(n_mdn_layer_node, 1, num_gaussians, device)
                 )
             else:
                 raise ValueError("hidden layers must be 1 or 2.")
 
-            self.model = self.model.to(self.device)
+            self.model = self.model.to(device)
 
             optimizer = optim.Adam(self.model.parameters(), lr=lr)
             decayRate = 0.96
@@ -1156,10 +1174,10 @@ class KdeMdn:
                 for minibatch, labels in my_dataloader:
                     self.model.zero_grad()
                     # move variables to device
-                    minibatch.to(self.device)
-                    labels.to(self.device)
+                    minibatch.to(device)
+                    labels.to(device)
                     pi, sigma, mu = self.model(minibatch)
-                    loss = mdn_loss(pi, sigma, mu, labels, self.device)
+                    loss = mdn_loss(pi, sigma, mu, labels, device)
                     loss.backward()
                     optimizer.step()
                 my_lr_scheduler.step()
@@ -1170,7 +1188,7 @@ class KdeMdn:
         else:  # grid search
             return self.fit_grid_search(zs, xs, b_normalize=b_normalize)
 
-    def fit_grid_search(self, zs: list, xs: list, b_normalize=True):
+    def fit_grid_search(self, zs: list, xs: list, runtime_config, b_normalize=True):
         """ use grid search to tune the hyper parameters.
 
         Args:
@@ -1201,8 +1219,14 @@ class KdeMdn:
         self.b_store_training_data = True
         for para in combs:
             print("Grid search for parameter set :", para)
-            instance = self.fit(zs, xs, b_normalize=b_normalize, num_gaussians=para['gaussian'], num_epoch=para['epoch'],
-                                n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
+            config = self.config.deepcopy()
+            config["n_gaussians"] = para['gaussian']
+            config["num_epoch"] = para['epoch']
+            config["n_mdn_layer_node"] = para['node']
+            config["n_hidden_layer"] = para['hidden']
+            config["b_grid_search"] = False
+            instance = self.fit(
+                zs, xs, config, b_normalize=b_normalize, lr=para['lr'])
             errors.append(instance.score())
 
         index = errors.index(min(errors))
@@ -1217,12 +1241,18 @@ class KdeMdn:
         self.sample_x = None
         self.sample_g = None
         self.sample_average_y = None
-        instance = self.fit(zs, xs, b_normalize=True, num_gaussians=para['gaussian'], num_epoch=20,
-                            n_mdn_layer_node=para['node'], lr=para['lr'], hidden=para['hidden'], b_grid_search=False)
+        config = self.config.deepcopy()
+        config["n_gaussians"] = para['gaussian']
+        config["num_epoch"] = para['epoch']
+        config["n_mdn_layer_node"] = para['node']
+        config["n_hidden_layer"] = para['hidden']
+        config["b_grid_search"] = False
+        instance = self.fit(
+            zs, xs, config, b_normalize=b_normalize, lr=para['lr'])
         print("-"*80)
         return instance
 
-    def predict(self, zs: list, xs: list, b_plot=False, n_division=100):
+    def predict(self, zs: list, xs: list, runtime_config, b_plot=False,):
         """ provide density estimations for given points. zs and xs must of the same size.
 
         Args:
@@ -1237,9 +1267,11 @@ class KdeMdn:
         Returns:
             list: the predictions.
         """
+        encoder = self.config.config["encoder"]
+        device = runtime_config["device"]
         # torch.set_num_threads(4)
         # convert group zs from string to int
-        if self.encoding == "no":
+        if encoder == "no":
             convert2float = True
             if convert2float:
                 try:
@@ -1258,18 +1290,19 @@ class KdeMdn:
 
         zs = np.array(zs)  # [:, np.newaxis]
 
-        if self.encoding == "onehot":
+        if encoder == "onehot":
             zs_encoded = self.enc.transform(zs).toarray()
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
-        elif self.encoding == "binary":
+        elif encoder == "binary":
             zs_encoded = self.enc.transform(zs).to_numpy()
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
         else:
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs])
-        tensor_zs = tensor_zs.to(self.device)
+        tensor_zs = tensor_zs.to(device)
+        self.model = self.model.to(device)
 
         pis, sigmas, mus = self.model(tensor_zs)
 
@@ -1309,7 +1342,7 @@ class KdeMdn:
             result = result / self.widthx * 2
             return result
         else:
-            return gm(pis[0], mus[0], sigmas[0], xs, b_plot=b_plot, n_division=n_division)
+            return gm(pis[0], mus[0], sigmas[0], xs, b_plot=b_plot, n_division=runtime_config["n_division"])
 
     def normalize(self, x: list, mean: float, width: float):
         """normalize the data

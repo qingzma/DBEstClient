@@ -66,8 +66,9 @@ def approx_integrate(func: callable, x_lb: float, x_ub: float, n_division=20) ->
 #     return {}
 
 
-def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, reg=None,  n_division: int = 20):
+def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, reg,  runtime_config):
     # prepare_reg_density_data(density: KdeMdn, x_lb: float, x_ub: float, groups: list, reg: RegMdnGroupBy = None,  n_division: int = 20):
+    n_division = runtime_config["n_division"]
     x_points, step = np.linspace(x_lb, x_ub, n_division, retstep=True)
 
     reg_x_points = list(x_points)*len(groups)
@@ -86,9 +87,10 @@ def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, re
     # print(density_x_points)
 
     pre_density = density.predict(
-        density_g_points, density_x_points, b_plot=False)
+        density_g_points, density_x_points, runtime_config, b_plot=False)
 
-    pre_reg = None if reg is None else reg.predict(reg_g_points, reg_x_points)
+    pre_reg = None if reg is None else reg.predict(
+        reg_g_points, reg_x_points, runtime_config)
     if pre_reg is not None:
         pre_reg = np.array(pre_reg).reshape(len(groups), n_division)
 

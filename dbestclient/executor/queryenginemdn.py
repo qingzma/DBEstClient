@@ -7,19 +7,24 @@
 import math
 from collections import Counter
 from datetime import datetime
+from multiprocessing import Pool as PoolCPU
 from operator import itemgetter
 
 import dill
 import numpy as np
 import pandas as pd
 from scipy import integrate
-from torch.multiprocessing import Pool, set_start_method
+from torch.multiprocessing import Pool as PoolGPU
+from torch.multiprocessing import set_start_method
 
 # from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
                                      prepare_reg_density_data)
 from dbestclient.ml.modeltrainer import KdeModelTrainer
+
+# from torch.multiprocessing import Pool, set_start_method
+
 
 # from dbestclient.tools.dftools import get_group_count_from_summary_file
 
@@ -248,7 +253,7 @@ class MdnQueryEngine(GenericQueryEngine):
                                            for key in groups])
             # print("self.n_total_point", self.n_total_point)
             pre_density, pre_reg, step = prepare_reg_density_data(
-                self.kde, x_lb, x_ub, groups=groups, reg=self.reg, n_division=n_division)
+                self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
             # print("pre_density, pre_reg",pre_density,)
             # print(pre_reg)
 
@@ -269,20 +274,32 @@ class MdnQueryEngine(GenericQueryEngine):
             n_per_chunk = math.ceil(len(groups)/n_jobs)
             group_chunks = [groups[i:i+n_per_chunk]
                             for i in range(0, len(groups), n_per_chunk)]
-            with Pool(processes=n_jobs) as pool:
-                # print(self.group_keys_chunk)
-                for sub_group in group_chunks:
-                    # print(sub_group)
-                    # engine = self.enginesContainer[index]
-                    # print(sub_group)
-                    runtime_config["n_jobs"] = 1
-                    i = pool.apply_async(
-                        self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest))
-                    instances.append(i)
+            if runtime_config["device"] == "cpu":
+                pool = PoolCPU(processes=n_jobs)
+            else:
+                pool = PoolGPU(processes=n_jobs)
+                # from torch.multiprocessing import Pool, set_start_method
+                # try:
+                #     set_start_method('spawn')
+                # except RuntimeError:
+                #     print("Fail to set start method as spawn for pytorch multiprocessing, " +
+                #           "use default in advance. (see queryenginemdn "
+                #           "for more info.)")
 
-                for i in instances:
-                    result = i.get()
-                    results.update(result)
+            # with Pool(processes=n_jobs) as pool:
+            # print(self.group_keys_chunk)
+            for sub_group in group_chunks:
+                # print(sub_group)
+                # engine = self.enginesContainer[index]
+                # print(sub_group)
+                runtime_config["n_jobs"] = 1
+                i = pool.apply_async(
+                    self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest))
+                instances.append(i)
+
+            for i in instances:
+                result = i.get()
+                results.update(result)
         if b_print_to_screen:
             for key in results:
                 print(",".join(key.split("-")) +

@@ -11,6 +11,8 @@ from datetime import datetime
 
 import dill
 import numpy as np
+import torch
+from torch.multiprocessing import set_start_method
 
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
@@ -18,8 +20,8 @@ from dbestclient.executor.queryenginemdn import (MdnQueryEngine,
                                                  MdnQueryEngineBundle,
                                                  MdnQueryEngineXCategorical)
 from dbestclient.io.sampling import DBEstSampling
-from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
-                                         SimpleModelTrainer)
+# SimpleModelTrainer
+from dbestclient.ml.modeltrainer import GroupByModelTrainer, KdeModelTrainer
 from dbestclient.ml.modelwraper import (GroupByModelWrapper,
                                         get_pickle_file_name)
 from dbestclient.parser.parser import DBEstParser
@@ -260,7 +262,7 @@ class SqlExecutor:
                                         n_total_point=n_total_point,
                                         x_min_value=-np.inf, x_max_value=np.inf,
                                         config=self.config.copy()).fit_from_df(
-                                        xys["data"], encoding=self.config.get_config()["encoding"], network_size="large", b_grid_search=self.config.get_config()["b_grid_search"], )
+                                        xys["data"], self.runtime_config, network_size="large")
 
                                     qe_mdn = MdnQueryEngine(
                                         kdeModelWrapper, config=self.config.copy())
@@ -430,6 +432,7 @@ class SqlExecutor:
                     print("Time cost: %.4fs." % time_cost)
                 print("------------------------")
                 return predictions
+
             else:  # process SET query
                 if self.last_config:
                     self.config = self.last_config
@@ -438,9 +441,44 @@ class SqlExecutor:
                 try:
                     key, value = self.parser.get_set_variable_value()
                     if key in self.config.get_config():
+                        # check variable value before assignment
+                        if key.lower() == "encoder":
+                            value = value.lower()
+                            if value not in ["onehot", "binary", "embedding"]:
+                                value = "binary"
+                                print(
+                                    "encoder is not set to a proper value, use default encoding type: binary.")
+
                         self.config.get_config()[key] = value
                         print("OK, " + key + " is updated.")
-                    else:
+                    else:  # if variable is within runtime_config
+                        # check if "device" is set. we need to make usre when GPU is not availabe, cpu is used instead.
+                        if key.lower() == "device":
+                            value = value.lower()
+                            if value in ["cpu", "gpu"]:
+                                if torch.cuda.is_available():
+                                    if value == "gpu":
+                                        value = "cuda:0"
+                                        try:
+                                            set_start_method('spawn')
+                                        except RuntimeError:
+                                            print("Fail to set start method as spawn for pytorch multiprocessing, " +
+                                                  "use default in advance. (see queryenginemdn "
+                                                  "for more info.)")
+                                    if self.runtime_config["verbose"]:
+                                        print("device is set to " + value)
+                                else:
+                                    if value == "gpu":
+                                        print(
+                                            "GPU is not available, use CPU instead")
+                                        value = "cpu"
+                                    if value == "cpu":
+                                        if self.runtime_config["verbose"]:
+                                            print("device is set to " + value)
+                            else:
+                                print("Only GPU or CPU is supported.")
+                                return
+
                         self.runtime_config[key] = value
                         if key in self.runtime_config:
                             print("OK, " + key + " is updated.")

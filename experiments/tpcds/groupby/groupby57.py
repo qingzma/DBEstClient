@@ -14,6 +14,8 @@ from dbestclient.executor.executor import SqlExecutor
 def run():
     sqlExecutor = SqlExecutor()
     sqlExecutor.execute("set n_jobs=4")
+    sqlExecutor.execute("set device='cpu'")
+    sqlExecutor.execute("set encoder='binary'")
     sqlExecutor.execute("set b_grid_search='False'")
     sqlExecutor.execute("set b_print_to_screen='False'")
     sqlExecutor.execute("set csv_split_char='|'")

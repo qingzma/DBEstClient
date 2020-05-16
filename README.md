@@ -129,3 +129,10 @@ Where,
 - the condition on ```kpiCount>0``` is currently not supported, only ```=``` is supported at this moment. It will be soon supported.
 
 ## Documentation
+
+## TODO 
+- check CPU parameter.
+- SQL size cluase to include num_count.csv
+- scaling factor for AVG is not correct.
+- embedding.
+- one mdn model instead of many.

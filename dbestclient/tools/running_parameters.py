@@ -21,7 +21,7 @@ from copy import deepcopy
 RUNTIME_CONF = {
     "device": "cpu",
     "n_jobs": 1,
-    # 'verbose': True,
+    'verbose': True,
     'b_show_latency': True,
     "b_print_to_screen": True,
     "result2file": None,
@@ -60,12 +60,13 @@ class DbestConfig:
 
             "accept_filter": False,
             # MDN related parameters
-            "num_epoch": 400,
-            "num_gaussians": 4,
+            "n_epoch": 400,
+            "n_gaussians": 4,
             "b_use_gg": False,
             "n_per_gg": 10,
+            "n_hidden_layer": 1,
             "n_mdn_layer_node": 10,
-            "encoding": "binary",  # one-hot, embedding
+            "encoder": "binary",  # one-hot, embedding
         }
 
     def set_parameters(self, config: dict):

@@ -541,7 +541,7 @@ if __name__ == "__main__":
 
     # ---------------------------------------------------------------------------------------------------------------------------------
     # set SQL
-    parser.parse("set AAA=5;")
+    parser.parse("set encoder='gpu'")
     print(parser.parsed)
     print(parser.get_query_type())
     print((parser.get_set_variable_value()))

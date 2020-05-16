@@ -3,47 +3,48 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
+from copy import deepcopy
+
 import numpy as np
 import torch
 
-from dbestclient.ml.density import DBEstDensity
-from dbestclient.ml.mdn import KdeMdn, RegMdn, RegMdnGroupBy
+# from dbestclient.ml.density import DBEstDensity
+from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy  # RegMdn
 from dbestclient.ml.modelwraper import (GroupByModelWrapper, KdeModelWrapper,
                                         SimpleModelWrapper)
 from dbestclient.ml.regression import DBEstReg
 from dbestclient.tools.dftools import convert_df_to_yx
 
+# class SimpleModelTrainer:
 
-class SimpleModelTrainer:
+#     def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point, groupby_attribute=None,
+#                  groupby_value=None, config=None):
+#         self.xheader = xheader
+#         self.yheader = yheader
+#         self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
+#                                                       n_sample_point=n_sample_point,
+#                                                       groupby_attribute=groupby_attribute, groupby_value=groupby_value)
+#         self.config = config
 
-    def __init__(self, mdl, tbl, xheader, yheader, n_total_point, n_sample_point, groupby_attribute=None,
-                 groupby_value=None, config=None):
-        self.xheader = xheader
-        self.yheader = yheader
-        self.simpe_model_wrapper = SimpleModelWrapper(mdl, tbl, xheader, y=yheader, n_total_point=n_total_point,
-                                                      n_sample_point=n_sample_point,
-                                                      groupby_attribute=groupby_attribute, groupby_value=groupby_value)
-        self.config = config
+#     def fit(self, x, y):
+#         # print(x,y)
+#         # if x_reg is None:
+#         #     reg = DBEstReg(config=self.config).fit(x_kde, y_kde)
+#         # else:
+#         reg = DBEstReg(config=self.config).fit(x, y)
+#         density = DBEstDensity(config=self.config).fit(x)
+#         # print("in modeltrainer",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
+#         self.simpe_model_wrapper.load_model(density, reg)
+#         return self.simpe_model_wrapper
 
-    def fit(self, x, y):
-        # print(x,y)
-        # if x_reg is None:
-        #     reg = DBEstReg(config=self.config).fit(x_kde, y_kde)
-        # else:
-        reg = DBEstReg(config=self.config).fit(x, y)
-        density = DBEstDensity(config=self.config).fit(x)
-        # print("in modeltrainer",reg.predict([[1000], [1005],[1010], [1015],[1020], [1025],[1030], [1035]]))
-        self.simpe_model_wrapper.load_model(density, reg)
-        return self.simpe_model_wrapper
-
-    def fit_from_df(self, df):
-        # if df_reg is None:
-        #     y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
-        #     return self.fit(x_kde, y_kde)
-        # else:
-        y, x = convert_df_to_yx(df, self.xheader, self.yheader)
-        # y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
-        return self.fit(x, y)
+#     def fit_from_df(self, df):
+#         # if df_reg is None:
+#         #     y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
+#         #     return self.fit(x_kde, y_kde)
+#         # else:
+#         y, x = convert_df_to_yx(df, self.xheader, self.yheader)
+#         # y_kde, x_kde = convert_df_to_yx(df_kde, self.xheader, self.yheader)
+#         return self.fit(x, y)
 
 
 class GroupByModelTrainer:
@@ -77,7 +78,7 @@ class GroupByModelTrainer:
 
 class KdeModelTrainer:
     def __init__(self, mdl, tbl, xheader, yheader, groupby_attribute, groupby_values, n_total_point,
-                 x_min_value=-np.inf, x_max_value=np.inf, config=None, device="cpu"):
+                 x_min_value=-np.inf, x_max_value=np.inf, config=None):
         self.kde_model_wrapper = KdeModelWrapper(mdl, tbl, xheader, yheader, n_total_point,
                                                  x_min_value=x_min_value, x_max_value=x_max_value,
                                                  groupby_values=groupby_values)
@@ -91,24 +92,28 @@ class KdeModelTrainer:
         self.x_min_value = x_min_value
         self.x_max_value = x_max_value
         self.config = config
+        self.enc = None
 
-        if device.lower() not in ("cpu", "gpu"):
-            raise ValueError("unexpected device type.")
-        if device.lower() == "cpu":
-            # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            device = torch.device("cpu")
-            print("CPU is used"+'-'*20)
-        else:
-            if torch.cuda.is_available():
-                print("GPU available, use GPU.")
-                device = torch.device("cuda:0")
-            else:
-                print("No GPU available, use CPU instead.")
-                print("CPU is used"+'-'*20)
-                device = torch.device("cpu")
-        self.device = device
+        # if device.lower() not in ("cpu", "gpu"):
+        #     raise ValueError("unexpected device type.")
+        # if device.lower() == "cpu":
+        #     # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        #     device = torch.device("cpu")
+        #     print("CPU is used"+'-'*20)
+        # else:
+        #     if torch.cuda.is_available():
+        #         print("GPU available, use GPU.")
+        #         device = torch.device("cuda:0")
+        #     else:
+        #         print("No GPU available, use CPU instead.")
+        #         print("CPU is used"+'-'*20)
+        #         device = torch.device("cpu")
+        # self.device = device
 
-    def fit_from_df(self, df, network_size="small", n_mdn_layer_node=10, encoding="onehot", b_shuffle_data=True, b_grid_search=True):
+    def fit_from_df(self, df, runtime_config, network_size=None,  b_shuffle_data=True):
+        # init parameters
+        device = runtime_config["device"]
+
         print("Starting training kde models for model " + self.mdl)
 
         # print(df)
@@ -137,8 +142,13 @@ class KdeModelTrainer:
             else:
                 print("training regression...")
                 print("*"*80)
-                reg = RegMdnGroupBy(self.device, b_store_training_data=False, encoding=encoding).fit(
-                    groupby, x, y, n_epoch=10, n_gaussians=3, b_grid_search=b_grid_search)
+                config = self.config.copy()
+                config.config["n_epoch"] = 10
+                config.config["n_gaussians"] = 3
+                config.config["n_mdn_layer_node"] = 10
+                config.config["b_grid_search"] = False
+                reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+                    groupby, x, y, runtime_config)
 
             if b_skip_density_training:
                 density = None
@@ -146,10 +156,15 @@ class KdeModelTrainer:
                 print("training density...")
                 print("*"*80)
                 # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-                density = KdeMdn(self.device, encoding=encoding,
+                config = self.config.copy()
+                config.config["n_epoch"] = 20
+                config.config["n_gaussions"] = 10
+                config.config["n_mdn_layer_node"] = 10
+                config.config["b_grid_search"] = False
+
+                density = KdeMdn(config,
                                  b_store_training_data=False)
-                density.fit(groupby, x, num_epoch=20, num_gaussians=10,
-                            n_mdn_layer_node=n_mdn_layer_node, b_grid_search=b_grid_search)
+                density.fit(groupby, x, runtime_config)
 
         elif network_size.lower() == "large":
             if b_skip_reg_training:
@@ -157,19 +172,27 @@ class KdeModelTrainer:
             else:
                 print("training regression...")
                 print("*"*80)
-                reg = RegMdnGroupBy(self.device, b_store_training_data=False, encoding=encoding,).fit(
-                    groupby, x, y, n_epoch=20, n_gaussians=5, b_grid_search=b_grid_search)
+                config = self.config.copy()
+                config.config["n_epoch"] = 20
+                config.config["n_gaussians"] = 5
+                config.config["n_mdn_layer_node"] = 20
+                config.config["b_grid_search"] = False
+                reg = RegMdnGroupBy(config, b_store_training_data=False,).fit(
+                    groupby, x, y, runtime_config)
 
             if b_skip_density_training:
                 density = None
             else:
                 print("training density...")
                 print("*"*80)
+                config = self.config.copy()
+                config.config["n_epoch"] = 20
+                config.config["n_gaussians"] = 20
+                config.config["n_mdn_layer_node"] = 20
+                config.config["b_grid_search"] = False
                 # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-                density = KdeMdn(self.device, encoding=encoding,
-                                 b_store_training_data=False)
-                density.fit(groupby, x, num_epoch=20,
-                            num_gaussians=20, n_mdn_layer_node=20, b_grid_search=b_grid_search)
+                density = KdeMdn(config, b_store_training_data=False)
+                density.fit(groupby, x, runtime_config)
 
         elif network_size.lower() == "testing":
             if b_skip_reg_training:
@@ -177,19 +200,26 @@ class KdeModelTrainer:
             else:
                 print("training regression...")
                 print("*"*80)
-                reg = RegMdnGroupBy(self.device, b_store_training_data=False, encoding=encoding,).fit(groupby, x, y, n_epoch=1,
-
-                                                                                                      n_gaussians=2, b_grid_search=b_grid_search)
+                config = self.config.copy()
+                config.config["n_epoch"] = 1
+                config.config["n_gaussians"] = 2
+                config.config["n_mdn_layer_node"] = 20
+                config.config["b_grid_search"] = False
+                reg = RegMdnGroupBy(config, b_store_training_data=False,).fit(
+                    groupby, x, y, runtime_config)
             if b_skip_density_training:
                 density = None
             else:
                 print("training density...")
                 print("*"*80)
                 # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-                density = KdeMdn(self.device, encoding=encoding,
-                                 b_store_training_data=False)
-                density.fit(groupby, x, num_epoch=2,
-                            num_gaussians=8, n_mdn_layer_node=10, b_grid_search=False)
+                config = self.config.copy()
+                config.config["n_epoch"] = 2
+                config.config["n_gaussians"] = 8
+                config.config["n_mdn_layer_node"] = 10
+                config.config["b_grid_search"] = False
+                density = KdeMdn(config, b_store_training_data=False)
+                density.fit(groupby, x, runtime_config)
 
         else:
             raise ValueError("unexpected network_size passed in "+__file__)
