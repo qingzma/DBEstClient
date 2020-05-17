@@ -33,6 +33,8 @@ RUNTIME_CONF = {
     "epsabs": 10.0,
     "epsrel": 0.1,
     "limit": 30,
+
+    "model_suffix": ".dill",
 }
 
 

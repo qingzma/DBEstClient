@@ -29,9 +29,10 @@ class TestParser(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.parser = DBEstParser()
         self.q_set = "set a = 5;"
-        self.q_ddl = "create table ss40g_1(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 60000 scale data num_of_points2.csv"
-        self.q_dml = "select avg(ss_sales_price)  from ss40g_1 where   2451119 <= ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk"
-        self.sqls = [self.q_set, self.q_ddl, self.q_dml]
+        self.q_create = "create table ss40g_1(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 60000 scale data num_of_points2.csv"
+        self.q_select = "select avg(ss_sales_price)  from ss40g_1 where   2451119 <= ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk"
+        self.q_drop = "drop table haha"
+        self.sqls = [self.q_set, self.q_create, self.q_select, self.q_drop]
 
     def test_query_type_set(self):
         types = []
@@ -39,20 +40,23 @@ class TestParser(unittest.TestCase):
         for sql in self.sqls:
             self.parser.parse(sql)
             types.append(self.parser.get_query_type())
-        self.assertEqual(types, ["set", "ddl", "dml"])
+        self.assertEqual(types, ["set", "create", "select", "drop"])
 
-    def test_query_type_ddl(self):
+    def test_query_type_create(self):
         sql = "create table ss40g_1(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 60000 scale data num_of_points2.csv"
         self.assertEqual(1, 1)
 
-    def test_query_type_dml(self):
+    def test_query_type_select(self):
         sql = "select avg(ss_sales_price)  from ss40g_1 where ss_sold_date_sk between 2451119  and 2451483 and ss_coupon_amt=''  group by ss_store_sk"
         self.assertEqual(1, 1)
 
-    def test_ddl(self):
-        """Test ddl
+    def test_drop_get_model(self):
+        """Test DROP query
         """
-        self.assertEqual(1, 1)
+        sql = "drop table model2drop"
+        self.parser.parse(sql)
+        sql_type = self.parser.drop_get_model()
+        self.assertEqual(sql_type, "model2drop")
 
     def test_get_sampling_ratio(self):
         """ test get_sampling_ratio()

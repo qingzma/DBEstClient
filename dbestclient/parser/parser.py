@@ -4,6 +4,7 @@ import warnings
 import sqlparse
 from sqlparse import sql
 # from sqlparse.sql import Function, Identifier, IdentifierList
+# from sqlparse.sql import Identifier
 from sqlparse.tokens import DDL, DML, Keyword
 
 from dbestclient.tools.date import unix_timestamp
@@ -59,7 +60,7 @@ class DBEstParser:
         :param query: a SQL query
         """
 
-        self.query = re.sub(' +', ' ', query).replace(" (", "(")  # query
+        self.query = re.sub(' +', ' ', query).replace(" (", "(").lstrip()
         if "between" in self.query.lower():
             raise ValueError(
                 "BETWEEN clause is not supported, please use 0<=x<=10 instead.")
@@ -138,6 +139,13 @@ class DBEstParser:
     #                     splits = it.value.replace("=", "").split("<")
 
     #                     return [splits[0], splits[2]]
+    def drop_get_model(self):
+        if self.get_query_type() != "drop":
+            raise TypeError("This is not a DROP query, please check it.")
+        else:
+            for item in self.parsed.tokens:
+                if isinstance(item, sql.Identifier):
+                    return item.normalized
 
     def get_dml_where_categorical_equal_and_range(self):
         """ get the equal and range selection for categorical attributes.
@@ -434,10 +442,12 @@ class DBEstParser:
         item = self.parsed.tokens
         if item[0].ttype is Keyword and item[0].normalized == "SET":
             return "set"
-        elif item[0].ttype is DDL:
-            return "ddl"
+        elif item[0].ttype is DDL and item[0].normalized == "CREATE":
+            return "create"
+        elif item[0].ttype is DDL and item[0].normalized == "DROP":
+            return "drop"
         elif item[0].ttype is DML:
-            return "dml"
+            return "select"
         else:
             warnings.warn("Unexpected SQL:")
 
@@ -495,25 +505,25 @@ if __name__ == "__main__":
     parser = DBEstParser()
     # ---------------------------------------------------------------------------------------------------------------------------------
     # DDL
-    parser.parse(
-        "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'")
+    # parser.parse(
+    #     "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'")
 
-    print(parser.get_query_type())
-    if parser.if_contain_groupby():
-        print("yes, group by")
-        print(parser.get_groupby_value())
-    else:
-        print("no group by")
+    # print(parser.get_query_type())
+    # if parser.if_contain_groupby():
+    #     print("yes, group by")
+    #     print(parser.get_groupby_value())
+    # else:
+    #     print("no group by")
 
-    if parser.if_ddl():
-        print("ddl")
-        print(parser.get_ddl_model_name())
-        print(parser.get_y())
-        print(parser.get_x())
-        print(parser.get_from_name())
-        print(parser.get_sampling_method())
-        print(parser.get_sampling_ratio())
-        print(parser.if_model_need_filter())
+    # if parser.if_ddl():
+    #     print("ddl")
+    #     print(parser.get_ddl_model_name())
+    #     print(parser.get_y())
+    #     print(parser.get_x())
+    #     print(parser.get_from_name())
+    #     print(parser.get_sampling_method())
+    #     print(parser.get_sampling_ratio())
+    #     print(parser.if_model_need_filter())
 
     # parser.parse(
     #     "select count(y) from t_m where    1 <=x <=2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
@@ -557,3 +567,8 @@ if __name__ == "__main__":
     # print(parser.parsed)
     # print(parser.get_query_type())
     # print((parser.get_set_variable_value()))
+
+    # ---------------------------------------------------------------------------------------------------------------------------------
+    parser.parse("  drop table haha")
+    print(parser.get_query_type())
+    print(parser.drop_get_model())

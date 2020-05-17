@@ -107,7 +107,7 @@ class SqlExecutor:
             warnings.warn("Nested query is currently not supported!")
         else:
             sql_type = self.parser.get_query_type()
-            if sql_type == "ddl":
+            if sql_type == "create":  # process create query
                 # initialize the configure for each model creation.
                 if self.last_config:
                     self.config = self.last_config
@@ -357,8 +357,9 @@ class SqlExecutor:
 
                 # rest config
                 self.last_config = None
+                return
 
-            elif sql_type == "dml":
+            elif sql_type == "select":  # process SELECT query
                 predictions = None
                 # DML, provide the prediction using models
                 mdl = self.parser.get_from_name()
@@ -483,7 +484,7 @@ class SqlExecutor:
                 print("------------------------")
                 return predictions
 
-            else:  # process SET query
+            elif sql_type == "set":  # process SET query
                 if self.last_config:
                     self.config = self.last_config
                 else:
@@ -542,6 +543,22 @@ class SqlExecutor:
 
                 # save the config
                 self.last_config = self.config
+                return
+
+            elif sql_type == "drop":  # process DROP query
+                model_name = self.parser.drop_get_model()
+                model_path = os.path.join(self.config.get_config(
+                )["warehousedir"], model_name+self.runtime_config["model_suffix"])
+                if os.path.isfile(model_path):
+                    os.remove(model_path)
+                    return True
+                else:
+                    print("Model does not exist!")
+                    return False
+
+            else:
+                print("Unsupported query type, please check your SQL.")
+                return
 
     def set_table_counts(self, dic):
         self.n_total_records = dic

@@ -60,6 +60,11 @@ class TestTpcDs(unittest.TestCase):
             "select avg(ss_sales_price)  from test_ss40g_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk")
         self.assertTrue(predictions)
 
+    def test_drop_clause(self):
+        sqlExecutor = SqlExecutor()
+        status = sqlExecutor.execute("drop table model2drop")
+        self.assertFalse(status)
+
 
 class TestHw(unittest.TestCase):
     def test_cpu(self):

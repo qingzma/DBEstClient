@@ -132,6 +132,7 @@ Where,
 
 ## TODO 
 - ~~SQL size cluase to include num_count.csv~~
-- drop model.
+- ~~drop model~~.
 - embedding.
 - one mdn model instead of many.
+- fix GoGs implementation.
