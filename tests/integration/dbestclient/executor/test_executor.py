@@ -38,9 +38,9 @@ class TestTpcDs(unittest.TestCase):
                             "ss_net_paid_inc_tax|ss_net_profit|none'"
                             )
         sqlExecutor.execute(
-            "create table ss40g_sm(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv'  method uniform size 600 scale data num_of_points2.csv")
+            "create table test_ss40g_sm(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv'  method uniform size 600 scale data num_of_points2.csv")
         predictions = sqlExecutor.execute(
-            "select avg(ss_sales_price)  from ss40g_sm where   2451119  <=ss_sold_date_sk<= 2451483 ")
+            "select avg(ss_sales_price)  from test_ss40g_sm where   2451119  <=ss_sold_date_sk<= 2451483 ")
         self.assertTrue(predictions)
 
     def test_categorical(self):
@@ -64,13 +64,13 @@ class TestTpcDs(unittest.TestCase):
 class TestHw(unittest.TestCase):
     def test_cpu(self):
         sqlExecutor = SqlExecutor()
-        sqlExecutor.execute("create table hw(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical)  "  #
+        sqlExecutor.execute("create table test_hw(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical)  "  #
                             "FROM '/home/u1796377/Documents/workspace/DBEstClient/tests/integration/fixtures/sample_1k.csv' "
                             "GROUP BY ts "
                             "method uniform "
                             "size  1000 "  # 118567, 81526479
                             "scale data;")
-        predictions = sqlExecutor.execute("select ts, count(usermac) from hw "
+        predictions = sqlExecutor.execute("select ts, count(usermac) from test_hw "
                                           "where   unix_timestamp('2020-02-05T12:00:00.000Z') <=ts<= unix_timestamp('2020-04-06T12:00:00.000Z') "
                                           "AND tenantId = 'default-organization-id' "
                                           "AND ssid = 'Tencent' "

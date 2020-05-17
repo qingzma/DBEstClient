@@ -305,7 +305,8 @@ class MdnQueryEngine(GenericQueryEngine):
             for i in instances:
                 result = i.get()
                 results.update(result)
-        if b_print_to_screen:
+        runtime_config["b_print_to_screen"] = b_print_to_screen
+        if runtime_config["b_print_to_screen"]:
             for key in results:
                 print(",".join(key.split("-")) +
                       "," + str(results[key]))
@@ -508,6 +509,7 @@ class MdnQueryEngineBundle():
         for index, sub_group in enumerate(self.group_keys_chunk):
             # print(sub_group)
             engine = self.enginesContainer[index]
+            runtime_config["b_print_to_screen"] = False
             i = pool.apply_async(
                 engine.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
             instances.append(i)
@@ -518,6 +520,7 @@ class MdnQueryEngineBundle():
             # t = result[1]
             predictions.update(result)
             # times.update(t)
+        runtime_config["b_print_to_screen"] = b_print_to_screen
         if b_print_to_screen:
             for key in predictions:
                 print(key + "," + str(predictions[key]))
@@ -663,7 +666,8 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                         keys_list.append(key)
             predictions = dict(predictions)
         # print("preditions,", predictions)
-
+        # restore b_print_to_screen
+        runtime_config["b_print_to_screen"] = b_print_to_screen
         if b_print_to_screen:
             headers = list(self.group_by_columns)
             headers.append("value")
