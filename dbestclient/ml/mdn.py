@@ -23,7 +23,6 @@ import scipy.stats as stats
 import torch
 import torch.nn as nn
 import torch.optim as optim
-# from decorator import append
 from matplotlib.widgets import Slider
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.preprocessing import OneHotEncoder
@@ -32,10 +31,6 @@ from torch.distributions import Categorical
 from torch.multiprocessing import Pool
 
 from dbestclient.ml.integral import approx_count, prepare_reg_density_data
-
-# global DEVICE
-# # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# DEVICE = torch.device("cpu")
 
 
 # https://www.katnoria.com/mdn/
@@ -260,6 +255,7 @@ class RegMdnGroupBy():
         self.last_sigma = None
         self.config = config
         self.b_normalize_data = b_normalize_data
+        self.enc = None
 
     def fit(self, z_group: list, x_points: list, y_points: list, runtime_config, lr: float = 0.001, n_workers=0):
         """fit the MDN regression model.
