@@ -52,6 +52,7 @@ class SqlExecutor:
     def init_model_catalog(self):
         # search the warehouse, and add all available models.
         n_model = 0
+        t1 = datetime.now()
         for file_name in os.listdir(self.config.get_config()['warehousedir']):
 
             # load simple models
@@ -62,33 +63,38 @@ class SqlExecutor:
                 with open(self.config.get_config()['warehousedir'] + "/" + file_name, 'rb') as f:
                     model = dill.load(f)
                 self.model_catalog.model_catalog[model.init_pickle_file_name(
-                )] = model
+                    self.runtime_config)] = model
                 n_model += 1
 
-            # load group by models
-            if os.path.isdir(self.config.get_config()['warehousedir'] + "/" + file_name):
-                n_models_in_groupby = 0
-                if n_model == 0:
-                    print("start loading pre-existing models.")
+            # # load group by models
+            # if os.path.isdir(self.config.get_config()['warehousedir'] + "/" + file_name):
+            #     n_models_in_groupby = 0
+            #     if n_model == 0:
+            #         print("start loading pre-existing models.")
 
-                for model_name in os.listdir(self.config.get_config()['warehousedir'] + "/" + file_name):
-                    if model_name.endswith(self.runtime_config["model_suffix"]):
-                        with open(self.config.get_config()['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
-                            model = dill.load(f)
-                            n_models_in_groupby += 1
+            #     for model_name in os.listdir(self.config.get_config()['warehousedir'] + "/" + file_name):
+            #         if model_name.endswith(self.runtime_config["model_suffix"]):
+            #             with open(self.config.get_config()['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
+            #                 model = dill.load(f)
+            #                 n_models_in_groupby += 1
 
-                        if n_models_in_groupby == 1:
-                            groupby_model_wrapper = GroupByModelWrapper(model.mdl, model.tbl, model.x, model.y,
-                                                                        model.groupby_attribute,
-                                                                        x_min_value=model.x_min_value,
-                                                                        x_max_value=model.x_max_value)
-                        groupby_model_wrapper.add_simple_model(model)
+            #             if n_models_in_groupby == 1:
+            #                 groupby_model_wrapper = GroupByModelWrapper(model.mdl, model.tbl, model.x, model.y,
+            #                                                             model.groupby_attribute,
+            #                                                             x_min_value=model.x_min_value,
+            #                                                             x_max_value=model.x_max_value)
+            #             groupby_model_wrapper.add_simple_model(model)
 
-                    self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
-                    n_model += 1
+            #         self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
+            #         n_model += 1
 
         if n_model > 0:
-            print("Loaded " + str(n_model) + " models.")
+            print("Loaded " + str(n_model) + " models.", end=" ")
+            if self.runtime_config["b_show_latency"]:
+                t2 = datetime.now()
+                print("time cost ", (t2-t1).total_seconds(), "s")
+            else:
+                print()
 
     def execute(self, sql):
         # b_use_gg=False, n_per_gg=10, result2file=None,n_mdn_layer_node = 10, encoding = "onehot",n_jobs = 4, b_grid_search = True,device = "cpu", n_division = 20
@@ -326,7 +332,7 @@ class SqlExecutor:
                             else:
                                 # print("n_total_point ", n_total_point)
                                 queryEngineBundle = MdnQueryEngineBundle(
-                                    config=self.config.copy()).fit(xys, groupby_attribute,
+                                    config=self.config.copy()).fit(xys["data"], groupby_attribute,
                                                                    n_total_point, mdl, tbl,
                                                                    xheader_continous[0], yheader,
                                                                    self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search

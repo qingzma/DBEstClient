@@ -135,4 +135,4 @@ Where,
 - ~~drop model~~.
 - embedding.
 - one mdn model instead of many.
-- fix GoGs implementation.
+- ~~fix GoGs implementation.~~

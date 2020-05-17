@@ -354,7 +354,8 @@ class MdnQueryEngineBundle():
         self.pickle_file_name = mdl
         # print(groupby_attribute)
         # print(df)
-        df = df["data"]
+
+        # df = df["data"]
         grouped = df.groupby(groupby_attribute)
 
         # print("grouped", grouped)
@@ -601,6 +602,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                     n_total_point=total_points[categorical_attributes],
                     x_min_value=-np.inf, x_max_value=np.inf,
                     config=self.config).fit_from_df(
+                    # data[categorical_attributes]["data"], runtime_config=runtime_config, network_size="large",)
                     data[categorical_attributes], runtime_config=runtime_config, network_size="large",)
 
                 qe_mdn = MdnQueryEngine(
