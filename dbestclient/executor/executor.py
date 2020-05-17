@@ -18,7 +18,7 @@ from torch.multiprocessing import set_start_method as set_start_method_torch
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (MdnQueryEngine,
-                                                 MdnQueryEngineBundle,
+                                                 MdnQueryEngineGoGs,
                                                  MdnQueryEngineXCategorical)
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
@@ -331,7 +331,7 @@ class SqlExecutor:
 
                             else:
                                 # print("n_total_point ", n_total_point)
-                                queryEngineBundle = MdnQueryEngineBundle(
+                                queryEngineBundle = MdnQueryEngineGoGs(
                                     config=self.config.copy()).fit(xys["data"], groupby_attribute,
                                                                    n_total_point, mdl, tbl,
                                                                    xheader_continous[0], yheader,

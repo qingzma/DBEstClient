@@ -330,7 +330,7 @@ def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
     return mdnQueryEngine.predicts(func, x_lb, x_ub, b_parallel=False, n_jobs=1)
 
 
-class MdnQueryEngineBundle():
+class MdnQueryEngineGoGs():
     # __init__(self, config, device):
     def __init__(self, config):
         self.enginesContainer = {}
@@ -608,7 +608,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                 qe_mdn = MdnQueryEngine(
                     kdeModelWrapper, self.config.copy())
             else:  # use GoGs
-                qe_mdn = MdnQueryEngineBundle(
+                qe_mdn = MdnQueryEngineGoGs(
                     config=self.config.copy()).fit(data[categorical_attributes], usecols["gb"],
                                                    total_points[categorical_attributes], mdl_name, origin_table_name,
                                                    usecols["x_continous"][0], usecols["y"],
