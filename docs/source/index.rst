@@ -9,8 +9,9 @@ Welcome to DBEstClient's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   
 
-API main
+API parser
 =========================================
 .. automodule:: dbestclient.parser.parser
    :members:
