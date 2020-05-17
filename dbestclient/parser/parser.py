@@ -1,3 +1,9 @@
+# Created by Qingzhi Ma at 2019-07-23
+# All right reserved
+# Department of Computer Science
+# the University of Warwick
+# Q.Ma.2@warwick.ac.uk
+
 import re
 import warnings
 
@@ -14,9 +20,7 @@ from dbestclient.tools.date import unix_timestamp
 
 
 class DBEstParser:
-    """
-    parse a single SQL query, of the following form:
-
+    """parse a single SQL query, of the following form:
     - **DDL**
         >>> CREATE TABLE t_m(y real, x real)
         >>> FROM tbl

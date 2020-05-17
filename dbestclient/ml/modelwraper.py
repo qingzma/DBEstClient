@@ -14,8 +14,8 @@ def deserialize_model_wrapper(file):
     return dill.load(file)
 
 
-def get_pickle_file_name(mdl):
-    return mdl + ".pkl"
+def get_pickle_file_name(mdl, runtime_config):
+    return mdl + runtime_config["model_suffix"]
     # return mdl+"_yx_"+y+"_"+x+".pkl"
 
 
@@ -38,14 +38,14 @@ class SimpleModelWrapper:
 
         # generate the pickle file name
         self.pickle_file_name = None
-        self.init_pickle_file_name()
+        # self.init_pickle_file_name(runtime_config)
         # self.pickle_string = None
 
     def load_model(self, density, reg=None):
         self.reg = reg
         self.density = density
 
-    def init_pickle_file_name(self):
+    def init_pickle_file_name(self, runtime_config):
         # self.pickle_file_name = self.mdl #+ "_" + self.tbl
         # if self.y is not None:
         #     self.pickle_file_name += "_yx_" + self.y + "_"
@@ -59,7 +59,7 @@ class SimpleModelWrapper:
         self.pickle_file_name = self.mdl
         if self.groupby_value is not None:
             self.pickle_file_name += "_groupby_" + self.groupby_value
-        self.pickle_file_name += ".pkl"
+        self.pickle_file_name += runtime_config["model_suffix"]
         return self.pickle_file_name
 
     # def get_groupby_catalog_prefix(self):
@@ -77,9 +77,9 @@ class SimpleModelWrapper:
     def serialize(self):
         return dill.dumps(self)
 
-    def serialize2warehouse(self, warehouse):
+    def serialize2warehouse(self, warehouse, runtime_config):
         if self.pickle_file_name is None:
-            self.init_pickle_file_name()
+            self.init_pickle_file_name(runtime_config)
         with open(warehouse + '/' + self.pickle_file_name, 'wb') as f:
             dill.dump(self, f)
 
@@ -132,7 +132,7 @@ class KdeModelWrapper:
 
         # generate the pickle file name
         self.pickle_file_name = None
-        self.init_pickle_file_name()
+        # self.init_pickle_file_name()
         # self.pickle_string = None
 
     def load_model(self, mdl_name, density, reg=None):
@@ -140,19 +140,19 @@ class KdeModelWrapper:
         self.density = density
         self.mdl = mdl_name
 
-    def init_pickle_file_name(self):
+    def init_pickle_file_name(self, runtime_config):
         self.pickle_file_name = self.mdl
         # if self.groupby_attribute is not None:
         #     self.pickle_file_name += "_groupby_" + self.groupby_attribute
-        self.pickle_file_name += ".pkl"
+        self.pickle_file_name += runtime_config["model_suffix"]
         return self.pickle_file_name
 
     def serialize(self):
         return dill.dumps(self)
 
-    def serialize2warehouse(self, warehouse):
+    def serialize2warehouse(self, warehouse, runtime_config):
         if self.pickle_file_name is None:
-            self.init_pickle_file_name()
+            self.init_pickle_file_name(runtime_config)
         self.x = None
         self.y = None
         with open(warehouse + '/' + self.pickle_file_name, 'wb') as f:
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     # print(get_pickle_file_name("mdl"))
 
     kdeModelWraper = KdeModelWrapper(
-        "mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_value={"1": 10, "2": 20})
-    print(kdeModelWraper.init_pickle_file_name())
+        "mdl", "tbl", "x", y="y", groupby_attribute="z", groupby_values={"1": 10, "2": 20})
+    print(kdeModelWraper.init_pickle_file_name({}))
     # print(kdeModelWraper.get_groupby_catalog_prefix())
-    print(get_pickle_file_name("mdl"))
+    print(get_pickle_file_name("mdl", {}))

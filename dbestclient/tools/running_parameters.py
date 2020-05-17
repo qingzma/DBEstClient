@@ -66,7 +66,7 @@ class DbestConfig:
             "n_epoch": 20,
             "n_gaussians": 4,
             "b_use_gg": False,
-            "n_per_gg": 10,
+            "n_per_gg": 260,
             "n_hidden_layer": 1,
             "n_mdn_layer_node": 10,
             "encoder": "binary",  # one-hot, embedding

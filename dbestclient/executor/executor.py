@@ -55,7 +55,7 @@ class SqlExecutor:
         for file_name in os.listdir(self.config.get_config()['warehousedir']):
 
             # load simple models
-            if file_name.endswith(".pkl"):
+            if file_name.endswith(self.runtime_config["model_suffix"]):
                 if n_model == 0:
                     print("start loading pre-existing models.")
 
@@ -72,7 +72,7 @@ class SqlExecutor:
                     print("start loading pre-existing models.")
 
                 for model_name in os.listdir(self.config.get_config()['warehousedir'] + "/" + file_name):
-                    if model_name.endswith(".pkl"):
+                    if model_name.endswith(self.runtime_config["model_suffix"]):
                         with open(self.config.get_config()['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
                             model = dill.load(f)
                             n_models_in_groupby += 1
@@ -149,7 +149,7 @@ class SqlExecutor:
                                             "y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": groupby_attribute})
 
                 # print(self.config)
-                if os.path.exists(self.config.get_config()['warehousedir'] + "/" + mdl + '.pkl'):
+                if os.path.exists(os.path.join(self.config.get_config()['warehousedir'],  mdl + self.runtime_config["model_suffix"])):
                     print(
                         "Model {0} exists in the warehouse, please use"
                         " another model name to train it.".format(mdl))
@@ -223,8 +223,9 @@ class SqlExecutor:
                         kdeModelWrapper, config=self.config.copy())
 
                     qe_mdn.serialize2warehouse(
-                        self.config.get_config()['warehousedir'])
-                    self.model_catalog.add_model_wrapper(qe_mdn)
+                        self.config.get_config()['warehousedir'], self.runtime_config)
+                    self.model_catalog.add_model_wrapper(
+                        qe_mdn, self.runtime_config)
 
                 else:  # if group by is involved in the query
                     if self.config.get_config()['reg_type'] == "qreg":
@@ -317,38 +318,38 @@ class SqlExecutor:
                                 qe_mdn = MdnQueryEngine(
                                     kdeModelWrapper, config=self.config.copy())
                                 qe_mdn.serialize2warehouse(
-                                    self.config.get_config()['warehousedir'])
+                                    self.config.get_config()['warehousedir'], self.runtime_config)
                                 # kdeModelWrapper.serialize2warehouse()
                                 self.model_catalog.add_model_wrapper(
-                                    qe_mdn)
+                                    qe_mdn, self.runtime_config)
 
                             else:
                                 # print("n_total_point ", n_total_point)
                                 queryEngineBundle = MdnQueryEngineBundle(
                                     config=self.config.copy()).fit(xys, groupby_attribute,
                                                                    n_total_point, mdl, tbl,
-                                                                   xheader_continous, yheader,
+                                                                   xheader_continous[0], yheader,
                                                                    self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
 
                                 self.model_catalog.add_model_wrapper(
-                                    queryEngineBundle)
+                                    queryEngineBundle, self.runtime_config)
                                 queryEngineBundle.serialize2warehouse(
-                                    self.config.get_config()['warehousedir'])
+                                    self.config.get_config()['warehousedir'], self.runtime_config)
                         else:  # x has categorical attributes
-                            if not self.config.get_config()["b_use_gg"]:
-                                qeXContinuous = MdnQueryEngineXCategorical(
-                                    self.config.copy())
-                                qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
-                                    "y": yheader, "x_continous": xheader_continous,
-                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
-                                )  # device=device, encoding=encoding, b_grid_search=b_grid_search
-                                qeXContinuous.serialize2warehouse(
-                                    self.config.get_config()['warehousedir'])
-                                self.model_catalog.add_model_wrapper(
-                                    qeXContinuous)
-                            else:
-                                raise ValueError(
-                                    "GoG support for categorical attributes is not supported.")
+                            # if not self.config.get_config()["b_use_gg"]:
+                            qeXContinuous = MdnQueryEngineXCategorical(
+                                self.config.copy())
+                            qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
+                                "y": yheader, "x_continous": xheader_continous,
+                                "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
+                            )  # device=device, encoding=encoding, b_grid_search=b_grid_search
+                            qeXContinuous.serialize2warehouse(
+                                self.config.get_config()['warehousedir'], self.runtime_config)
+                            self.model_catalog.add_model_wrapper(
+                                qeXContinuous, self.runtime_config)
+                            # else:
+                            #     raise ValueError(
+                            #         "GoG support for categorical attributes is not supported.")
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.runtime_config['b_show_latency']:
@@ -370,7 +371,8 @@ class SqlExecutor:
                     print("OK")
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
                     # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
-                    model = self.model_catalog.model_catalog[mdl + '.pkl']
+                    model = self.model_catalog.model_catalog[mdl +
+                                                             self.runtime_config["model_suffix"]]
                     x_header_density = model.density_column
 
                     # print("where_conditions", where_conditions)
@@ -381,7 +383,7 @@ class SqlExecutor:
                                     for i in [0, 1]]
 
                     predictions = model.predicts(func, x_lb, x_ub, where_conditions,
-                                                 runtime_config=self.runtime_config, groups=None, filter_dbest=filter_dbest)
+                                                 self.runtime_config, groups=None, filter_dbest=filter_dbest)
                     # predictions = model.predict_one_pass(
                     #     func, x_lb, x_ub, n_jobs=n_jobs)
 
@@ -551,6 +553,7 @@ class SqlExecutor:
                 )["warehousedir"], model_name+self.runtime_config["model_suffix"])
                 if os.path.isfile(model_path):
                     os.remove(model_path)
+                    print("OK. model is dropped.")
                     return True
                 else:
                     print("Model does not exist!")

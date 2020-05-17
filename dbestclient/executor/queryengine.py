@@ -3,6 +3,7 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
+import os
 from datetime import datetime
 
 import dill
@@ -110,12 +111,12 @@ class QueryEngine:
                  runtime_config, groups=None, filter_dbest=None):
         return self.predict(func, x_lb, x_ub, runtime_config)
 
-    def serialize2warehouse(self, warehouse):
-        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+    def serialize2warehouse(self, warehouse, runtime_config):
+        with open(warehouse + '/' + self.mdl_name + runtime_config["model_suffix"], 'wb') as f:
             dill.dump(self, f)
 
-    def init_pickle_file_name(self):
-        return self.mdl_name+".pkl"
+    def init_pickle_file_name(self, runtime_config):
+        return self.mdl_name+runtime_config["model_suffix"]
 
 
 if __name__ == "__main__":

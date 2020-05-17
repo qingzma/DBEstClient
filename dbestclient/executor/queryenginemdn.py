@@ -42,12 +42,12 @@ class GenericQueryEngine:
     def __init__(self):
         self.mdl_name = None
 
-    def serialize2warehouse(self, warehouse):
-        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+    def serialize2warehouse(self, warehouse, runtime_config):
+        with open(warehouse + '/' + self.mdl_name + runtime_config["model_suffix"], 'wb') as f:
             dill.dump(self, f)
 
-    def init_pickle_file_name(self):
-        return self.mdl_name+".pkl"
+    def init_pickle_file_name(self, runtime_config):
+        return self.mdl_name+runtime_config["model_suffix"]
 
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
         pass
@@ -317,12 +317,12 @@ class MdnQueryEngine(GenericQueryEngine):
                     f.write(str(key) + "," + str(results[key]) + "\n")
         return results
 
-    def serialize2warehouse(self, warehouse):
-        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+    def serialize2warehouse(self, warehouse, runtime_config):
+        with open(warehouse + '/' + self.mdl_name + runtime_config["model_suffix"], 'wb') as f:
             dill.dump(self, f)
 
-    def init_pickle_file_name(self):
-        return self.mdl_name+".pkl"
+    def init_pickle_file_name(self, runtime_config):
+        return self.mdl_name+runtime_config["model_suffix"]
 
 
 def query_partial_group(mdnQueryEngine, group, func, x_lb, x_ub):
@@ -344,7 +344,7 @@ class MdnQueryEngineBundle():
     def fit(self, df: pd.DataFrame, groupby_attribute: str, n_total_point: dict,
             mdl: str, tbl: str, xheader: str, yheader: str, runtime_config: dict):  # n_per_group: int = 10, n_mdn_layer_node=10, encoding = "onehot", b_grid_search = True
         # configuration-related parameters.
-        n_per_group = self.config.get_config()["n_per_group"]
+        n_per_group = self.config.get_config()["n_per_gg"]
         n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node"]
         encoding = self.config.get_config()["encoder"]
         b_grid_search = self.config.get_config()["b_grid_search"]
@@ -354,7 +354,7 @@ class MdnQueryEngineBundle():
         self.pickle_file_name = mdl
         # print(groupby_attribute)
         # print(df)
-
+        df = df["data"]
         grouped = df.groupby(groupby_attribute)
 
         # print("grouped", grouped)
@@ -491,7 +491,7 @@ class MdnQueryEngineBundle():
             self.enginesContainer[index] = engine
         return self
 
-    def predicts(self, func, x_lb, x_ub, runtime_config):
+    def predicts(self, func, x_lb, x_ub, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         # result2file=None, n_division=20, b_print_to_screen=True
         result2file = runtime_config["result2file"]
         n_division = runtime_config["n_division"]
@@ -511,7 +511,7 @@ class MdnQueryEngineBundle():
             engine = self.enginesContainer[index]
             runtime_config["b_print_to_screen"] = False
             i = pool.apply_async(
-                engine.predict_one_pass, (func, x_lb, x_ub, sub_group, False, n_division))
+                engine.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest))
             instances.append(i)
 
         for i in instances:
@@ -531,15 +531,15 @@ class MdnQueryEngineBundle():
                     f.write(str(key) + "," + str(predictions[key]) + "\n")
         return predictions
 
-    def init_pickle_file_name(self):
+    def init_pickle_file_name(self, runtime_config):
         # self.pickle_file_name = self.pickle_file_name
-        return self.pickle_file_name + ".pkl"
+        return self.pickle_file_name + runtime_config["model_suffix"]
 
-    def serialize2warehouse(self, warehouse):
+    def serialize2warehouse(self, warehouse, runtime_config):
         if self.pickle_file_name is None:
-            self.init_pickle_file_name()
+            self.init_pickle_file_name(runtime_config)
 
-        with open(warehouse + '/' + self.init_pickle_file_name(), 'wb') as f:
+        with open(warehouse + '/' + self.init_pickle_file_name(runtime_config), 'wb') as f:
             dill.dump(self, f)
 
 
@@ -591,18 +591,27 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
             idx += 1
             # print("total_points", total_points)
             # print(list(total_points[categorical_attributes].keys()))
-            kdeModelWrapper = KdeModelTrainer(
-                mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
-                groupby_attribute=usecols["gb"],
-                groupby_values=list(
-                    total_points[categorical_attributes].keys()),
-                n_total_point=total_points[categorical_attributes],
-                x_min_value=-np.inf, x_max_value=np.inf,
-                config=self.config).fit_from_df(
-                data[categorical_attributes], runtime_config=runtime_config, network_size="large",)
+            # GoG is not used, use kdeModelTrainer instead.
+            if not self.config.get_config()["b_use_gg"]:
+                kdeModelWrapper = KdeModelTrainer(
+                    mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
+                    groupby_attribute=usecols["gb"],
+                    groupby_values=list(
+                        total_points[categorical_attributes].keys()),
+                    n_total_point=total_points[categorical_attributes],
+                    x_min_value=-np.inf, x_max_value=np.inf,
+                    config=self.config).fit_from_df(
+                    data[categorical_attributes], runtime_config=runtime_config, network_size="large",)
 
-            qe_mdn = MdnQueryEngine(
-                kdeModelWrapper, self.config.copy())
+                qe_mdn = MdnQueryEngine(
+                    kdeModelWrapper, self.config.copy())
+            else:  # use GoGs
+                qe_mdn = MdnQueryEngineBundle(
+                    config=self.config.copy()).fit(data[categorical_attributes], usecols["gb"],
+                                                   total_points[categorical_attributes], mdl_name, origin_table_name,
+                                                   usecols["x_continous"][0], usecols["y"],
+                                                   runtime_config)
+
             self.models[categorical_attributes] = qe_mdn
 
         # kdeModelWrapper.serialize2warehouse(
@@ -683,12 +692,12 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
 
         return predictions
 
-    def serialize2warehouse(self, warehouse):
-        with open(warehouse + '/' + self.mdl_name + '.pkl', 'wb') as f:
+    def serialize2warehouse(self, warehouse, runtime_config):
+        with open(warehouse + '/' + self.mdl_name + runtime_config["model_suffix"], 'wb') as f:
             dill.dump(self, f)
 
-    def init_pickle_file_name(self):
-        return self.mdl_name+".pkl"
+    def init_pickle_file_name(self, runtime_config):
+        return self.mdl_name+runtime_config["model_suffix"]
 
 
 def meet_condition(value: str, condition):
