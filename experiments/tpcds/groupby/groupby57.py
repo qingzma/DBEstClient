@@ -14,8 +14,8 @@ from dbestclient.executor.executor import SqlExecutor
 def run():
     sqlExecutor = SqlExecutor()
     sqlExecutor.execute("set v='True'")
-    sqlExecutor.execute("set n_jobs=1")
-    sqlExecutor.execute("set device='gpu'")
+    sqlExecutor.execute("set n_jobs=8")
+    sqlExecutor.execute("set device='cpu'")
     sqlExecutor.execute("set encoder='binary'")
     sqlExecutor.execute("set b_grid_search='False'")
     sqlExecutor.execute("set b_print_to_screen='true'")
@@ -29,22 +29,33 @@ def run():
                         "ss_net_paid_inc_tax|ss_net_profit|none'"
                         )
     # run_2_groupby(sqlExecutor)
-    build_models(sqlExecutor)
-    query(sqlExecutor)
+    # build_models(sqlExecutor)
+    # query(sqlExecutor)
+    run_57_groups(sqlExecutor)
 
 
 def build_models(sqlExecutor):
     # 10k
-    sqlExecutor.execute("create table ss40g_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600 ")  # ,ss_quantity
+    sqlExecutor.execute("create table ss40g_categorical_full(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 600 ")  # ,ss_quantity
 
     # sqlExecutor.execute(
     #     "create table ss40g_no_categorical(ss_sales_price real, ss_sold_date_sk real,) from '/data/tpcds/40G/ss_1k.csv' GROUP BY ss_store_sk method uniform size 'num_of_points57.csv'")
 
 
 def query(sqlExecutor):
-    sqlExecutor.execute(
-        "select avg(ss_sales_price)  from ss40g_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''    group by ss_store_sk",)
     sqlExecutor.execute("set b_print_to_screen='False'")
+    sqlExecutor.execute("set n_jobs=1")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_categorical_full where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='' and ss_quantity=''   group by ss_store_sk",)
+    sqlExecutor.execute("set n_jobs=2")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_categorical_full where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='' and ss_quantity=''   group by ss_store_sk",)
+    sqlExecutor.execute("set n_jobs=4")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_categorical_full where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  and ss_quantity=''  group by ss_store_sk",)
+    sqlExecutor.execute("set n_jobs=8")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_categorical_full where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  and ss_quantity=''  group by ss_store_sk",)
 
     # sqlExecutor.execute(
     #     "select count(ss_sales_price)  from ss40g_no_categorical where   2451119  <=ss_sold_date_sk<= 2451483 group by ss_store_sk")
@@ -53,9 +64,34 @@ def query(sqlExecutor):
 
 
 def run_2_groupby(sqlExecutor):
-    sqlExecutor.execute("create table ss40g_gb2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 6000 scale data num_of_points2.csv;")  # ,ss_quantity
+    sqlExecutor.execute("set b_print_to_screen='false'")
+    # sqlExecutor.execute("set device='cpu'")
+    sqlExecutor.execute(
+        "create table ss40g_gb2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk,ss_quantity method uniform size 600000 ")  # ,ss_quantity
+    sqlExecutor.execute("set n_jobs=1")
     sqlExecutor.execute(
         "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+    sqlExecutor.execute("set n_jobs=2")
+    sqlExecutor.execute(
+        "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+    sqlExecutor.execute("set n_jobs=4")
+    sqlExecutor.execute(
+        "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+    sqlExecutor.execute("set n_jobs=8")
+    sqlExecutor.execute(
+        "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+
+
+def run_57_groups(sqlExecutor):
+    sqlExecutor.execute("set b_print_to_screen='False'")
+    sqlExecutor.execute("set n_jobs=1")
+    sqlExecutor.execute(
+        "create table ss40g_57(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000 ")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
+    sqlExecutor.execute("set n_jobs=2")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)
 
 
 if __name__ == "__main__":

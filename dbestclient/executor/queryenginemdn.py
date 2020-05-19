@@ -722,3 +722,21 @@ def meet_condition(value: str, condition):
             b2 = True if value < float(condition[1]) else False
 
     return b1 and b2
+
+
+class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
+    def __init__(self):
+        super().__init__()
+
+    def serialize2warehouse(self, warehouse, runtime_config):
+        with open(warehouse + '/' + self.mdl_name + runtime_config["model_suffix"], 'wb') as f:
+            dill.dump(self, f)
+
+    def init_pickle_file_name(self, runtime_config):
+        return self.mdl_name+runtime_config["model_suffix"]
+
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
+        pass
+
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
+        pass
