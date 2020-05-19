@@ -406,7 +406,7 @@ class RegMdnGroupBy():
             RegMdnGroupBy: the fitted model
         """
         param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
-            5, 10, 20], 'hidden': [1, 2], 'gaussian': [3, 5]}
+            5, 10, 20], 'hidden': [1, 2], 'gaussian_reg': [3, 5]}
         # param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
         #     5], 'hidden': [1], 'gaussian': [3]}
 
@@ -427,11 +427,12 @@ class RegMdnGroupBy():
         for para in combs:
             print("Grid search for parameter set :", para)
             config = self.config.copy()
-            config["n_gaussians_reg"] = para['gaussian']
-            config["n_epoch"] = para['n_epoch']
-            config["n_hidden_layer"] = para['n_hidden_layer']
-            config["n_mdn_layer_node"] = para['n_mdn_layer_node']
-            config["b_grid_search"] = False
+            config.config["n_gaussians_reg"] = para['gaussian_reg']
+            # config.config["n_gaussians_density"] = para['gaussian_density']
+            config.config["n_epoch"] = para['epoch']
+            config.config["n_hidden_layer"] = para['hidden']
+            config.config["n_mdn_layer_node"] = para['node']
+            config.config["b_grid_search"] = False
 
             instance = RegMdnGroupBy(config).fit(z_group, x_points, y_points,
                                                  runtime_config, lr=para['lr'])
@@ -452,11 +453,12 @@ class RegMdnGroupBy():
         self.sample_average_y = None
 
         config = self.config.copy()
-        config["n_gaussians_reg"] = para['gaussian']
-        config["n_epoch"] = para['n_epoch']
-        config["n_hidden_layer"] = para['n_hidden_layer']
-        config["n_mdn_layer_node"] = para['n_mdn_layer_node']
-        config["b_grid_search"] = False
+        config.config["n_gaussians_reg"] = para['gaussian_reg']
+        # config.config["n_gaussians_density"] = para['gaussian_density']
+        config.config["n_epoch"] = para['epoch']
+        config.config["n_hidden_layer"] = para['hidden']
+        config.config["n_mdn_layer_node"] = para['node']
+        config.config["b_grid_search"] = False
 
         instance = RegMdnGroupBy(config).fit(z_group, x_points, y_points,
                                              runtime_config, lr=para['lr'])
@@ -1209,7 +1211,7 @@ class KdeMdn:
         """
 
         param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
-            5, 10, 20], 'hidden': [1, 2], 'gaussian': [10]}
+            5, 10, 20], 'hidden': [1, 2], 'gaussian': [5, 10, 15, 20]}
         # param_grid = {'epoch': [2], 'lr': [0.001],
         #               'node': [4], 'hidden': [1], 'gaussian': [10]}
         errors = []
@@ -1229,13 +1231,13 @@ class KdeMdn:
             print("Grid search for parameter set :", para)
             config = self.config.copy()
             config.config["n_gaussians_density"] = para['gaussian']
-            config.config["num_epoch"] = para['epoch']
+            config.config["n_epoch"] = para['epoch']
             config.config["n_mdn_layer_node"] = para['node']
             config.config["n_hidden_layer"] = para['hidden']
             config.config["b_grid_search"] = False
-            instance = KdeMdn(config, b_store_training_data=False).fit(
+            instance = KdeMdn(config, b_store_training_data=True).fit(
                 zs, xs, runtime_config, b_normalize=b_normalize, lr=para['lr'])
-            errors.append(instance.score())
+            errors.append(instance.score(runtime_config))
 
         index = errors.index(min(errors))
         para = combs[index]
@@ -1606,7 +1608,7 @@ class KdeMdn:
                 plt.show()
             return sum(errors)
 
-    def score(self, n_division=20):
+    def score(self, runtime_config):
         """evaluate the model, based on training data.
 
         Raises:
@@ -1645,7 +1647,7 @@ class KdeMdn:
             freq_all = []
             for g in zs_set:
                 main_plot, bins, patches = plt.hist(
-                    gp.get_group(g)["x"], bins=n_division)
+                    gp.get_group(g)["x"], bins=runtime_config["n_division"])
                 total = sum(main_plot)
                 freq_g = []
                 for patch in patches:
@@ -1661,7 +1663,7 @@ class KdeMdn:
             for patch in patches:
                 left, right = patch._x0, patch._x1
                 pre_density, _, step = prepare_reg_density_data(
-                    self, left, right, groups=zs_set, reg=None, n_division=n_division)
+                    self, left, right, zs_set, None, runtime_config)
 
                 preds = approx_count(pre_density, step)
                 pred_all.append(list(preds))
