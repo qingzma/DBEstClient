@@ -319,7 +319,7 @@ class SqlExecutor:
                                     n_total_point=n_total_point,
                                     x_min_value=-np.inf, x_max_value=np.inf,
                                     config=self.config.copy()).fit_from_df(
-                                    xys["data"], self.runtime_config, network_size="large")
+                                    xys["data"], self.runtime_config, network_size=None)
 
                                 qe_mdn = MdnQueryEngine(
                                     kdeModelWrapper, config=self.config.copy())

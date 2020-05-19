@@ -140,9 +140,11 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
     # prapare the files.
     for i in range(1, 11):
         prefix = agg_func+str(i)
-        mdn = read_results("mdn501/"+prefix+suffix, split_char=",")
-        truth = read_results("groundtruth/"+prefix+".result")
-        kde = read_results("deepdb/"+prefix+".txt", split_char=',')
+        mdn = read_results("experiments/results/mdn501/" +
+                           prefix+suffix, split_char=",")
+        truth = read_results(
+            "experiments/results/groundtruth/"+prefix+".result")
+        kde = read_results("experiments/results/DBEst/"+prefix+".txt",)
         mdn_error = compare_dicts(truth, mdn)
         kde_error = compare_dicts(truth, kde)
         mdn_errors.append(mdn_error)
@@ -236,5 +238,5 @@ def autolabel(rects, ax):
 if __name__ == "__main__":
     # plt_501_bar_chart_error()
     # plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
-    plt501_workload(agg_func="avg", suffix="_ss1t_gg32_cpu.txt",
+    plt501_workload(agg_func="sum", suffix=".txt",
                     b_merge_result_for_group=False)

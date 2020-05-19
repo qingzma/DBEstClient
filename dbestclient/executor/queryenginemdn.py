@@ -57,6 +57,8 @@ class GenericQueryEngine:
 
 
 class MdnQueryEngine(GenericQueryEngine):
+    t_before_multiple_processing = None
+
     def __init__(self, kdeModelWrapper, config):
         super().__init__()
         # self.n_training_point = kdeModelWrapper.n_sample_point
@@ -200,7 +202,11 @@ class MdnQueryEngine(GenericQueryEngine):
     #                 f.write(key + "," + str(predictions[key]))
     #     return predictions, times
 
-    def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, runtime_config=None, groups: list = None, filter_dbest=None):
+    def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, runtime_config=None, groups: list = None, filter_dbest=None, time2exclude_from_multiprocessing=None):
+        if time2exclude_from_multiprocessing is not None:
+            t_after_multiple_processing = datetime.now()
+            print("should reduce time {} from the query response time.".format(
+                (t_after_multiple_processing - time2exclude_from_multiprocessing).total_seconds()))
         b_print_to_screen = runtime_config["b_print_to_screen"]
         # n_division = runtime_config["n_division"]
         result2file = runtime_config["result2file"]
@@ -278,6 +284,7 @@ class MdnQueryEngine(GenericQueryEngine):
             n_per_chunk = math.ceil(len(groups)/n_jobs)
             group_chunks = [groups[i:i+n_per_chunk]
                             for i in range(0, len(groups), n_per_chunk)]
+            # print("create Pool...", datetime.now())
             if runtime_config["device"] == "cpu":
                 pool = PoolCPU(processes=n_jobs)
             else:
@@ -292,14 +299,18 @@ class MdnQueryEngine(GenericQueryEngine):
 
             # with Pool(processes=n_jobs) as pool:
             # print(self.group_keys_chunk)
+
+            time2exclude_from_multiprocessing = datetime.now()
+
             for sub_group in group_chunks:
                 # print(sub_group)
                 # engine = self.enginesContainer[index]
                 # print(sub_group)
                 runtime_config["n_jobs"] = 1
                 runtime_config["b_print_to_screen"] = False
+
                 i = pool.apply_async(
-                    self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest))
+                    self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest, time2exclude_from_multiprocessing))
                 instances.append(i)
 
             for i in instances:
@@ -634,6 +645,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
         cols = [item.lower() for item in x_categorical_conditions[0]]
         keys = [item for item in x_categorical_conditions[1]]
         if not x_categorical_conditions[2]:
+            print("enter prediction X 1 model...", datetime.now())
             # prepare the key of the model.
 
             # print(self.x_categorical_columns)
@@ -651,6 +663,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
 
         else:
             # prepare the keys of the models to be called.
+            print("enter prediction X multiple models...", datetime.now())
             keys_list = []
             predictions = Counter({})
             for col in x_categorical_conditions[2]:
@@ -671,6 +684,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
 
                         # make the predictions
                         runtime_config["b_print_to_screen"] = False
+                        print("start entering multi-processing", datetime.now())
                         pred = self.models[key].predicts(func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions,
                                                          runtime_config=runtime_config, filter_dbest=filter_dbest)
                         predictions = predictions + Counter(pred)

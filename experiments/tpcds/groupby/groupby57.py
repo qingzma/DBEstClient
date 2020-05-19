@@ -77,21 +77,41 @@ def run_2_groupby(sqlExecutor):
     sqlExecutor.execute("set n_jobs=4")
     sqlExecutor.execute(
         "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
-    sqlExecutor.execute("set n_jobs=8")
-    sqlExecutor.execute(
-        "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+    # sqlExecutor.execute("set n_jobs=8")
+    # sqlExecutor.execute(
+    #     "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+    # sqlExecutor.execute("set n_jobs=16")
+    # sqlExecutor.execute(
+    #     "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
+    # sqlExecutor.execute("set n_jobs=20")
+    # sqlExecutor.execute(
+    #     "select count(ss_sales_price)  from ss40g_gb2 where   2451119  <=ss_sold_date_sk<= 2451483   group by ss_store_sk,ss_quantity;")
 
 
 def run_57_groups(sqlExecutor):
     sqlExecutor.execute("set b_print_to_screen='False'")
+    sqlExecutor.execute("set n_mdn_layer_node=10")
     sqlExecutor.execute("set n_jobs=1")
+    sqlExecutor.execute("set n_hidden_layer=2")
+    sqlExecutor.execute("set n_epoch=20")
+    sqlExecutor.execute("set result2file='/home/u1796377/Desktop/hah.txt'")
     sqlExecutor.execute(
-        "create table ss40g_57(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600000 ")
+        "create table ss40g_57_node10_hidden2(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size  'num_of_points57.csv' ")  # num_of_points57.csv
     sqlExecutor.execute(
-        "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
-    sqlExecutor.execute("set n_jobs=2")
-    sqlExecutor.execute(
-        "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)
+        "select avg(ss_sales_price)  from ss40g_57_node10_hidden2 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
+    # sqlExecutor.execute("set n_jobs=2")
+    # sqlExecutor.execute(
+    #     "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)
+    # sqlExecutor.execute("set n_jobs=4")
+    # sqlExecutor.execute(
+    #     "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)
+    # sqlExecutor.execute("set n_jobs=8")
+    # sqlExecutor.execute(
+    #     "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)
+
+
+def run_gogs(SqlExecutor):
+    pass
 
 
 if __name__ == "__main__":

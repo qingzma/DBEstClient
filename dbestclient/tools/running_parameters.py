@@ -64,7 +64,8 @@ class DbestConfig:
             "accept_filter": False,
             # MDN related parameters
             "n_epoch": 20,
-            "n_gaussians": 4,
+            "n_gaussians_reg": 3,
+            "n_gaussians_density": 10,
             "b_use_gg": False,
             "n_per_gg": 260,
             "n_hidden_layer": 1,

@@ -277,7 +277,7 @@ class RegMdnGroupBy():
             RegMdnGroupBy: The regression model.
         """
         n_epoch = self.config.config["n_epoch"]
-        n_gaussians = self.config.config["n_gaussians"]
+        n_gaussians = self.config.config["n_gaussians_reg"]
         n_hidden_layer = self.config.config["n_hidden_layer"]
         n_mdn_layer_node = self.config.config["n_mdn_layer_node"]
         b_grid_search = self.config.config["b_grid_search"]
@@ -427,7 +427,7 @@ class RegMdnGroupBy():
         for para in combs:
             print("Grid search for parameter set :", para)
             config = self.config.copy()
-            config["n_gaussians"] = para['gaussian']
+            config["n_gaussians_reg"] = para['gaussian']
             config["n_epoch"] = para['n_epoch']
             config["n_hidden_layer"] = para['n_hidden_layer']
             config["n_mdn_layer_node"] = para['n_mdn_layer_node']
@@ -452,7 +452,7 @@ class RegMdnGroupBy():
         self.sample_average_y = None
 
         config = self.config.copy()
-        config["n_gaussians"] = para['gaussian']
+        config["n_gaussians_reg"] = para['gaussian']
         config["n_epoch"] = para['n_epoch']
         config["n_hidden_layer"] = para['n_hidden_layer']
         config["n_mdn_layer_node"] = para['n_mdn_layer_node']
@@ -893,7 +893,7 @@ class RegMdn():
             nn.Tanh(),
             nn.Dropout(0.01),
             MDN(n_mdn_layer_node, 1,
-                self.config.config["n_gaussians"], runtime_config['device'])
+                self.config.config["n_gaussians_reg"], runtime_config['device'])
         )
 
         optimizer = optim.Adam(self.model.parameters())
@@ -1075,7 +1075,7 @@ class KdeMdn:
         Returns:
             KdeMdn: the fitted model.
         """
-        num_gaussians = self.config.config["n_gaussians"]
+        num_gaussians = self.config.config["n_gaussians_density"]
         num_epoch = self.config.config["n_epoch"]
         n_mdn_layer_node = self.config.config["n_mdn_layer_node"]
         hidden = self.config.config["n_hidden_layer"]
@@ -1228,7 +1228,7 @@ class KdeMdn:
         for para in combs:
             print("Grid search for parameter set :", para)
             config = self.config.copy()
-            config.config["n_gaussians"] = para['gaussian']
+            config.config["n_gaussians_density"] = para['gaussian']
             config.config["num_epoch"] = para['epoch']
             config.config["n_mdn_layer_node"] = para['node']
             config.config["n_hidden_layer"] = para['hidden']
@@ -1250,7 +1250,7 @@ class KdeMdn:
         self.sample_g = None
         self.sample_average_y = None
         config = self.config.copy()
-        config.config["n_gaussians"] = para['gaussian']
+        config.config["n_gaussians_density"] = para['gaussian']
         config.config["num_epoch"] = para['epoch']
         config.config["n_mdn_layer_node"] = para['node']
         config.config["n_hidden_layer"] = para['hidden']
