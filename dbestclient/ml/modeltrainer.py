@@ -154,8 +154,7 @@ class KdeModelTrainer:
                 # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
                 config = self.config.copy()
                 density = KdeMdn(config,
-                                 b_store_training_data=False)
-                density.fit(groupby, x, runtime_config)
+                                 b_store_training_data=False).fit(groupby, x, runtime_config)
         else:
             if network_size.lower() == "small":
                 if b_skip_reg_training:
@@ -184,8 +183,7 @@ class KdeModelTrainer:
                     # config.config["b_grid_search"] = False
 
                     density = KdeMdn(config,
-                                     b_store_training_data=False)
-                    density.fit(groupby, x, runtime_config)
+                                     b_store_training_data=False).fit(groupby, x, runtime_config)
 
             elif network_size.lower() == "large":
                 if b_skip_reg_training:
@@ -212,8 +210,8 @@ class KdeModelTrainer:
                     # config.config["n_mdn_layer_node"] = 20
                     # config.config["b_grid_search"] = False
                     # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
-                    density = KdeMdn(config, b_store_training_data=False)
-                    density.fit(groupby, x, runtime_config)
+                    density = KdeMdn(config, b_store_training_data=False).fit(
+                        groupby, x, runtime_config)
 
             elif network_size.lower() == "testing":
                 if b_skip_reg_training:
@@ -239,8 +237,8 @@ class KdeModelTrainer:
                     config.config["n_gaussians_density"] = 8
                     config.config["n_mdn_layer_node"] = 10
                     config.config["b_grid_search"] = False
-                    density = KdeMdn(config, b_store_training_data=False)
-                    density.fit(groupby, x, runtime_config)
+                    density = KdeMdn(config, b_store_training_data=False).fit(
+                        groupby, x, runtime_config)
 
             else:
                 raise ValueError("unexpected network_size passed in "+__file__)

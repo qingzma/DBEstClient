@@ -100,7 +100,7 @@ def run_57_groups(sqlExecutor):
     sqlExecutor.execute(
         "create table ss40g_57_node10_hidden2_grid_search(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size  600 ")  # num_of_points57.csv
     sqlExecutor.execute(
-        "select avg(ss_sales_price)  from ss40g_57_node10_hidden2 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
+        "select avg(ss_sales_price)  from ss40g_57_node10_hidden2_grid_search where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
     # sqlExecutor.execute("set n_jobs=2")
     # sqlExecutor.execute(
     #     "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)

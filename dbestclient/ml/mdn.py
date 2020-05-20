@@ -1047,7 +1047,7 @@ class RegMdn():
 class KdeMdn:
     """This is the implementation of density estimation using MDN"""
 
-    def __init__(self, config, b_store_training_data=False, ):
+    def __init__(self, config, b_store_training_data=False, b_normalize_data=True):
         if b_store_training_data:
             self.xs = None  # query range
             self.zs = None  # group by balue
@@ -1055,8 +1055,9 @@ class KdeMdn:
         self.meanx = None
         self.widthx = None
         self.config = config
+        self.b_normalize_data = b_normalize_data
 
-    def fit(self, zs: list, xs: list, runtime_config, b_normalize=True, lr=0.001,  n_workers=0):
+    def fit(self, zs: list, xs: list, runtime_config,  lr=0.001,  n_workers=0):  # b_normalize_data
         """ fit the density for the data, to support group by queries.
 
         Args:
@@ -1093,13 +1094,13 @@ class KdeMdn:
                 self.zs = None
                 self.xs = None
 
-            if b_normalize:
+            if self.b_normalize_data:
                 self.meanx = (np.max(xs) + np.min(xs)) / 2
                 self.widthx = np.max(xs) - np.min(xs)
 
                 xs = np.array([self.normalize(i, self.meanx, self.widthx)
                                for i in xs])
-                self.is_normalized = True
+                # self.b_normalize_data = True
                 if encoder == "no":
                     convert2float = True
                     if convert2float:
@@ -1196,9 +1197,10 @@ class KdeMdn:
             print("finish mdn training...")
             return self
         else:  # grid search
-            return self.fit_grid_search(zs, xs, runtime_config, b_normalize=b_normalize)
+            # , b_normalize=b_normalize
+            return self.fit_grid_search(zs, xs, runtime_config)
 
-    def fit_grid_search(self, zs: list, xs: list, runtime_config, b_normalize=True):
+    def fit_grid_search(self, zs: list, xs: list, runtime_config):  # , b_normalize=True
         """ use grid search to tune the hyper parameters.
 
         Args:
@@ -1235,8 +1237,8 @@ class KdeMdn:
             config.config["n_mdn_layer_node"] = para['node']
             config.config["n_hidden_layer"] = para['hidden']
             config.config["b_grid_search"] = False
-            instance = KdeMdn(config, b_store_training_data=True).fit(
-                zs, xs, runtime_config, b_normalize=b_normalize, lr=para['lr'])
+            instance = KdeMdn(config, b_store_training_data=True, b_normalize_data=self.b_normalize_data).fit(
+                zs, xs, runtime_config,  lr=para['lr'])  # b_normalize=b_normalize,
             errors.append(instance.score(runtime_config))
 
         index = errors.index(min(errors))
@@ -1257,8 +1259,8 @@ class KdeMdn:
         config.config["n_mdn_layer_node"] = para['node']
         config.config["n_hidden_layer"] = para['hidden']
         config.config["b_grid_search"] = False
-        instance = KdeMdn(config, b_store_training_data=False).fit(
-            zs, xs, runtime_config, b_normalize=b_normalize, lr=para['lr'])
+        instance = KdeMdn(config, b_store_training_data=False, b_normalize_data=self.b_normalize_data).fit(
+            zs, xs, runtime_config,  lr=para['lr'])  # b_normalize=b_normalize,
         print("-"*80)
         return instance
 
@@ -1295,7 +1297,8 @@ class KdeMdn:
                 except:
                     raise Exception
 
-        if self.is_normalized:
+        if self.b_normalize_data:
+            # print(xs, self.meanx, self.widthx)
             xs = self.normalize(xs, self.meanx, self.widthx)
 
         zs = np.array(zs)  # [:, np.newaxis]

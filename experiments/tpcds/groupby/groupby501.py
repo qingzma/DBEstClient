@@ -263,7 +263,7 @@ def build_501_groups(sqlExecutor):
 
 def build_501_groups_grid_search(sqlExecutor):
     sqlExecutor.execute("set v='True'")
-    sqlExecutor.execute("set device='cpu'")
+    sqlExecutor.execute("set device='gpu'")
     sqlExecutor.execute("set encoder='binary'")
     sqlExecutor.execute("set b_grid_search='true'")
     sqlExecutor.execute("set b_print_to_screen='false'")
