@@ -138,3 +138,4 @@ Where,
 - ~~fix GoGs implementation.~~
 - query check
 - distinct and not distinct using one model only.
+- show models.
