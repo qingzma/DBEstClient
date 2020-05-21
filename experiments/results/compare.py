@@ -238,5 +238,5 @@ def autolabel(rects, ax):
 if __name__ == "__main__":
     # plt_501_bar_chart_error()
     # plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
-    plt501_workload(agg_func="sum", suffix=".txt",
+    plt501_workload(agg_func="avg", suffix=".txt",
                     b_merge_result_for_group=False)

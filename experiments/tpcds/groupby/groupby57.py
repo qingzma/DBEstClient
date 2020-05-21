@@ -31,7 +31,8 @@ def run():
     # run_2_groupby(sqlExecutor)
     # build_models(sqlExecutor)
     # query(sqlExecutor)
-    run_57_groups(sqlExecutor)
+    # run_57_groups(sqlExecutor)
+    run_57_gogs(sqlExecutor)
 
 
 def build_models(sqlExecutor):
@@ -112,8 +113,30 @@ def run_57_groups(sqlExecutor):
     #     "select avg(ss_sales_price)  from ss40g_57 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk",)
 
 
-def run_gogs(SqlExecutor):
-    pass
+def run_57_gogs(sqlExecutor):
+    # sqlExecutor.execute("set device='cpu'")
+    sqlExecutor.execute("set b_print_to_screen='False'")
+    sqlExecutor.execute("set n_mdn_layer_node=10")
+    sqlExecutor.execute("set n_jobs=1")
+    sqlExecutor.execute("set n_hidden_layer=2")
+    sqlExecutor.execute("set n_epoch=20")
+    sqlExecutor.execute("set b_grid_search='true'")
+
+    sqlExecutor.execute("set b_use_gg='true'")
+    sqlExecutor.execute("set n_per_gg=30")
+    sqlExecutor.execute("set b_grid_search='false'")
+    sqlExecutor.execute("set n_gaussians_reg=3")
+    sqlExecutor.execute("set n_gaussians_density=20")
+
+    # sqlExecutor.execute("set result2file='/home/u1796377/Desktop/hah.txt'")
+    sqlExecutor.execute(
+        "create table ss40g_57_gog(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size  600 ")  # num_of_points57.csv
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g_57_gog where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
+
+    # sqlExecutor.execute("set n_jobs=2")
+    # sqlExecutor.execute(
+    #     "select avg(ss_sales_price)  from ss40g_57_gog where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk")
 
 
 if __name__ == "__main__":
