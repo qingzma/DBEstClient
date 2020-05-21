@@ -455,7 +455,7 @@ class RegMdnGroupBy():
         config = self.config.copy()
         config.config["n_gaussians_reg"] = para['gaussian_reg']
         # config.config["n_gaussians_density"] = para['gaussian_density']
-        config.config["n_epoch"] = para['epoch']
+        # config.config["n_epoch"] = para['epoch']
         config.config["n_hidden_layer"] = para['hidden']
         config.config["n_mdn_layer_node"] = para['node']
         config.config["b_grid_search"] = False
