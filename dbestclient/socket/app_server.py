@@ -19,7 +19,7 @@ def accept_wrapper(sock):
 
 
 def run(host, port):
-    host, port = sys.argv[1], int(sys.argv[2])
+    # host, port = sys.argv[1], int(sys.argv[2])
     lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Avoid bind() exception: OSError: [Errno 48] Address already in use
     lsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
