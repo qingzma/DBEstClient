@@ -4,6 +4,7 @@ import selectors
 import socket
 # import sys
 import traceback
+from datetime import datetime
 
 from dbestclient.socket import libclient
 
@@ -47,7 +48,10 @@ def run(host, port):
             for key, mask in events:
                 message = key.data
                 try:
+                    t1 = datetime.now()
                     message.process_events(mask)
+                    t2 = datetime.now()
+                    print("time cost is ", (t2-t1).total_seconds())
                 except Exception:
                     print(
                         "main: error: exception for",
