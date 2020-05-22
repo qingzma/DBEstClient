@@ -28,11 +28,11 @@ def run():
                         "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
                         "ss_net_paid_inc_tax|ss_net_profit|none'"
                         )
-    # run_2_groupby(sqlExecutor)
+    run_2_groupby(sqlExecutor)
     # build_models(sqlExecutor)
     # query(sqlExecutor)
     # run_57_groups(sqlExecutor)
-    run_57_gogs(sqlExecutor)
+    # run_57_gogs(sqlExecutor)
 
 
 def build_models(sqlExecutor):
