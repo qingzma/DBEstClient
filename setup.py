@@ -31,7 +31,7 @@ setup(
     # packages=['dbestclient'],
     packages=find_packages(exclude=('experiments', 'tests', 'docs')),
     entry_points={
-        'console_scripts': ['dbestclient=dbestclient.main:main', 'dbestcmd=dbestclient.main:cmd'],
+        'console_scripts': ['dbestclient=dbestclient.main:main', 'dbestslave=dbestclient.main:slave', 'dbestmaster=dbestclient.main:master'],
     },
     zip_safe=False,
     install_requires=[

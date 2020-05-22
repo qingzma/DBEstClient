@@ -3,9 +3,12 @@
 # Department of Computer Science
 # the University of Warwick
 # Q.Ma.2@warwick.ac.uk
+import argparse
+import sys
+
 from dbestclient.cli.prompt import DBEstPrompt
 from dbestclient.ml import mdn
-import argparse
+from dbestclient.socket import app_client, app_server
 
 
 def main():
@@ -26,6 +29,30 @@ def cmd():
     if args.pm25:
         print("run pm25")
         mdn.test_pm25_3d()
+
+
+def slave():
+    print("Welcome to DBEst++")
+    if len(sys.argv) != 3:
+        print("Usage:", " dbestslave ", "<host> <port>")
+        print("Abort.")
+        sys.exit(1)
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+    print("starting slave, connecting to ", (host, port))
+    app_server.run(host, port)
+
+
+def master():
+    print("Welcome to DBEst++")
+    if len(sys.argv) != 3:
+        print("Usage:", " dbestmaster ", "<host> <port>")
+        print("Abort.")
+        sys.exit(1)
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+    print("starting master, ready for connections...")
+    app_client.run(host, port)
 
 
 if __name__ == "__main__":
