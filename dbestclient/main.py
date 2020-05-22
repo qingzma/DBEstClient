@@ -37,7 +37,7 @@ def slave():
         print("Usage:", " dbestslave ", "<local IP>:<port>")
         print("Abort.")
         sys.exit(1)
-    splits = sys.argv[1].split(":")[0]
+    splits = sys.argv[1].split(":")
     host = splits[0]
     port = int(splits[1])
     print("starting slave, connecting to ", (host, port))
@@ -51,7 +51,7 @@ def master():
               "<host:port>, <host:port>, ... (lists of slaves)")
         print("Abort.")
         sys.exit(1)
-    splits = sys.argv[1].split(":")[0]
+    splits = sys.argv[1].split(":")
     host = splits[0]
     port = int(splits[1])
     print("starting master, ready for connections...")
