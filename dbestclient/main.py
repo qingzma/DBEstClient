@@ -33,24 +33,27 @@ def cmd():
 
 def slave():
     print("Welcome to DBEst++")
-    if len(sys.argv) != 3:
-        print("Usage:", " dbestslave ", "<host> <port>")
+    if len(sys.argv) != 2:
+        print("Usage:", " dbestslave ", "<local IP>:<port>")
         print("Abort.")
         sys.exit(1)
-    host = sys.argv[1]
-    port = int(sys.argv[2])
+    splits = sys.argv[1].split(":")[0]
+    host = splits[0]
+    port = int(splits[1])
     print("starting slave, connecting to ", (host, port))
     app_server.run(host, port)
 
 
 def master():
     print("Welcome to DBEst++")
-    if len(sys.argv) != 3:
-        print("Usage:", " dbestmaster ", "<host> <port>")
+    if len(sys.argv) != 2:
+        print("Usage:", " dbestmaster ",
+              "<host:port>, <host:port>, ... (lists of slaves)")
         print("Abort.")
         sys.exit(1)
-    host = sys.argv[1]
-    port = int(sys.argv[2])
+    splits = sys.argv[1].split(":")[0]
+    host = splits[0]
+    port = int(splits[1])
     print("starting master, ready for connections...")
     app_client.run(host, port)
 

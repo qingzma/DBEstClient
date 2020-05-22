@@ -37,7 +37,7 @@ def start_connection(host, port, request):
 
 
 def run(host, port):
-    action, value = "search", 'value2search'
+    action, value = "search", 'ring'
     request = create_request(action, value)
     start_connection(host, port, request)
 
