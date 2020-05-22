@@ -444,14 +444,17 @@ class DBEstParser:
 
     def get_query_type(self):
         item = self.parsed.tokens
-        if item[0].ttype is Keyword and item[0].normalized == "SET":
-            return "set"
+        if item[0].ttype is DML:
+            return "select"
         elif item[0].ttype is DDL and item[0].normalized == "CREATE":
             return "create"
         elif item[0].ttype is DDL and item[0].normalized == "DROP":
             return "drop"
-        elif item[0].ttype is DML:
-            return "select"
+        elif item[0].ttype is Keyword and item[0].normalized == "SET":
+            return "set"
+        elif item[0].ttype is Keyword and item[0].normalized == "SHOW":
+            return "show"
+
         else:
             warnings.warn("Unexpected SQL:")
 
@@ -573,6 +576,12 @@ if __name__ == "__main__":
     # print((parser.get_set_variable_value()))
 
     # ---------------------------------------------------------------------------------------------------------------------------------
-    parser.parse("  drop table haha")
+    # drop SQL
+    # parser.parse("  drop table haha")
+    # print(parser.get_query_type())
+    # print(parser.drop_get_model())
+
+    # ---------------------------------------------------------------------------------------------------------------------------------
+    # show SQL
+    parser.parse("show tables")
     print(parser.get_query_type())
-    print(parser.drop_get_model())

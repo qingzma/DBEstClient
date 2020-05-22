@@ -42,7 +42,7 @@ AND x3=unix_timestamp('2020-03-05T12:00:00.000Z')
 [GROUP BY gb1 [, gb2,... ]];
 ```
 you need to create a model:
-- **model creation**
+- **CREATE A MODEL**
 	```
 	CREATE TABLE tbl_mdl(
 		y REAL|CATEGORICAL [DISTINCT], 
@@ -51,13 +51,16 @@ you need to create a model:
 		x3 CATEGORICAL)  
 	FROM '/data/sample.csv'  
 	[GROUP BY gb1 [, gb2,... ]]  
-	[SIZE 10000|0.1]  
+	[SIZE 10000|0.1|'path/to/file']  
 	[METHOD UNIFROM|HASH]
-	[SCALE FILE|DATA (file_name)]
 	```
 	<!-- [ENCODING ONEHOT|BINARY] -->
+	Note,
+	- The first attribute ```y``` must be the dependent variable (the aggregate attribute.)
+	- ```SIZE``` less than 1 means the given data file is treated as a sample with sampling ratio provided. ```SIZE``` greater than 1 means the given data file is treated as the whole data, and a sample of size n will be made. if ```SIZE``` is a path to a file, it means the given data file is treated as a sample, and the frequency of each group is provided in the file. 
 
-- **query answering** 
+To get the query result,
+- **ANSWER A QUERY** 
 	```
 	SELECT [gb1 [, gb2,... ],] AF(y)  
 	FROM tbl_mdl  
@@ -66,9 +69,39 @@ you need to create a model:
 	AND x3=unix_timestamp('2020-03-05T12:00:00.000Z'
 	[GROUP BY gb1 [, gb2,... ]]
 	```
+
+To show available models,
+- **SHOW MODELS**
+	```
+	SHOW TABLES;
+	```
+
+To drop a model,
+- **DROP MODEL**
+	```
+	DROP TABLE model_name;
+	```
+
+To set a parameter,
+- **SET A PARAMETER**
+	```
+	SET name=[']value['];
+	```
+	The parameters controls the behaviors of DBEst. For example, 
+	- ```SET device='gpu'``` enables GPU.
+	- ```SET n_jobs=2```     enables parallel inferencing using 2 processes.
+	- ```SET v='true'```     enables verbose.
+	- ```SET b_print_to_screen='true'``` will print the query results to the screen.
+	- ```SET result2file='/path/to/result.file'``` will save the query result to the given file.
+	- ```SET b_grid_search='true'``` enables grid search during model training.
+	- ```SET table_header='col1,col2,...col_n'``` provides headers for the give data file, if the file header is not provided.
+	- ```SET encoder='binary'``` sets the encoding method to be ```binary```. ```one-hot``` is also supported.
+	- ```SET n_epoch=20``` sets the training epoch to be 20.
+
+
 ## Example
 Currently, there is no backend server, and DBEst handles csv files with headers.
-- After starting DBEst, you should notice a directory called **dbestwarehouse**  and a configuration file called **config.json** in your current working directory.
+- After starting DBEst, you should notice a directory called **dbestwarehouse**  in your current working directory.
 - Simply copy the csv file in the directory, and you could create a model for it.
 
 ### Beijing PM2.5 example
@@ -101,12 +134,15 @@ GROUP BY ts;
 ```
 We need to  train a model based on following SQL format:
 ```
-create table huawei_test(usermac CATEGORICAL DISTINCT, ts REAL, tenantId CATEGORICAL, ssid  CATEGORICAL)  
+create table huawei_test(
+	usermac CATEGORICAL DISTINCT, 
+	ts REAL, 
+	tenantId CATEGORICAL, 
+	ssid  CATEGORICAL)  
 FROM '/data/huawei/sample.csv' 
 GROUP BY ts 
 METHOD UNIFORM 
-SIZE 118567 
-SCALE data;
+SIZE 118567;
 ```
 Here, 
 - The first attribute in huawei_test(*) is usermac, which is the dependent variable, and the following attributes are the independent variables.
@@ -122,20 +158,20 @@ SELECT ts, COUNT(DISTINCT usermac) FROM huawei_test
 WHERE ts between unix_timestamp('2020-01-28T16:00:00.000Z') and unix_timestamp('2020-04-28T16:00:00.000Z') 
 AND tenantId = 'default-organization-id' 
 AND ssid = 'Tencent' 
+AND ssid >0
 GROUP BY ts;
 ```
 Where,
 - unix_timestamp() is the function to convert the date strings into timestamps.
-- the condition on ```kpiCount>0``` is currently not supported, only ```=``` is supported at this moment. It will be soon supported.
 
 ## Documentation
 
 ## TODO 
 - ~~SQL size cluase to include num_count.csv~~
-- ~~drop model~~.
-- embedding. (Not feasible)
+- ~~drop model~~
+- embedding.
 - one mdn model instead of many.
 - ~~fix GoGs implementation.~~
 - query check
 - distinct and not distinct using one model only.
-- show models.
+- ~~show models~~

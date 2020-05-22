@@ -564,7 +564,17 @@ class SqlExecutor:
                 else:
                     print("Model does not exist!")
                     return False
-
+            elif sql_type == "show":
+                print("OK")
+                t_start = datetime.now()
+                if self.runtime_config['b_print_to_screen']:
+                    for key in self.model_catalog.model_catalog:
+                        print(key.replace(
+                            self.runtime_config["model_suffix"], ''))
+                if self.runtime_config["v"]:
+                    t_end = datetime.now()
+                    time_cost = (t_end - t_start).total_seconds()
+                    print("Time cost: %.4fs." % time_cost)
             else:
                 print("Unsupported query type, please check your SQL.")
                 return
