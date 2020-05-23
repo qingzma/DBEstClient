@@ -22,6 +22,7 @@ class Message:
         self.jsonheader = None
         self.request = None
         self.response_created = False
+        self.v = False
 
     def _set_selector_events_mask(self, mode):
         """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
@@ -50,7 +51,8 @@ class Message:
 
     def _write(self):
         if self._send_buffer:
-            print("sending", repr(self._send_buffer), "to", self.addr)
+            if self.v:
+                print("sending", repr(self._send_buffer), "to", self.addr)
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
@@ -93,7 +95,8 @@ class Message:
         if action == "select":
             query = self.request.get("value")
             # query = json.loads(query)
-            print("query is ", query)
+            if self.v:
+                print("query is ", query)
             #
             mdl_name = query["mdl_name"]
             func = query["func"]
@@ -211,14 +214,17 @@ class Message:
         if self.jsonheader["content-type"] == "text/json":
             encoding = self.jsonheader["content-encoding"]
             self.request = self._json_decode(data, encoding)
-            print("received request", repr(self.request), "from", self.addr)
+            if self.v:
+                print("received request", repr(
+                    self.request), "from", self.addr)
         else:
             # Binary or unknown content-type
             self.request = data
-            print(
-                f'received {self.jsonheader["content-type"]} request from',
-                self.addr,
-            )
+            if self.v:
+                print(
+                    f'received {self.jsonheader["content-type"]} request from',
+                    self.addr,
+                )
         # Set selector to listen for write events, we're done reading.
         self._set_selector_events_mask("w")
 

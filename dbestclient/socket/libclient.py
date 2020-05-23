@@ -1,8 +1,8 @@
-import sys
-import selectors
-import json
 import io
+import json
+import selectors
 import struct
+import sys
 
 
 class Message:
@@ -17,6 +17,7 @@ class Message:
         self._jsonheader_len = None
         self.jsonheader = None
         self.response = None
+        self.v = False
 
     def _set_selector_events_mask(self, mode):
         """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
@@ -45,7 +46,8 @@ class Message:
 
     def _write(self):
         if self._send_buffer:
-            print("sending", repr(self._send_buffer), "to", self.addr)
+            if self.v:
+                print("sending", repr(self._send_buffer), "to", self.addr)
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
@@ -83,15 +85,18 @@ class Message:
     def _process_response_json_content(self):
         content = self.response
         result = content.get("result")
-        print(f"got result: {result}")
+        if self.v:
+            print(f"got result: {result}")
+        return result
 
     def _process_response_binary_content(self):
         content = self.response
-        print(f"got response: {repr(content)}")
+        if self.v:
+            print(f"got response: {repr(content)}")
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
-            self.read()
+            return self.read()
         if mask & selectors.EVENT_WRITE:
             self.write()
 
@@ -107,7 +112,7 @@ class Message:
 
         if self.jsonheader:
             if self.response is None:
-                self.process_response()
+                return self.process_response()
 
     def write(self):
         if not self._request_queued:
@@ -194,8 +199,9 @@ class Message:
         if self.jsonheader["content-type"] == "text/json":
             encoding = self.jsonheader["content-encoding"]
             self.response = self._json_decode(data, encoding)
-            print("received response", repr(self.response), "from", self.addr)
-            self._process_response_json_content()
+            print("received response ", " from ",
+                  self.addr)  # repr(self.response)
+            result = self._process_response_json_content()
         else:
             # Binary or unknown content-type
             self.response = data
@@ -206,3 +212,4 @@ class Message:
             self._process_response_binary_content()
         # Close when response has been processed
         self.close()
+        return result

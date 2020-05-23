@@ -8,8 +8,6 @@ from datetime import datetime
 
 from dbestclient.socket import libclient
 
-sel = selectors.DefaultSelector()
-
 
 def create_request(action, value):
     if action == "select":
@@ -39,15 +37,19 @@ def start_connection(host, port, request):
     sock.setblocking(False)
     sock.connect_ex(addr)
     events = selectors.EVENT_READ | selectors.EVENT_WRITE
+    sel = selectors.DefaultSelector()
     message = libclient.Message(sel, sock, addr, request)
     sel.register(sock, events, data=message)
-    return sock
+    return sel
 
 
-def run(host, port, action, action_value):
-    action, value = action, action_value  # 'search', 'ring'
+def run(host, port, actions, action_value):
+    t1 = datetime.now()
+    action, value = actions, action_value  # 'search', 'ring'
     request = create_request(action, value)
-    sock = start_connection(host, port, request)
+    sel = start_connection(host, port, request)
+    # sel = selectors.DefaultSelector()
+    result = None
 
     try:
         while True:
@@ -55,10 +57,13 @@ def run(host, port, action, action_value):
             for key, mask in events:
                 message = key.data
                 try:
-                    t1 = datetime.now()
-                    message.process_events(mask)
-                    t2 = datetime.now()
-                    print("time cost is ", (t2-t1).total_seconds())
+                    # t1 = datetime.now()
+                    reslt = message.process_events(mask)
+                    if reslt is not None:
+                        result = reslt
+                    # print("result,", result)
+                    # t2 = datetime.now()
+                    # print("time cost is ", (t2-t1).total_seconds())
                 except Exception:
                     print(
                         "main: error: exception for",
@@ -72,3 +77,7 @@ def run(host, port, action, action_value):
         print("caught keyboard interrupt, exiting")
     finally:
         sel.close()
+        # print("result,", result)
+        t2 = datetime.now()
+        print("time cost is ", (t2-t1).total_seconds())
+        return result

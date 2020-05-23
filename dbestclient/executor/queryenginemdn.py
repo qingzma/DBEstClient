@@ -320,6 +320,7 @@ class MdnQueryEngine(GenericQueryEngine):
                         self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest, time2exclude_from_multiprocessing))
                     instances.append(i)
                 else:
+                    # app_client.run("192.168.1.164", 65432, "search", "ring")
                     query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
                                  sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
                     # i = pool.apply_async(
