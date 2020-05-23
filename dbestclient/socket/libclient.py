@@ -126,7 +126,8 @@ class Message:
                 self._set_selector_events_mask("r")
 
     def close(self):
-        print("closing connection to", self.addr)
+        if self.v:
+            print("closing connection to", self.addr)
         try:
             self.selector.unregister(self.sock)
         except Exception as e:
@@ -199,16 +200,18 @@ class Message:
         if self.jsonheader["content-type"] == "text/json":
             encoding = self.jsonheader["content-encoding"]
             self.response = self._json_decode(data, encoding)
-            print("received response ", " from ",
-                  self.addr)  # repr(self.response)
+            if self.v:
+                print("received response ", " from ",
+                      self.addr)  # repr(self.response)
             result = self._process_response_json_content()
         else:
             # Binary or unknown content-type
             self.response = data
-            print(
-                f'received {self.jsonheader["content-type"]} response from',
-                self.addr,
-            )
+            if self.v:
+                print(
+                    f'received {self.jsonheader["content-type"]} response from',
+                    self.addr,
+                )
             self._process_response_binary_content()
         # Close when response has been processed
         self.close()

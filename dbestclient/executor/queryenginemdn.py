@@ -8,6 +8,7 @@ import math
 from collections import Counter
 from datetime import datetime
 from multiprocessing import Pool as PoolCPU
+from multiprocessing.pool import ThreadPool
 from operator import itemgetter
 
 import dill
@@ -280,61 +281,66 @@ class MdnQueryEngine(GenericQueryEngine):
             results = dict(zip(groups, preds))
 
         else:
-            instances = []
-            results = {}
-            # print("n_jobs,", n_jobs)
-            n_per_chunk = math.ceil(len(groups)/n_jobs)
-            group_chunks = [groups[i:i+n_per_chunk]
-                            for i in range(0, len(groups), n_per_chunk)]
-            # print("create Pool...", datetime.now())
-            if runtime_config["device"] == "cpu":
-                pool = PoolCPU(processes=n_jobs)
-            else:
-                pool = PoolGPU(processes=n_jobs)
-                # from torch.multiprocessing import Pool, set_start_method
-                # try:
-                #     set_start_method('spawn')
-                # except RuntimeError:
-                #     print("Fail to set start method as spawn for pytorch multiprocessing, " +
-                #           "use default in advance. (see queryenginemdn "
-                #           "for more info.)")
+            runtime_config_process = shrink_runtime_config(
+                runtime_config)
+            # use multi-processing to achieve parallel
+            if runtime_config["slaves"].is_empty():
+                instances = []
+                results = {}
+                # print("n_jobs,", n_jobs)
+                n_per_chunk = math.ceil(len(groups)/n_jobs)
+                group_chunks = [groups[i:i+n_per_chunk]
+                                for i in range(0, len(groups), n_per_chunk)]
+                # print("create Pool...", datetime.now())
+                if runtime_config["device"] == "cpu":
+                    pool = PoolCPU(processes=n_jobs)
+                else:
+                    pool = PoolGPU(processes=n_jobs)
+                    # from torch.multiprocessing import Pool, set_start_method
+                    # try:
+                    #     set_start_method('spawn')
+                    # except RuntimeError:
+                    #     print("Fail to set start method as spawn for pytorch multiprocessing, " +
+                    #           "use default in advance. (see queryenginemdn "
+                    #           "for more info.)")
 
-            # with Pool(processes=n_jobs) as pool:
-            # print(self.group_keys_chunk)
+                # with Pool(processes=n_jobs) as pool:
+                # print(self.group_keys_chunk)
 
-            time2exclude_from_multiprocessing = datetime.now()
+                time2exclude_from_multiprocessing = datetime.now()
 
-            for sub_group in group_chunks:
-                # print(sub_group)
-                # engine = self.enginesContainer[index]
-                # print(sub_group)
-                runtime_config_process = shrink_runtime_config(runtime_config)
+                for sub_group in group_chunks:
 
-                # print("self.mdl_name", self.mdl_name +
-                #       runtime_config["model_suffix"])
-                # print("func,", func, x_lb, x_ub, x_categorical_conditions, runtime_config,
-                #       sub_group, filter_dbest, time2exclude_from_multiprocessing)
-
-                if runtime_config["slaves"].is_empty():
                     i = pool.apply_async(
                         self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest, time2exclude_from_multiprocessing))
                     instances.append(i)
-                else:
-                    # app_client.run("192.168.1.164", 65432, "search", "ring")
+
+                for i in instances:
+                    result = i.get()
+                    results.update(result)
+            else:  # slaves are used
+                slaves = runtime_config["slaves"]
+                instances = []
+                results = {}
+                n_jobs = slaves.size()
+                n_per_chunk = math.ceil(len(groups)/n_jobs)
+                group_chunks = [groups[i:i+n_per_chunk]
+                                for i in range(0, len(groups), n_per_chunk)]
+
+                pool = ThreadPool(processes=n_jobs)
+                for sub_group, host in zip(group_chunks, slaves.get()):
+                    # print("host", host)
                     query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
                                  sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
-                    # i = pool.apply_async(
-                    #     self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest))
-                    for host in runtime_config["slaves"].get():
-                        print("host", host)
-                        print("-"*200)
-                        app_client.run(host, runtime_config["slaves"].get()[
-                                       host], "select", query)
-                        print("-"*200)
+                    i = pool.apply_async(
+                        app_client.run, (host, slaves.get()[host], "select", query))
+                    instances.append(i)
 
-            for i in instances:
-                result = i.get()
-                results.update(result)
+                for i in instances:
+                    result = i.get()
+                    results.update(result)
+                    # result = app_client.run(
+                    #     host, slaves.get()[host], "select", query)
         runtime_config["b_print_to_screen"] = b_print_to_screen
         if runtime_config["b_print_to_screen"]:
             for key in results:

@@ -8,6 +8,8 @@ from datetime import datetime
 
 from dbestclient.socket import libclient
 
+verbose = False
+
 
 def create_request(action, value):
     if action == "select":
@@ -32,7 +34,8 @@ def create_request(action, value):
 
 def start_connection(host, port, request):
     addr = (host, port)
-    print("starting connection to", addr)
+    if verbose:
+        print("starting connection to", addr)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setblocking(False)
     sock.connect_ex(addr)
@@ -78,6 +81,7 @@ def run(host, port, actions, action_value):
     finally:
         sel.close()
         # print("result,", result)
-        t2 = datetime.now()
-        print("time cost is ", (t2-t1).total_seconds())
+        if verbose:
+            t2 = datetime.now()
+            print("time cost is ", (t2-t1).total_seconds())
         return result

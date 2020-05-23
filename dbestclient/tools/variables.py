@@ -52,3 +52,6 @@ class Slaves:
 
     def get(self):
         return self.container
+
+    def size(self):
+        return len(self.container)

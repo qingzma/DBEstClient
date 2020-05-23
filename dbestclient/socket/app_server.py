@@ -4,6 +4,7 @@ import selectors
 import socket
 import sys
 import traceback
+from datetime import datetime
 
 from dbestclient.socket import libserver
 
@@ -12,10 +13,12 @@ sel = selectors.DefaultSelector()
 
 def accept_wrapper(sock):
     conn, addr = sock.accept()  # Should be ready to read
+    t1 = datetime.now()
     print("accepted connection from", addr)
     conn.setblocking(False)
     message = libserver.Message(sel, conn, addr)
     sel.register(conn, selectors.EVENT_READ, data=message)
+    return t1
 
 
 def run(host, port, sqlExecutor):
@@ -34,11 +37,14 @@ def run(host, port, sqlExecutor):
             events = sel.select(timeout=None)
             for key, mask in events:
                 if key.data is None:
-                    accept_wrapper(key.fileobj)
+                    t1 = accept_wrapper(key.fileobj)
                 else:
                     message = key.data
                     try:
                         message.process_events(mask, sqlExecutor)
+                        if mask == 2:
+                            t2 = datetime.now()
+                            print("time cost is ", (t2-t1).total_seconds())
                     except Exception:
                         print(
                             "main: error: exception for",
