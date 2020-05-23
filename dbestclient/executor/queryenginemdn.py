@@ -334,12 +334,13 @@ class MdnQueryEngine(GenericQueryEngine):
                                 for i in range(0, len(groups), n_per_chunk)]
 
                 pool = ThreadPool(processes=n_jobs)
-                for sub_group, host in zip(group_chunks, slaves.get()):
+                hosts = slaves.get()
+                for sub_group, host in zip(group_chunks, hosts):
                     # print("host", host)
                     query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
                                  sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
                     i = pool.apply_async(
-                        app_client.run, (host, slaves.get()[host], "select", query))
+                        app_client.run, (hosts[host].host, hosts[host].port, "select", query))
                     instances.append(i)
 
                 for i in instances:

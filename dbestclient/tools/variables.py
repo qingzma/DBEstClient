@@ -27,19 +27,19 @@ class Slaves:
         self.container = {}
 
     def add(self, slave: Slave):
-        self.container[slave.host] = slave.port
+        self.container[slave.to_string()] = slave
 
-    def delete(self, host: str):
-        if host in self.container:
-            del self.container[host]
+    def delete(self, host: str, port: int):
+        slave = Slave(host+":"+str(port))
+        if slave.to_string() in self.container:
+            del self.container[slave.to_string()]
         else:
             print("Host does not exists in the slaves file, not deleted.")
 
     def to_string(self):
         slaves_str = ""
         for key in self.container:
-            slaves_str = slaves_str + " " + "<" + \
-                key+":"+str(self.container[key])+">,"
+            slaves_str = slaves_str + self.container[key].to_string() + ","
         if slaves_str:
             slaves_str = slaves_str[:-1]
         return slaves_str
