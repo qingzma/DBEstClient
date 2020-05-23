@@ -1,8 +1,8 @@
-import sys
-import selectors
-import json
 import io
+import json
+import selectors
 import struct
+import sys
 
 request_search = {
     "morpheus": "Follow the white rabbit. \U0001f430",
@@ -88,9 +88,26 @@ class Message:
         message = message_hdr + jsonheader_bytes + content_bytes
         return message
 
-    def _create_response_json_content(self):
+    def _create_response_json_content(self, sqlExecutor):
         action = self.request.get("action")
-        if action == "search":
+        if action == "select":
+            query = self.request.get("value")
+            # query = json.loads(query)
+            print("query is ", query)
+            #
+            mdl_name = query["mdl_name"]
+            func = query["func"]
+            x_lb = query["x_lb"]
+            x_ub = query["x_ub"]
+            x_categorical_conditions = query["x_categorical_conditions"]
+            runtime_config = query["runtime_config"]
+            sub_group = query["sub_group"]
+            filter_dbest = query["filter_dbest"]
+            time2exclude_from_multiprocessing = None
+            answer = sqlExecutor.model_catalog.model_catalog[mdl_name].predicts(
+                func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest, time2exclude_from_multiprocessing)
+            content = {"result": answer}
+        elif action == "search":
             query = self.request.get("value")
             answer = request_search.get(query) or f'No match for "{query}".'
             content = {"result": answer}
@@ -113,11 +130,11 @@ class Message:
         }
         return response
 
-    def process_events(self, mask):
+    def process_events(self, mask, sqlExecutor):
         if mask & selectors.EVENT_READ:
             self.read()
         if mask & selectors.EVENT_WRITE:
-            self.write()
+            self.write(sqlExecutor)
 
     def read(self):
         self._read()
@@ -133,10 +150,10 @@ class Message:
             if self.request is None:
                 self.process_request()
 
-    def write(self):
+    def write(self, sqlExecutor):
         if self.request:
             if not self.response_created:
-                self.create_response()
+                self.create_response(sqlExecutor)
 
         self._write()
 
@@ -205,9 +222,9 @@ class Message:
         # Set selector to listen for write events, we're done reading.
         self._set_selector_events_mask("w")
 
-    def create_response(self):
+    def create_response(self, sqlExecutor):
         if self.jsonheader["content-type"] == "text/json":
-            response = self._create_response_json_content()
+            response = self._create_response_json_content(sqlExecutor)
         else:
             # Binary or unknown content-type
             response = self._create_response_binary_content()

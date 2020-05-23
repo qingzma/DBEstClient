@@ -18,7 +18,7 @@ def accept_wrapper(sock):
     sel.register(conn, selectors.EVENT_READ, data=message)
 
 
-def run(host, port):
+def run(host, port, sqlExecutor):
     # host, port = sys.argv[1], int(sys.argv[2])
     lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Avoid bind() exception: OSError: [Errno 48] Address already in use
@@ -38,7 +38,7 @@ def run(host, port):
                 else:
                     message = key.data
                     try:
-                        message.process_events(mask)
+                        message.process_events(mask, sqlExecutor)
                     except Exception:
                         print(
                             "main: error: exception for",

@@ -309,6 +309,12 @@ class MdnQueryEngine(GenericQueryEngine):
                 runtime_config["n_jobs"] = 1
                 runtime_config["b_print_to_screen"] = False
 
+                print("self.mdl_name", self.mdl_name,
+                      runtime_config["model_suffix"])
+                print("func,", func, x_lb, x_ub, x_categorical_conditions, runtime_config,
+                      sub_group, filter_dbest, time2exclude_from_multiprocessing)
+                print("string is", dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config,
+                                        sub_group=sub_group, filter_dbest=filter_dbest, time2exclude_from_multiprocessing=time2exclude_from_multiprocessing))
                 i = pool.apply_async(
                     self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest, time2exclude_from_multiprocessing))
                 instances.append(i)

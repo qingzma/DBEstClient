@@ -12,7 +12,13 @@ sel = selectors.DefaultSelector()
 
 
 def create_request(action, value):
-    if action == "search":
+    if action == "select":
+        return dict(
+            type="text/json",
+            encoding="utf-8",
+            content=dict(action=action, value=value),
+        )
+    elif action == "search":
         return dict(
             type="text/json",
             encoding="utf-8",
@@ -37,8 +43,8 @@ def start_connection(host, port, request):
     sel.register(sock, events, data=message)
 
 
-def run(host, port):
-    action, value = "search", 'ring'
+def run(host, port, action, action_value):
+    action, value = action, action_value  # 'search', 'ring'
     request = create_request(action, value)
     start_connection(host, port, request)
 
