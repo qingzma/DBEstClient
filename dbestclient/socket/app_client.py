@@ -41,12 +41,13 @@ def start_connection(host, port, request):
     events = selectors.EVENT_READ | selectors.EVENT_WRITE
     message = libclient.Message(sel, sock, addr, request)
     sel.register(sock, events, data=message)
+    return sock
 
 
 def run(host, port, action, action_value):
     action, value = action, action_value  # 'search', 'ring'
     request = create_request(action, value)
-    start_connection(host, port, request)
+    sock = start_connection(host, port, request)
 
     try:
         while True:

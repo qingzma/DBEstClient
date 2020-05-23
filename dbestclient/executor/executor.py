@@ -30,6 +30,7 @@ from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
 from dbestclient.tools.running_parameters import RUNTIME_CONF, DbestConfig
+from dbestclient.tools.variables import Slave
 
 
 class SqlExecutor:
@@ -43,7 +44,9 @@ class SqlExecutor:
         self.runtime_config = RUNTIME_CONF
         self.last_config = None
         self.model_catalog = DBEstModelCatalog()
+        self.init_slaves()
         self.init_model_catalog()
+
         self.save_sample = False
         # self.table_header = None
         self.n_total_records = None
@@ -95,6 +98,20 @@ class SqlExecutor:
                 print("time cost ", (t2-t1).total_seconds(), "s")
             else:
                 print()
+
+    def init_slaves(self):
+        file_name = os.path.join(self.config.config["warehousedir"], "slaves")
+        if os.path.exists(file_name) and os.path.getsize(file_name) > 0:
+            with open(file_name, "r") as f:
+                for line in f:
+                    if "#" not in line:
+                        self.runtime_config["slaves"].add(Slave(line))
+            if self.runtime_config['v']:
+                print("Cluster mode is on, slaves are " +
+                      self.runtime_config["slaves"].to_string())
+        else:
+            if self.runtime_config['v']:
+                print("Local mode is on, as no slaves are provided.")
 
     def execute(self, sql):
         # b_use_gg=False, n_per_gg=10, result2file=None,n_mdn_layer_node = 10, encoding = "onehot",n_jobs = 4, b_grid_search = True,device = "cpu", n_division = 20

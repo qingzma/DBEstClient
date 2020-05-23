@@ -21,6 +21,8 @@ from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
                                      prepare_reg_density_data)
 from dbestclient.ml.modeltrainer import KdeModelTrainer
+from dbestclient.socket import app_client
+from dbestclient.tools.running_parameters import shrink_runtime_config
 
 # from torch.multiprocessing import set_start_method
 
@@ -306,18 +308,28 @@ class MdnQueryEngine(GenericQueryEngine):
                 # print(sub_group)
                 # engine = self.enginesContainer[index]
                 # print(sub_group)
-                runtime_config["n_jobs"] = 1
-                runtime_config["b_print_to_screen"] = False
+                runtime_config_process = shrink_runtime_config(runtime_config)
 
-                print("self.mdl_name", self.mdl_name,
-                      runtime_config["model_suffix"])
-                print("func,", func, x_lb, x_ub, x_categorical_conditions, runtime_config,
-                      sub_group, filter_dbest, time2exclude_from_multiprocessing)
-                print("string is", dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config,
-                                        sub_group=sub_group, filter_dbest=filter_dbest, time2exclude_from_multiprocessing=time2exclude_from_multiprocessing))
-                i = pool.apply_async(
-                    self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config, sub_group, filter_dbest, time2exclude_from_multiprocessing))
-                instances.append(i)
+                # print("self.mdl_name", self.mdl_name +
+                #       runtime_config["model_suffix"])
+                # print("func,", func, x_lb, x_ub, x_categorical_conditions, runtime_config,
+                #       sub_group, filter_dbest, time2exclude_from_multiprocessing)
+
+                if runtime_config["slaves"].is_empty():
+                    i = pool.apply_async(
+                        self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest, time2exclude_from_multiprocessing))
+                    instances.append(i)
+                else:
+                    query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
+                                 sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
+                    # i = pool.apply_async(
+                    #     self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest))
+                    for host in runtime_config["slaves"].get():
+                        print("host", host)
+                        print("-"*200)
+                        app_client.run(host, runtime_config["slaves"].get()[
+                                       host], "select", query)
+                        print("-"*200)
 
             for i in instances:
                 result = i.get()

@@ -18,6 +18,8 @@
 #
 from copy import deepcopy
 
+from dbestclient.tools.variables import Slaves
+
 RUNTIME_CONF = {
     "device": "cpu",
     "n_jobs": 1,
@@ -35,7 +37,20 @@ RUNTIME_CONF = {
     "limit": 30,
 
     "model_suffix": ".dill",
+    "slaves": Slaves(),
 }
+
+
+def shrink_runtime_config(runtime_config):
+    runtime_config = dict(runtime_config)
+    runtime_config.pop("slaves")
+    runtime_config.pop("epsabs")
+    runtime_config.pop("epsrel")
+    runtime_config.pop("limit")
+    runtime_config["result2file"] = None
+    runtime_config["n_jobs"] = 1
+    runtime_config["b_print_to_screen"] = False
+    return runtime_config
 
 
 class DbestConfig:
