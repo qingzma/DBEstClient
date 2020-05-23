@@ -164,6 +164,23 @@ GROUP BY ts;
 Where,
 - unix_timestamp() is the function to convert the date strings into timestamps.
 
+## Cluster Mode
+Cluster mode could be enabled to enhance the inference performance.
+
+- On the slave nodes, open terminal 
+
+	```dbestslave <host>:<IP>``` to enable the slave serving.
+
+- On the master node,
+	Simply place a file called ```slaves``` in dbestwarehouse. A sample salves file looks like 
+
+	```
+	127.0.0.1:65432
+	127.0.0.1:65433
+	127.0.0.2:65432
+	```
+	Then you are ready to go.
+
 ## Documentation
 
 ## TODO 
