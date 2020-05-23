@@ -47,7 +47,10 @@ def build_models(sqlExecutor):
 
 def query(sqlExecutor):
     sqlExecutor.execute("set b_print_to_screen='false'")
-    sqlExecutor.execute("set n_jobs=1")
+    sqlExecutor.execute("set n_jobs=2")
+    sqlExecutor.execute(
+        "select avg(ss_sales_price)  from ss40g where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='' and ss_quantity=''   group by ss_store_sk",)
+    sqlExecutor.execute("set n_jobs=2")
     sqlExecutor.execute(
         "select avg(ss_sales_price)  from ss40g where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='' and ss_quantity=''   group by ss_store_sk",)
     sqlExecutor.execute("set n_jobs=2")

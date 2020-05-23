@@ -213,7 +213,13 @@ class MdnQueryEngine(GenericQueryEngine):
         b_print_to_screen = runtime_config["b_print_to_screen"]
         # n_division = runtime_config["n_division"]
         result2file = runtime_config["result2file"]
-        n_jobs = runtime_config["n_jobs"]
+        if "slaves" in runtime_config:
+            if runtime_config["slaves"].size() == 0:
+                n_jobs = runtime_config["n_jobs"]
+            else:
+                n_jobs = runtime_config["slaves"].size()
+        else:
+            n_jobs = runtime_config["n_jobs"]
         # result2file = self.config.get_config()["result2file"]
 
         if func.lower() not in ("count", "sum", "avg"):
