@@ -134,37 +134,47 @@ def plt501():
     plt.show()
 
 
-def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge_result_for_group=False):
+def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge_result_for_group=False, b_two_methods=False):
     mdn_errors = []
     kde_errors = []
     # prapare the files.
     for i in range(1, 11):
         prefix = agg_func+str(i)
-        mdn = read_results("experiments/results/mdn501/" +
+        mdn = read_results("experiments/results/mdn/100g/" +
                            prefix+suffix, split_char=",")
         truth = read_results(
-            "experiments/results/groundtruth/"+prefix+".result")
-        kde = read_results("experiments/results/DBEst/"+prefix+".txt",)
+            "experiments/results/groundtruth/100g/"+prefix+".result")
         mdn_error = compare_dicts(truth, mdn)
-        kde_error = compare_dicts(truth, kde)
         mdn_errors.append(mdn_error)
-        kde_errors.append(kde_error)
+        if b_two_methods:
+            kde = read_results("experiments/results/DBEst/"+prefix+".txt",)
+            kde_errors.append(kde_error)
+            kde_error = compare_dicts(truth, kde)
+
+    # mdn_errors = mdn_errors*100
+    # if b_two_methods:
+    #     kde_errors = kde_errors*100
 
     if b_plot:
         if b_merge_result_for_group:
             mdn_errors = np.array(mdn_errors)
-            kde_errors = np.array(kde_errors)
             mdn_errors = np.mean(mdn_errors, axis=0)
-            kde_errors = np.mean(kde_errors, axis=0)
+
+            if b_two_methods:
+                kde_errors = np.array(kde_errors)
+                kde_errors = np.mean(kde_errors, axis=0)
         else:
             mdn_errors = np.array(list(chain.from_iterable(mdn_errors)))
-            kde_errors = np.array(list(chain.from_iterable(kde_errors)))
+            if b_two_methods:
+                kde_errors = np.array(list(chain.from_iterable(kde_errors)))
 
         mdn_errors = mdn_errors*100
-        kde_errors = kde_errors*100
+        if b_two_methods:
+            kde_errors = kde_errors*100
 
         plt.hist(mdn_errors, bins=50, color="r", alpha=0.2, label="DBEst-MDN")
-        plt.hist(kde_errors, bins=50, color="b", alpha=0.6, label="DBEst")
+        if b_two_methods:
+            plt.hist(kde_errors, bins=50, color="b", alpha=0.6, label="DBEst")
         plt.legend()
         plt.title("Histogram of relative error for " + agg_func.upper())
         plt.ylabel("Frequency")
@@ -176,17 +186,22 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
 
         plt.text(10, 150, "DBEst-MDN error " +
                  "{0:.2f}".format(np.mean(mdn_errors)) + "%")
-        plt.text(10, 180, "DBEst error " +
-                 "{0:.2f}".format(np.mean(kde_errors)) + "%")
+        if b_two_methods:
+            plt.text(10, 180, "DBEst error " +
+                     "{0:.2f}".format(np.mean(kde_errors)) + "%")
 
         plt.show()
     print(agg_func)
     print("MDN error " + str(np.mean(mdn_errors)) + "%")
-    print("DBEst error " + str(np.mean(kde_errors)) + "%")
-    return np.mean(mdn_errors), np.mean(kde_errors)
+    if b_two_methods:
+        print("DBEst error " + str(np.mean(kde_errors)) + "%")
+    if b_two_methods:
+        return np.mean(mdn_errors), np.mean(kde_errors)
+    else:
+        return np.mean(mdn_errors)
 
 
-def plt_501_bar_chart_error(suffix="_ss1t_gg4.txt.txt"):
+def plt_501_bar_chart_error(suffix=".txt"):
     fontsize = 10
     mdn_count, kde_count = plt501_workload(
         agg_func="count", suffix=suffix, b_plot=False)
@@ -238,5 +253,9 @@ def autolabel(rects, ax):
 if __name__ == "__main__":
     # plt_501_bar_chart_error()
     # plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
-    plt501_workload(agg_func="avg", suffix=".txt",
-                    b_merge_result_for_group=False)
+    plt501_workload(agg_func="count", suffix=".txt", b_plot=True,
+                    b_merge_result_for_group=False, b_two_methods=False)
+    plt501_workload(agg_func="sum", suffix=".txt", b_plot=True,
+                    b_merge_result_for_group=False, b_two_methods=False)
+    plt501_workload(agg_func="avg", suffix=".txt", b_plot=True,
+                    b_merge_result_for_group=False, b_two_methods=False)

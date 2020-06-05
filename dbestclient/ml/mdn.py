@@ -235,7 +235,7 @@ class RegMdnGroupBy():
     """ This class implements the regression using mixture density network for group by queries.
     """
 
-    def __init__(self, config,  b_store_training_data=True,  b_normalize_data=True):
+    def __init__(self, config,  b_store_training_data=False,  b_normalize_data=True):
         if b_store_training_data:
             self.x_points = None  # query range
             self.y_points = None  # aggregate value
@@ -279,7 +279,7 @@ class RegMdnGroupBy():
         n_epoch = self.config.config["n_epoch"]
         n_gaussians = self.config.config["n_gaussians_reg"]
         n_hidden_layer = self.config.config["n_hidden_layer"]
-        n_mdn_layer_node = self.config.config["n_mdn_layer_node"]
+        n_mdn_layer_node = self.config.config["n_mdn_layer_node_reg"]
         b_grid_search = self.config.config["b_grid_search"]
         encoder = self.config.config["encoder"]
         device = runtime_config["device"]
@@ -316,7 +316,7 @@ class RegMdnGroupBy():
                 self.y_points = None
                 self.z_points = None
 
-            if encoder in["onehot", "binary"]:
+            if encoder in ["onehot", "binary"]:
                 xs_encoded = x_points[:, np.newaxis]
                 xzs_encoded = np.concatenate(
                     [xs_encoded, zs_encoded], axis=1).tolist()
@@ -431,10 +431,10 @@ class RegMdnGroupBy():
             # config.config["n_gaussians_density"] = para['gaussian_density']
             config.config["n_epoch"] = para['epoch']
             config.config["n_hidden_layer"] = para['hidden']
-            config.config["n_mdn_layer_node"] = para['node']
+            config.config["n_mdn_layer_node_reg"] = para['node']
             config.config["b_grid_search"] = False
 
-            instance = RegMdnGroupBy(config).fit(z_group, x_points, y_points,
+            instance = RegMdnGroupBy(config,b_store_training_data=True).fit(z_group, x_points, y_points,
                                                  runtime_config, lr=para['lr'])
             errors.append(instance.score(runtime_config))
 
@@ -457,7 +457,7 @@ class RegMdnGroupBy():
         # config.config["n_gaussians_density"] = para['gaussian_density']
         # config.config["n_epoch"] = para['epoch']
         config.config["n_hidden_layer"] = para['hidden']
-        config.config["n_mdn_layer_node"] = para['node']
+        config.config["n_mdn_layer_node_reg"] = para['node']
         config.config["b_grid_search"] = False
 
         instance = RegMdnGroupBy(config).fit(z_group, x_points, y_points,
@@ -1080,7 +1080,7 @@ class KdeMdn:
         """
         num_gaussians = self.config.config["n_gaussians_density"]
         num_epoch = self.config.config["n_epoch"]
-        n_mdn_layer_node = self.config.config["n_mdn_layer_node"]
+        n_mdn_layer_node = self.config.config["n_mdn_layer_node_density"]
         hidden = self.config.config["n_hidden_layer"]
         b_grid_search = self.config.config["b_grid_search"]
         encoder = self.config.config["encoder"]
@@ -1212,8 +1212,8 @@ class KdeMdn:
             KdeMdn: the fitted model.
         """
 
-        param_grid = {'epoch': [5], 'lr': [0.001, 0.0001], 'node': [
-            5, 10, 20], 'hidden': [1, 2], 'gaussian': [5, 10, 15, 20]}
+        param_grid = {'epoch': [5], 'lr': [0.001], 'node': [
+            5, 10, 20], 'hidden': [1, 2], 'gaussian': [5, 10, 20]}
         # param_grid = {'epoch': [2], 'lr': [0.001],
         #               'node': [4], 'hidden': [1], 'gaussian': [10]}
         errors = []
@@ -1234,7 +1234,7 @@ class KdeMdn:
             config = self.config.copy()
             config.config["n_gaussians_density"] = para['gaussian']
             config.config["n_epoch"] = para['epoch']
-            config.config["n_mdn_layer_node"] = para['node']
+            config.config["n_mdn_layer_node_density"] = para['node']
             config.config["n_hidden_layer"] = para['hidden']
             config.config["b_grid_search"] = False
             instance = KdeMdn(config, b_store_training_data=True, b_normalize_data=self.b_normalize_data).fit(
@@ -1256,7 +1256,7 @@ class KdeMdn:
         config = self.config.copy()
         config.config["n_gaussians_density"] = para['gaussian']
         config.config["num_epoch"] = para['epoch']
-        config.config["n_mdn_layer_node"] = para['node']
+        config.config["n_mdn_layer_node_density"] = para['node']
         config.config["n_hidden_layer"] = para['hidden']
         config.config["b_grid_search"] = False
         instance = KdeMdn(config, b_store_training_data=False, b_normalize_data=self.b_normalize_data).fit(
@@ -1661,7 +1661,7 @@ class KdeMdn:
             freq_all = freq_all.transpose()
             # print(freq_all)
             # print(freq_all.shape)
-            print(zs_set)
+            # print(zs_set)
             pred_all = []
             for patch in patches:
                 left, right = patch._x0, patch._x1

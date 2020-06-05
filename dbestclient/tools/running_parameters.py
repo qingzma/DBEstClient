@@ -84,7 +84,8 @@ class DbestConfig:
             "b_use_gg": False,
             "n_per_gg": 260,
             "n_hidden_layer": 1,
-            "n_mdn_layer_node": 10,
+            "n_mdn_layer_node_reg": 10,
+            "n_mdn_layer_node_density": 10,
             "encoder": "binary",  # one-hot, embedding
             "batch_size": 1000,
         }
