@@ -25,7 +25,7 @@ class Query1:
         self.mdl_name = None
         self.sql_executor = None
 
-    def build_model(self, mdl_name: str = "ss_1000g"):
+    def build_model(self, mdl_name: str = "ss_1t"):
         self.mdl_name = mdl_name
         self.sql_executor = SqlExecutor()
 
@@ -46,11 +46,11 @@ class Query1:
         # sql_executor.execute("set table_header=" +
         #                     "'ss_sold_date_sk|ss_store_sk|ss_sales_price'")
 
-        self.sql_executor.execute("set n_mdn_layer_node_reg=20")
-        self.sql_executor.execute("set n_mdn_layer_node_density=20")
+        self.sql_executor.execute("set n_mdn_layer_node_reg=40")
+        self.sql_executor.execute("set n_mdn_layer_node_density=40")
         self.sql_executor.execute("set n_jobs=2")
         self.sql_executor.execute("set n_hidden_layer=1")
-        self.sql_executor.execute("set n_epoch=20")
+        self.sql_executor.execute("set n_epoch=6")
         self.sql_executor.execute("set n_gaussians_reg=3")
         self.sql_executor.execute("set n_gaussians_density=20")
         # sql_executor.execute("set result2file='/home/u1796377/Desktop/hah.txt'")
@@ -183,5 +183,5 @@ class Query1:
 
 if __name__ == "__main__":
     query1 = Query1()
-    query1.build_model(mdl_name="ss_1000g_5m_binary")
+    query1.build_model(mdl_name="ss_1t_5m_binary_node40_epoch6")
     query1.workload()

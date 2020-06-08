@@ -140,16 +140,17 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
     # prapare the files.
     for i in range(1, 11):
         prefix = agg_func+str(i)
-        mdn = read_results("experiments/results/mdn/100g/" +
+        mdn = read_results("experiments/results/mdn/1t/" +
                            prefix+suffix, split_char=",")
         truth = read_results(
-            "experiments/results/groundtruth/100g/"+prefix+".result")
+            "experiments/results/groundtruth/1t/"+prefix+".result")
         mdn_error = compare_dicts(truth, mdn)
         mdn_errors.append(mdn_error)
         if b_two_methods:
-            kde = read_results("experiments/results/DBEst/"+prefix+".txt",)
-            kde_errors.append(kde_error)
+            kde = read_results(
+                "experiments/results/deepdb/1t/"+prefix+".txt", split_char=",")
             kde_error = compare_dicts(truth, kde)
+            kde_errors.append(kde_error)
 
     # mdn_errors = mdn_errors*100
     # if b_two_methods:
@@ -254,8 +255,8 @@ if __name__ == "__main__":
     # plt_501_bar_chart_error()
     # plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
     plt501_workload(agg_func="count", suffix=".txt", b_plot=True,
-                    b_merge_result_for_group=False, b_two_methods=False)
+                    b_merge_result_for_group=False, b_two_methods=True)
     plt501_workload(agg_func="sum", suffix=".txt", b_plot=True,
-                    b_merge_result_for_group=False, b_two_methods=False)
+                    b_merge_result_for_group=False, b_two_methods=True)
     plt501_workload(agg_func="avg", suffix=".txt", b_plot=True,
-                    b_merge_result_for_group=False, b_two_methods=False)
+                    b_merge_result_for_group=False, b_two_methods=True)
