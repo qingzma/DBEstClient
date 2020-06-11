@@ -231,6 +231,49 @@ def de_serialize(file: str):
         return dill.load(f)
 
 
+class GenericMdn:
+    def __init__(self, config):
+        self.meanx = None
+        self.widthx = None
+        self.config = config
+
+    def fit(self, runtime_config):
+        raise NotImplementedError("Method fit() is not implemented.")
+
+    def fit_grid_search(self, runtime_config):
+        raise NotImplementedError(
+            "Method fit_grid_search() is not implemented.")
+
+    def predict(self, runtime_config):
+        raise NotImplementedError("Method predict() is not implemented.")
+
+    def normalize(self, xs: np.array):
+        """normalize the data
+
+        Args:
+            x (list): the data points to be normalized.
+            mean (float): the mean value of x.
+            width (float): the range of x.
+
+        Returns:
+            list: the normalized data.
+        """
+        return (xs - self.meanx) / self.widthx * 2
+
+    def denormalize(self, xs):
+        """de-normalize the data
+
+        Args:
+            x (list): the data points to be de-normalized.
+            mean (float): the mean value of x.
+            width (float): the range of x.
+
+        Returns:
+            list: the de-normalized data.
+        """
+        return 0.5 * self.widthx * xs + self.meanx
+
+
 class RegMdnGroupBy():
     """ This class implements the regression using mixture density network for group by queries.
     """
@@ -434,8 +477,8 @@ class RegMdnGroupBy():
             config.config["n_mdn_layer_node_reg"] = para['node']
             config.config["b_grid_search"] = False
 
-            instance = RegMdnGroupBy(config,b_store_training_data=True).fit(z_group, x_points, y_points,
-                                                 runtime_config, lr=para['lr'])
+            instance = RegMdnGroupBy(config, b_store_training_data=True).fit(z_group, x_points, y_points,
+                                                                             runtime_config, lr=para['lr'])
             errors.append(instance.score(runtime_config))
 
         print("errors for grid search ", errors)
@@ -1685,6 +1728,29 @@ class KdeMdn:
             # return sum(errors)
 
 
+class KdeMdnOneModel(GenericMdn):
+    def __init__(self):
+        pass
+
+    def fit(self):
+        pass
+
+    def fit_grid_search(self):
+        pass
+
+    def score(self):
+        pass
+
+
+def TestGenericMdn():
+    generic_mdn = KdeMdnOneModel()
+    generic_mdn.meanx = 5
+    generic_mdn.widthx = 10
+    xs = np.array([1, 2, 3, 4, 5])
+    print(generic_mdn.normalize(xs))
+    print(generic_mdn.denormalize(xs))
+
+
 def test1():
     x = np.random.uniform(low=1, high=10, size=(1000,))
     # z = np.random.uniform(low=1, high=10, size=(1000,))
@@ -2005,7 +2071,7 @@ def test_RegMdnGroupBy():
 
 if __name__ == "__main__":
     # test_pm25_2d_density()
-    test_pm25_2d_density()
+    # test_pm25_2d_density()
     # test_pm25_3d()
     # test_ss_3d()
     # test_ss_3d()
@@ -2014,3 +2080,4 @@ if __name__ == "__main__":
     # bin_wise_error_ss()
     # test_RegMdnGroupBy()
     # test_ss_2d_density()
+    TestGenericMdn()
