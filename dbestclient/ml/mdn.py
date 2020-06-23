@@ -1100,7 +1100,7 @@ class KdeMdn:
         self.config = config
         self.b_normalize_data = b_normalize_data
 
-    def fit(self, zs: list, xs: list, runtime_config,  lr=0.001,  n_workers=0):  # b_normalize_data
+    def fit(self, zs: list, xs: list, runtime_config,  lr=0.001,  n_workers=0, data_of_conditional_columns_in_where=None):
         """ fit the density for the data, to support group by queries.
 
         Args:
@@ -1729,8 +1729,15 @@ class KdeMdn:
 
 
 class KdeMdnOneModel(GenericMdn):
-    def __init__(self):
-        pass
+    def __init__(self, config, b_store_training_data=False, b_normalize_data=True):
+        if b_store_training_data:
+            self.xs = None  # query range
+            self.zs = None  # group by balue
+        self.b_store_training_data = b_store_training_data
+        self.meanx = None
+        self.widthx = None
+        self.config = config
+        self.b_normalize_data = b_normalize_data
 
     def fit(self):
         pass

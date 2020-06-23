@@ -33,11 +33,7 @@ def build_models(sqlExecutor):
                         "FROM '/data/huawei/sample.csv' "
                         "GROUP BY ts "
                         "method uniform "
-                        "size  118567 "  # 118567, 81526479
-                        "scale data;", device='gpu')
-
-    # sqlExecutor.execute(
-    #     "create table ci_kpi_sample() ci_campusnetwork_radiokpi_1m.csv", device='gpu')
+                        "size  1180 ")  # 118567, 81526479")
 
 
 def query(sqlExecutor):
@@ -47,7 +43,7 @@ def query(sqlExecutor):
                         "AND ssid = 'Tencent' "
                         "AND kpiCount >=1  "
                         "AND regionLevelEight='3151a52f-0755-11ea-840e-60def3781da5'"
-                        "GROUP BY ts;", n_jobs=1, device='gpu')
+                        "GROUP BY ts")
 
     # 522459f1-0755-11ea-840e-60def3781da5      287d4300-06bb-11ea-840e-60def3781da5
 

@@ -69,9 +69,9 @@ class DBEstSampling:
         return self.sample.get_groupby_frequency_and_data()
 
 
-if __name__ == '__main__':
-    files = '../../resources/pm25.csv'
-    sampler = DBEstSampling()
-    # sampler.sample1()
-    sampler.make_sample(file=files, ratio=10)
-    # print(sampler.sample)
+# if __name__ == '__main__':
+#     files = '../../resources/pm25.csv'
+#     sampler = DBEstSampling()
+#     # sampler.sample1()
+#     sampler.make_sample(file=files, ratio=10)
+#     # print(sampler.sample)

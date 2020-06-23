@@ -17,9 +17,9 @@ from torch.multiprocessing import set_start_method as set_start_method_torch
 
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
-from dbestclient.executor.queryenginemdn import (MdnQueryEngine,
-                                                 MdnQueryEngineGoGs,
-                                                 MdnQueryEngineXCategorical)
+from dbestclient.executor.queryenginemdn import (
+    MdnQueryEngine, MdnQueryEngineGoGs, MdnQueryEngineXCategorical,
+    MdnQueryEngineXCategoricalOneModel)
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
                                          SimpleModelTrainer)
@@ -360,19 +360,26 @@ class SqlExecutor:
                                     self.config.get_config()['warehousedir'], self.runtime_config)
                         else:  # x has categorical attributes
                             # if not self.config.get_config()["b_use_gg"]:
-                            qeXContinuous = MdnQueryEngineXCategorical(
-                                self.config.copy())
-                            qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
-                                "y": yheader, "x_continous": xheader_continous,
-                                "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
-                            )  # device=device, encoding=encoding, b_grid_search=b_grid_search
-                            qeXContinuous.serialize2warehouse(
-                                self.config.get_config()['warehousedir'], self.runtime_config)
-                            self.model_catalog.add_model_wrapper(
-                                qeXContinuous, self.runtime_config)
-                            # else:
-                            #     raise ValueError(
-                            #         "GoG support for categorical attributes is not supported.")
+                            if True:  # use a single model to support categorical conditions.
+                                qe = MdnQueryEngineXCategoricalOneModel(
+                                    self.config.copy())
+                                qe.fit(mdl, tbl, xys, n_total_point, usecols={
+                                    "y": yheader, "x_continous": xheader_continous,
+                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config)
+                            else:
+                                qeXContinuous = MdnQueryEngineXCategorical(
+                                    self.config.copy())
+                                qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
+                                    "y": yheader, "x_continous": xheader_continous,
+                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
+                                )  # device=device, encoding=encoding, b_grid_search=b_grid_search
+                                qeXContinuous.serialize2warehouse(
+                                    self.config.get_config()['warehousedir'], self.runtime_config)
+                                self.model_catalog.add_model_wrapper(
+                                    qeXContinuous, self.runtime_config)
+                                # else:
+                                #     raise ValueError(
+                                #         "GoG support for categorical attributes is not supported.")
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.runtime_config['b_show_latency']:
