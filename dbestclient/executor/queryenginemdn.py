@@ -389,7 +389,7 @@ class MdnQueryEngineGoGs():
             mdl: str, tbl: str, xheader: str, yheader: str, runtime_config: dict):  # n_per_group: int = 10, n_mdn_layer_node=10, encoding = "onehot", b_grid_search = True
         # configuration-related parameters.
         n_per_group = self.config.get_config()["n_per_gg"]
-        n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node"]
+        n_mdn_layer_node = self.config.get_config()["n_mdn_layer_node_reg"]
         encoding = self.config.get_config()["encoder"]
         b_grid_search = self.config.get_config()["b_grid_search"]
 

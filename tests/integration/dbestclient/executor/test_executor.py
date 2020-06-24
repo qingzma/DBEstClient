@@ -112,7 +112,7 @@ class TestHw(unittest.TestCase):
     def test_cpu(self):
         sqlExecutor = SqlExecutor()
         sqlExecutor.execute("create table test_hw(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical)  "  #
-                            "FROM '/home/u1796377/Documents/workspace/DBEstClient/tests/integration/fixtures/sample_1k.csv' "
+                            "FROM '/home/quincy/Documents/workspace/DBEstClient/tests/integration/fixtures/sample_1k.csv' "
                             "GROUP BY ts "
                             "method uniform "
                             "size  1000 "  # 118567, 81526479
