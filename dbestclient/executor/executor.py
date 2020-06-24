@@ -30,7 +30,7 @@ from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_summary_file,
                                        get_group_count_from_table)
 from dbestclient.tools.running_parameters import RUNTIME_CONF, DbestConfig
-from dbestclient.tools.variables import Slave
+from dbestclient.tools.variables import Slave, UseCols
 
 
 class SqlExecutor:
@@ -360,12 +360,22 @@ class SqlExecutor:
                                     self.config.get_config()['warehousedir'], self.runtime_config)
                         else:  # x has categorical attributes
                             # if not self.config.get_config()["b_use_gg"]:
-                            if True:  # use a single model to support categorical conditions.
+                            # use a single model to support categorical conditions.
+                            if self.config.config["one_model"]:
                                 qe = MdnQueryEngineXCategoricalOneModel(
                                     self.config.copy())
-                                qe.fit(mdl, tbl, xys, n_total_point, usecols={
+                                usecols = {
                                     "y": yheader, "x_continous": xheader_continous,
-                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config)
+                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}
+                                useCols = UseCols(usecols)
+
+                                gbs, xs, ys = useCols.get_gb_x_y_cols_for_one_model()
+                                gbs, xs, ys = sampler.sample.get_columns_from_original_sample(
+                                    gbs, xs, ys)
+                                print("gbs, xs, ys", gbs, xs, ys)
+                                
+                                qe.fit(mdl, tbl, gbs, xs, ys, n_total_point, usecols=usecols,
+                                       runtime_config=self.runtime_config)
                             else:
                                 qeXContinuous = MdnQueryEngineXCategorical(
                                     self.config.copy())

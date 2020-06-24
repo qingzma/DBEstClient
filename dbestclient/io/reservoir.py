@@ -18,6 +18,8 @@ from sys import stderr, stdin
 import numpy as np
 import pandas as pd
 
+from dbestclient.tools.variables import UseCols
+
 # try:
 #     range = xrange
 # except NameError:
@@ -31,6 +33,7 @@ class ReservoirSampling:
         self.sampledf = None
         self.sampledfmean = None
         self.usecols = None
+        self.origin_sample = None
 
     def build_reservoir(self, file, R, threshold=None, verbose=False, split_char=",", save2file=None, n_total_point=None, usecols=None):
         self.usecols = usecols
@@ -97,8 +100,28 @@ class ReservoirSampling:
             except StopIteration:
                 pass
 
-            # print(res)
-            # print(self.header)
+            # save the sample as pandas dataframe
+            self.origin_sample = pd.DataFrame(res, columns=self.header)
+            if usecols is not None:
+                # print("self.origin_sample", self.origin_sample)
+                # print("use_columns,", usecols)
+                columns_as_continous, columns_as_categorical, _ = UseCols(
+                    usecols).get_continous_and_categorical_cols()
+
+                for col in columns_as_categorical:
+                    self.origin_sample[col] = self.origin_sample[col].astype(
+                        str)
+
+                for col in columns_as_continous:
+                    self.origin_sample[col] = self.origin_sample[col].apply(
+                        pd.to_numeric, errors='coerce')
+
+                self.origin_sample = self.origin_sample[columns_as_continous+columns_as_categorical].dropna(
+                    subset=columns_as_continous)
+                # print("self.origin_sample",)
+                # print(self.origin_sample)
+                # raise Exception
+
             self.sampledf = pd.DataFrame(res, columns=self.header)
             # print(self.sampledf)
             if usecols is not None:
@@ -107,7 +130,7 @@ class ReservoirSampling:
                 #     print("usecols['y'][1] is categorical")
                 #     raise Exception
 
-                 # process the usecols from dic to list
+                # process the usecols from dic to list
                 columns_continous = [usecols['y'][0]]
 
                 if usecols['x_continous']:
@@ -410,6 +433,9 @@ class ReservoirSampling:
             total_frequency.pop("x_categorical_columns")
         # print("total_frequency,", total_frequency)
         return total_frequency, data
+
+    def get_columns_from_original_sample(self, gb, x, y):
+        return self.origin_sample[gb].values, self.origin_sample[x].values.reshape(1, -1)[0], self.origin_sample[y].values
 
 
 # if __name__ == '__main__':

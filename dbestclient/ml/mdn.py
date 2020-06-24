@@ -1121,6 +1121,7 @@ class KdeMdn:
         Returns:
             KdeMdn: the fitted model.
         """
+        # print("gb", zs)
         num_gaussians = self.config.config["n_gaussians_density"]
         num_epoch = self.config.config["n_epoch"]
         n_mdn_layer_node = self.config.config["n_mdn_layer_node_density"]
@@ -1188,6 +1189,10 @@ class KdeMdn:
             # move variables to device
             tensor_xs = tensor_xs.to(device)
             tensor_zs = tensor_zs.to(device)
+
+            # print("zs_encoded", zs_encoded)
+            # # print("gb_encoded", tensor_zs)
+            # raise Exception
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_zs, tensor_xs)  # create your dataloader

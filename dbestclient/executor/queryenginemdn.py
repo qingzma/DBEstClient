@@ -786,7 +786,7 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
     def init_pickle_file_name(self, runtime_config):
         return self.mdl_name+runtime_config["model_suffix"]
 
-    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
+    def fit(self, mdl_name: str, origin_table_name: str, gbs, xs, ys, total_points: dict, usecols: dict, runtime_config: dict):
         if not total_points["if_contain_x_categorical"]:
             raise ValueError("The data provided is not a dict.")
         if runtime_config['v']:
@@ -812,8 +812,10 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
             if runtime_config['v']:
                 print("training density...")
             config = self.config.copy()
+            print("usecols", usecols)
+            # print("data", data)
             density = KdeMdn(config, b_store_training_data=False).fit(
-                groupby, x, runtime_config, data_of_conditional_columns_in_where=None)
+                gbs, xs, runtime_config, data_of_conditional_columns_in_where=None)
             # kdeModelWrapper = KdeModelTrainer(
             #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
             #     groupby_attribute=usecols["gb"],
