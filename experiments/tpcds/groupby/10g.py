@@ -184,4 +184,4 @@ class Query1:
 if __name__ == "__main__":
     query1 = Query1()
     query1.build_model(mdl_name="ss_10g_520k_binary")
-    query1.workload()
+    query1.workload(result2file="experiments/results/mdn/10g/")

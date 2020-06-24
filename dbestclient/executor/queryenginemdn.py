@@ -21,6 +21,7 @@ from torch.multiprocessing import Pool as PoolGPU
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
                                      prepare_reg_density_data)
+from dbestclient.ml.mdn import KdeMdn
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.socket import app_client
 from dbestclient.tools.running_parameters import shrink_runtime_config
@@ -771,8 +772,12 @@ def meet_condition(value: str, condition):
 
 
 class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
+        self.config = config
+        self.n_total_points = None
+        self.group_by_columns = None
+        self.density_column = None
 
     def serialize2warehouse(self, warehouse, runtime_config):
         with open(warehouse + '/' + self.mdl_name + runtime_config["model_suffix"], 'wb') as f:
@@ -782,7 +787,45 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
         return self.mdl_name+runtime_config["model_suffix"]
 
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
-        pass
+        if not total_points["if_contain_x_categorical"]:
+            raise ValueError("The data provided is not a dict.")
+        if runtime_config['v']:
+            print("fit MdnQueryEngineXCategoricalOneModel...")
+
+        self.density_column = usecols["x_continous"][0]
+        self.mdl_name = mdl_name
+        self.n_total_points = total_points
+        total_points.pop("if_contain_x_categorical")
+        self.x_categorical_columns = total_points.pop("x_categorical_columns")
+        self.categorical_distinct_values = total_points.pop(
+            "categorical_distinct_values")
+        self.group_by_columns = usecols['gb']
+
+        # configuration-related parameters.
+        device = runtime_config["device"]
+        encoding = self.config.get_config()["encoder"]
+        b_grid_search = self.config.get_config()["b_grid_search"]
+
+        if self.config.config['b_use_gg']:
+            raise ValueError("Method not implemented.")
+        else:
+            if runtime_config['v']:
+                print("training density...")
+            config = self.config.copy()
+            density = KdeMdn(config, b_store_training_data=False).fit(
+                groupby, x, runtime_config, data_of_conditional_columns_in_where=None)
+            # kdeModelWrapper = KdeModelTrainer(
+            #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
+            #     groupby_attribute=usecols["gb"],
+            #     groupby_values=list(
+            #         total_points[categorical_attributes].keys()),
+            #     n_total_point=total_points[categorical_attributes],
+            #     x_min_value=-np.inf, x_max_value=np.inf,
+            #     config=self.config).fit_from_df(
+            #         data[categorical_attributes], runtime_config=runtime_config)
+
+            # qe_mdn = MdnQueryEngine(
+            #     kdeModelWrapper, self.config.copy())
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         pass

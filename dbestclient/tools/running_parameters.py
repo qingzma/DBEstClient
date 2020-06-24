@@ -60,7 +60,8 @@ class DbestConfig:
     def __init__(self):
         self.config = {
             # system-level configuration.
-            'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
+            # 'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
+            'warehousedir': '../dbestwarehouse',
             "reg_type": "mdn",
             "density_type": "mdn",  # qreg
             'backend_server': 'None',
