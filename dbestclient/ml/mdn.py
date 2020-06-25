@@ -1100,7 +1100,7 @@ class KdeMdn:
         self.config = config
         self.b_normalize_data = b_normalize_data
 
-    def fit(self, zs: list, xs: list, runtime_config,  lr=0.001,  n_workers=0, data_of_conditional_columns_in_where=None):
+    def fit(self, zs: list, xs: list, runtime_config,  lr=0.001,  n_workers=0):
         """ fit the density for the data, to support group by queries.
 
         Args:

@@ -71,6 +71,9 @@ def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, re
     n_division = runtime_config["n_division"]
     x_points, step = np.linspace(x_lb, x_ub, n_division, retstep=True)
 
+    # print("groups in prepare integral----------", groups)
+    # raise
+
     reg_x_points = list(x_points)*len(groups)
     try:  # group key is [g1-g2]
         reg_g_points = [g.split(",")

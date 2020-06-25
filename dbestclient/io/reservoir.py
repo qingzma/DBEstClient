@@ -17,6 +17,7 @@ from sys import stderr, stdin
 
 import numpy as np
 import pandas as pd
+from statsmodels.compat.pandas import frequencies
 
 from dbestclient.tools.variables import UseCols
 
@@ -435,7 +436,36 @@ class ReservoirSampling:
         return total_frequency, data
 
     def get_columns_from_original_sample(self, gb, x, y):
-        return self.origin_sample[gb].values, self.origin_sample[x].values.reshape(1, -1)[0], self.origin_sample[y].values
+        return self.origin_sample[gb].values, self.origin_sample[x].values.reshape(1, -1)[0], self.origin_sample[y].values.reshape(1, -1)[0]
+
+    def get_frequency_of_categorical_columns_for_gbs(self, gbs, categoricals):
+        frequencies = {}
+        gb = self.origin_sample.groupby(categoricals)
+        for grp, values in gb:
+            # print(grp, type(grp))
+
+            # print("*"*40)
+            if isinstance(grp, tuple):
+                key = ",".join(grp)
+            else:
+                key = grp
+            # print("key", key)
+            # print(values)
+            gb_in_gb = values.groupby(
+                gbs).size().to_frame(name='count').reset_index()
+            # print(gb_in_gb)
+
+            frequency = {}
+            for row in gb_in_gb.itertuples():
+                columns_str = []
+                for item in list(row[1:-1]):
+                    columns_str.append(str(item))
+                key1 = ",".join(columns_str)
+                count = row[-1]
+                frequency[key1] = count
+            frequencies[key] = frequency
+        # print(frequencies)
+        return frequencies
 
 
 # if __name__ == '__main__':

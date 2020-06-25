@@ -369,27 +369,47 @@ class SqlExecutor:
                                     "x_categorical": xheader_categorical, "gb": groupby_attribute}
                                 useCols = UseCols(usecols)
 
+                                # get the training data from samples.
                                 gbs, xs, ys = useCols.get_gb_x_y_cols_for_one_model()
-                                gbs, xs, ys = sampler.sample.get_columns_from_original_sample(
+                                gbs_data, xs_data, ys_data = sampler.sample.get_columns_from_original_sample(
                                     gbs, xs, ys)
-                                print("gbs, xs, ys", gbs, xs, ys)
-                                
-                                qe.fit(mdl, tbl, gbs, xs, ys, n_total_point, usecols=usecols,
+                                n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
+                                    groupby_attribute, xheader_categorical)
+                                # print("n_total_point-----------before",
+                                #       n_total_point)
+                                # print("ratio is ", ratio)
+
+                                scaled_n_total_point = {}
+                                for key in n_total_point:
+                                    scaled_n_total_point[key] = {}
+                                    for sub_key in n_total_point[key]:
+                                        scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
+                                n_total_point = scaled_n_total_point
+                                # print("n_total_point-----------after",
+                                #       n_total_point)
+
+                                # raise
+
+                                qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
                                        runtime_config=self.runtime_config)
                             else:
-                                qeXContinuous = MdnQueryEngineXCategorical(
+                                qe = MdnQueryEngineXCategorical(
                                     self.config.copy())
-                                qeXContinuous.fit(mdl, tbl, xys, n_total_point, usecols={
+                                qe.fit(mdl, tbl, xys, n_total_point, usecols={
                                     "y": yheader, "x_continous": xheader_continous,
                                     "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
                                 )  # device=device, encoding=encoding, b_grid_search=b_grid_search
-                                qeXContinuous.serialize2warehouse(
+                                qe.serialize2warehouse(
                                     self.config.get_config()['warehousedir'], self.runtime_config)
                                 self.model_catalog.add_model_wrapper(
-                                    qeXContinuous, self.runtime_config)
+                                    qe, self.runtime_config)
                                 # else:
                                 #     raise ValueError(
                                 #         "GoG support for categorical attributes is not supported.")
+                            qe.serialize2warehouse(
+                                self.config.get_config()['warehousedir'], self.runtime_config)
+                            self.model_catalog.add_model_wrapper(
+                                qe, self.runtime_config)
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.runtime_config['b_show_latency']:
@@ -421,6 +441,8 @@ class SqlExecutor:
                     filter_dbest = dict(where_conditions[2])
                     filter_dbest = [filter_dbest[next(iter(filter_dbest))][i]
                                     for i in [0, 1]]
+                    # print("where_conditions",where_conditions)
+                    # print("filter_dbest",filter_dbest)
 
                     predictions = model.predicts(func, x_lb, x_ub, where_conditions,
                                                  self.runtime_config, groups=None, filter_dbest=filter_dbest)

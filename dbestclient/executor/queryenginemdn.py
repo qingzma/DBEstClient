@@ -21,7 +21,7 @@ from torch.multiprocessing import Pool as PoolGPU
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
                                      prepare_reg_density_data)
-from dbestclient.ml.mdn import KdeMdn
+from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.socket import app_client
 from dbestclient.tools.running_parameters import shrink_runtime_config
@@ -787,18 +787,18 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
         return self.mdl_name+runtime_config["model_suffix"]
 
     def fit(self, mdl_name: str, origin_table_name: str, gbs, xs, ys, total_points: dict, usecols: dict, runtime_config: dict):
-        if not total_points["if_contain_x_categorical"]:
-            raise ValueError("The data provided is not a dict.")
+        # if not total_points["if_contain_x_categorical"]:
+        #     raise ValueError("The data provided is not a dict.")
         if runtime_config['v']:
             print("fit MdnQueryEngineXCategoricalOneModel...")
 
         self.density_column = usecols["x_continous"][0]
         self.mdl_name = mdl_name
         self.n_total_points = total_points
-        total_points.pop("if_contain_x_categorical")
-        self.x_categorical_columns = total_points.pop("x_categorical_columns")
-        self.categorical_distinct_values = total_points.pop(
-            "categorical_distinct_values")
+        # total_points.pop("if_contain_x_categorical")
+        self.x_categorical_columns = usecols["x_categorical"]
+        # self.categorical_distinct_values = total_points.pop(
+        #     "categorical_distinct_values")
         self.group_by_columns = usecols['gb']
 
         # configuration-related parameters.
@@ -809,13 +809,18 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
         if self.config.config['b_use_gg']:
             raise ValueError("Method not implemented.")
         else:
+            config = self.config.copy()
+
             if runtime_config['v']:
                 print("training density...")
-            config = self.config.copy()
-            print("usecols", usecols)
-            # print("data", data)
-            density = KdeMdn(config, b_store_training_data=False).fit(
-                gbs, xs, runtime_config, data_of_conditional_columns_in_where=None)
+            # print("usecols", usecols)
+            self.density = KdeMdn(config, b_store_training_data=False).fit(
+                gbs, xs, runtime_config)
+
+            if runtime_config['v']:
+                print("training regression...")
+            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+                gbs, xs, ys, runtime_config)
             # kdeModelWrapper = KdeModelTrainer(
             #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
             #     groupby_attribute=usecols["gb"],
@@ -830,4 +835,146 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
             #     kdeModelWrapper, self.config.copy())
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
-        pass
+        if "slaves" in runtime_config:
+            if runtime_config["slaves"].size() == 0:
+                n_jobs = runtime_config["n_jobs"]
+            else:
+                n_jobs = runtime_config["slaves"].size()
+        else:
+            n_jobs = runtime_config["n_jobs"]
+        # result2file = self.config.get_config()["result2file"]
+        b_print_to_screen = runtime_config["b_print_to_screen"]
+        result2file = runtime_config["result2file"]
+
+        if func.lower() not in ("count", "sum", "avg"):
+            raise ValueError("function not supported: "+func)
+
+        # print("x_categorical_conditions", x_categorical_conditions)
+
+        if len(x_categorical_conditions[1]) > 1:
+            key = ",".join(x_categorical_conditions[1]).replace("'", "")
+        else:
+            key = x_categorical_conditions[1][0].replace("'", "")
+        # print("key", key)
+        # print("self.n_total_points", self.n_total_points)
+
+        groups_no_categorical = list(self.n_total_points[key].keys())
+
+        groups = [[item]+x_categorical_conditions[1]
+                  for item in groups_no_categorical]
+        groups = [','.join(g).replace("'", "") for g in groups]
+        # print("groups", groups)
+
+        if n_jobs == 1:
+            # print(groups)
+            # print(self.n_total_point)
+            # print(groups[0], "*******************")
+            # print(",".join(groups[0]))
+            # for key in groups:
+            # print("key is ", key, end="----- ")
+            # print(",".join(key))
+
+            # print(self.n_total_points)
+
+            if len(groups[0].split(",")) == 1:  # 1d group by
+                # print(groups[0].split(","))
+                # print("1d")
+                scaling_factor = np.array([self.n_total_points[key][k]
+                                           for k in groups_no_categorical])
+            else:
+                # print(groups[0].split(","))
+                # print("n-d")
+                scaling_factor = np.array([self.n_total_points[key][k]
+                                           for k in groups_no_categorical])
+
+            # print("scaling_factor",scaling_factor)
+            # print("self.n_total_point", self.n_total_point)
+            pre_density, pre_reg, step = prepare_reg_density_data(
+                self.density, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
+            # print("pre_density, pre_reg",pre_density,)
+            # print(pre_reg)
+
+            if func.lower() == "count":
+                preds = approx_count(pre_density, step)
+                preds = np.multiply(preds, scaling_factor)
+            elif func.lower() == "sum":
+                preds = approx_sum(pre_density, pre_reg, step)
+                preds = np.multiply(preds, scaling_factor)
+            else:  # avg
+                preds = approx_avg(pre_density, pre_reg, step)
+            # print("groups-------------", groups)
+            results = dict(zip(groups_no_categorical, preds))
+
+        else:
+            runtime_config_process = shrink_runtime_config(
+                runtime_config)
+            # use multi-processing to achieve parallel
+            if runtime_config["slaves"].is_empty():
+                instances = []
+                results = {}
+                # print("n_jobs,", n_jobs)
+                n_per_chunk = math.ceil(len(groups)/n_jobs)
+                group_chunks = [groups[i:i+n_per_chunk]
+                                for i in range(0, len(groups), n_per_chunk)]
+                # print("create Pool...", datetime.now())
+                if runtime_config["device"] == "cpu":
+                    pool = PoolCPU(processes=n_jobs)
+                else:
+                    pool = PoolGPU(processes=n_jobs)
+                    # from torch.multiprocessing import Pool, set_start_method
+                    # try:
+                    #     set_start_method('spawn')
+                    # except RuntimeError:
+                    #     print("Fail to set start method as spawn for pytorch multiprocessing, " +
+                    #           "use default in advance. (see queryenginemdn "
+                    #           "for more info.)")
+
+                # with Pool(processes=n_jobs) as pool:
+                # print(self.group_keys_chunk)
+
+                time2exclude_from_multiprocessing = datetime.now()
+
+                for sub_group in group_chunks:
+
+                    i = pool.apply_async(
+                        self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest, time2exclude_from_multiprocessing))
+                    instances.append(i)
+
+                for i in instances:
+                    result = i.get()
+                    results.update(result)
+            else:  # slaves are used
+                slaves = runtime_config["slaves"]
+                instances = []
+                results = {}
+                n_jobs = slaves.size()
+                n_per_chunk = math.ceil(len(groups)/n_jobs)
+                group_chunks = [groups[i:i+n_per_chunk]
+                                for i in range(0, len(groups), n_per_chunk)]
+
+                pool = ThreadPool(processes=n_jobs)
+                hosts = slaves.get()
+                for sub_group, host in zip(group_chunks, hosts):
+                    # print("host", host)
+                    query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
+                                 sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
+                    i = pool.apply_async(
+                        app_client.run, (hosts[host].host, hosts[host].port, "select", query))
+                    instances.append(i)
+
+                for i in instances:
+                    result = i.get()
+                    results.update(result)
+                    # result = app_client.run(
+                    #     host, slaves.get()[host], "select", query)
+        runtime_config["b_print_to_screen"] = b_print_to_screen
+        if runtime_config["b_print_to_screen"]:
+            for key in results:
+                print(",".join(key.split("-")) +
+                      "," + str(results[key]))
+
+        if result2file is not None:
+            with open(result2file, 'w') as f:
+                for key in results:
+                    f.write(str(key) + "," + str(results[key]) + "\n")
+        return results
