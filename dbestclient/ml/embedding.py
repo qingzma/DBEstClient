@@ -30,6 +30,7 @@ from gensim.models import Word2Vec
 class WordEmbedding:
     def __init__(self):
         self.embedding = None
+        self.dim = None
 
     def describing(self, Indata):
         describe = {}
@@ -75,6 +76,7 @@ class WordEmbedding:
                        negative=20, iter=iter, workers=multiprocessing.cpu_count())
         word_vectors = w2v.wv  # Matix of model
         vocab = w2v.wv.vocab   # Vocabulary
+        self.dim = dim
 
         # print("vocab", vocab)
         # print(word_vectors)
@@ -86,7 +88,7 @@ class WordEmbedding:
                 Group[each.split(" ")[1].split(".")[0]
                         ] = word_vectors.vectors[count]
             count = count+1
-        print("finish")
+        # print("finish")
         self.embedding = Group
         # print("embedding", Group)
         return Group
@@ -99,12 +101,14 @@ class WordEmbedding:
         results = np.array(self.embedding[keys[0]])
         # print(results)
         for key in keys[1:]:
+            # print("results", results)
             # print("key", key, self.embedding[key])
-            results = np.stack((results, self.embedding[key]))
+            
+            results = np.vstack((results, self.embedding[key]))
             
         return results
 
-def dataframe2sentences(df, gbs:list):
+def dataframe2sentences(df:pd.DataFrame, gbs:list):
     headers = df.columns#.to_list()
     sentences = []
     no_gbs = list(set(headers)-set(gbs))
@@ -132,6 +136,25 @@ def dataframe2sentences(df, gbs:list):
     # print(sentences)
     return sentences
 
+def columns2sentences(gbs_data, xs_data, ys_data=None):
+    # print("gbs_data",gbs_data)
+    # print("xs_data",xs_data)
+    # print("ys_data",ys_data)
+    if len(gbs_data[0])>1:
+        raise TypeError("Embedding only supports one GROUP BY attribute at this moment, use use binay or onehot encoding instead.")
+    # cols_gb=["cols_gb"]
+    # cols_x = ["cols_x0"]
+    # cols_y = ["cols_y"] if ys_data is not None else []
+    gbs_data = gbs_data.reshape(1,-1)[0]
+    # print("gbs_data",gbs_data)
+    if ys_data is None:
+        df = pd.DataFrame({"gb":gbs_data, "x":xs_data})
+    else:
+        df = pd.DataFrame({"gb":gbs_data, "x":xs_data,"y":ys_data})
+    
+
+    return dataframe2sentences(df, ["gb"])
+
 
 if __name__ == "__main__":
     header=[
@@ -148,7 +171,7 @@ if __name__ == "__main__":
     word_embedding.fit(sentenses, gbs=["ss_store_sk"])
     print(word_embedding.predict('92'))
     print("*"*20)
-    print(word_embedding.predicts(['92','70']))
+    print(word_embedding.predicts(['92','70','4']))
     # # file_name, Max_rate,groupby_column,Embedding_dimension_size,number_of_iteration
     # word_embedding.fit("/data/tpcds/40G/ss_600k_headers.csv",
     #                    0.2, "ss_store_sk", 20, 1)

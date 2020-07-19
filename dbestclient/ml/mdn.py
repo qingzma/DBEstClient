@@ -31,6 +31,7 @@ from torch.distributions import Categorical
 from torch.multiprocessing import Pool
 
 from dbestclient.ml.integral import approx_count, prepare_reg_density_data
+from dbestclient.ml.embedding import   columns2sentences,WordEmbedding
 
 
 # https://www.katnoria.com/mdn/
@@ -339,7 +340,12 @@ class RegMdnGroupBy():
                 self.enc = ce.BinaryEncoder(cols=columns)
                 zs_encoded = self.enc.fit_transform(z_group).to_numpy()
             elif encoder == "embedding":
-                raise TypeError("embedding is not supported yet.")
+                sentences = columns2sentences(z_group, x_points, y_points)
+                self.enc = WordEmbedding()
+                self.enc.fit(sentences, gbs=["gb"])
+                gbs_data = z_group.reshape(1,-1)[0]
+                zs_encoded = self.enc.predicts(gbs_data)
+                # raise TypeError("embedding is not supported yet.")
 
             if self.b_normalize_data:
                 self.meanx = (np.max(x_points) + np.min(x_points)) / 2
@@ -361,7 +367,7 @@ class RegMdnGroupBy():
                 self.y_points = None
                 self.z_points = None
 
-            if encoder in ["onehot", "binary"]:
+            if encoder in ["onehot", "binary", "embedding"]:
                 xs_encoded = x_points[:, np.newaxis]
                 xzs_encoded = np.concatenate(
                     [xs_encoded, zs_encoded], axis=1).tolist()
@@ -389,6 +395,8 @@ class RegMdnGroupBy():
                 input_dim = sum([len(i) for i in self.enc.categories_]) + 1
             elif encoder == "binary":
                 input_dim = len(self.enc.base_n_encoder.feature_names) + 1
+            elif encoder == "embedding":
+                input_dim = self.enc.dim + 1
             else:
                 raise ValueError("Encoding should be binary or onehot")
 
@@ -565,6 +573,15 @@ class RegMdnGroupBy():
                 [x_points, zs_encoded], axis=1).tolist()
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
+        elif encoder == "embedding":
+            zs_transformed =  z_group.reshape(1,-1)[0]
+            zs_encoded = self.enc.predicts(zs_transformed)
+            x_points = x_points[:, np.newaxis]
+            xzs_encoded = np.concatenate(
+                [x_points, zs_encoded], axis=1).tolist()
+            tensor_xzs = torch.stack([torch.Tensor(i)
+                                      for i in xzs_encoded])
+            
         else:
             xzs = [[x_point, z_point]
                    for x_point, z_point in zip(x_points, z_group)]
@@ -1182,7 +1199,15 @@ class KdeMdn:
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
             elif encoder == "embedding":
-                raise TypeError("embedding is not supported yet.")
+                sentences = columns2sentences(zs, xs, ys_data=None)
+                self.enc = WordEmbedding()
+                self.enc.fit(sentences, gbs=["gb"])
+                gbs_data = zs.reshape(1,-1)[0]
+                zs_encoded = self.enc.predicts(gbs_data)
+                tensor_zs = torch.stack([torch.Tensor(i)
+                                         for i in zs_encoded])
+                input_dim =  self.enc.dim
+                # raise TypeError("embedding is not supported yet.")
             else:
                 input_dim = 1
                 tensor_zs = torch.stack([torch.Tensor(i)
@@ -1361,6 +1386,11 @@ class KdeMdn:
                                      for i in zs_encoded])
         elif encoder == "binary":
             zs_encoded = self.enc.transform(zs).to_numpy()
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_encoded])
+        elif encoder == "embedding":
+            zs_transformed =  zs.reshape(1,-1)[0]
+            zs_encoded = self.enc.predicts(zs_transformed)
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
         else:
