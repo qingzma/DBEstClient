@@ -145,6 +145,25 @@ class TestTpcDs(unittest.TestCase):
         status = sqlExecutor.execute("drop table model2drop")
         self.assertFalse(status)
 
+    def test_embedding(self):
+        sqlExecutor = SqlExecutor()
+        sqlExecutor.execute("set b_grid_search='False'")
+        sqlExecutor.execute("set csv_split_char='|'")
+        sqlExecutor.execute("set encoder='embedding'")
+        sqlExecutor.execute("set table_header=" +
+                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+                            "ss_net_paid_inc_tax|ss_net_profit|none'"
+                            )
+        sqlExecutor.execute(
+            "create table test_ss40g_embedding(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")
+        predictions = sqlExecutor.execute(
+            "select avg(ss_sales_price)  from test_ss40g_embedding where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk")
+        sqlExecutor.execute("drop table test_ss40g_embedding")
+        self.assertTrue(predictions)
+
 
 class TestHw(unittest.TestCase):
     def test_cpu(self):
@@ -170,5 +189,6 @@ class TestHw(unittest.TestCase):
 if __name__ == "__main__":
     # unittest.main()
     # TestTpcDs().test_groupbys()
-    TestTpcDs().test_categorical_one_model()
+    # TestTpcDs().test_categorical_one_model()
     # TestHw().test_cpu()
+    TestTpcDs().test_embedding()

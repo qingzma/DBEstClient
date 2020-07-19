@@ -35,7 +35,7 @@ setup(
     },
     zip_safe=False,
     install_requires=[
-        'numpy', 'sqlparse', 'pandas', 'scikit-learn', 'qregpy', 'scipy', 'dill', 'matplotlib', 'torch', 'category_encoders', 'tox', 'sphinx',
+        'numpy', 'sqlparse', 'pandas', 'scikit-learn', 'qregpy', 'scipy', 'dill', 'matplotlib', 'torch', 'category_encoders', 'tox', 'sphinx', 'gensim',
     ],
     test_suite='nose.collector',
     tests_require=['nose'],

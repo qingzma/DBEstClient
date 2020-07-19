@@ -338,6 +338,8 @@ class RegMdnGroupBy():
                 columns = list(range(len(z_group[0])))
                 self.enc = ce.BinaryEncoder(cols=columns)
                 zs_encoded = self.enc.fit_transform(z_group).to_numpy()
+            elif encoder == "embedding":
+                raise TypeError("embedding is not supported yet.")
 
             if self.b_normalize_data:
                 self.meanx = (np.max(x_points) + np.min(x_points)) / 2
@@ -1179,6 +1181,8 @@ class KdeMdn:
                 input_dim = len(self.enc.base_n_encoder.feature_names) + 0
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
+            elif encoder == "embedding":
+                raise TypeError("embedding is not supported yet.")
             else:
                 input_dim = 1
                 tensor_zs = torch.stack([torch.Tensor(i)
