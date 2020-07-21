@@ -30,7 +30,7 @@ class Query1:
         self.sql_executor = SqlExecutor()
 
         self.sql_executor.execute("set v='True'")
-        self.sql_executor.execute("set device='gpu'")
+        self.sql_executor.execute("set device='cpu'")
         self.sql_executor.execute("set encoder='binary'")
         self.sql_executor.execute("set b_grid_search='false'")
         self.sql_executor.execute("set b_print_to_screen='false'")
@@ -47,7 +47,7 @@ class Query1:
         #                     "'ss_sold_date_sk|ss_store_sk|ss_sales_price'")
 
         self.sql_executor.execute("set n_mdn_layer_node_reg=5")
-        self.sql_executor.execute("set n_mdn_layer_node_density=20")
+        self.sql_executor.execute("set n_mdn_layer_node_density=30")
         self.sql_executor.execute("set n_jobs=2")
         self.sql_executor.execute("set n_hidden_layer=1")
         self.sql_executor.execute("set n_epoch=20")
@@ -55,7 +55,7 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_density=10")
         # sql_executor.execute("set result2file='/home/u1796377/Desktop/hah.txt'")
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")  # num_of_points57.csv
 
     def workload(self, result2file: str = '/home/u1796377/Documents/workspace/DBEstClient/experiments/results/mdn/10g/', n_jobs=1):
         self.sql_executor.execute("set n_jobs=" + str(n_jobs)+'"')
@@ -183,5 +183,5 @@ class Query1:
 
 if __name__ == "__main__":
     query1 = Query1()
-    query1.build_model(mdl_name="ss_10g_520k_binary")
+    query1.build_model(mdl_name="ss_10g_520k_binary_30")
     query1.workload(result2file="experiments/results/mdn/10g/")

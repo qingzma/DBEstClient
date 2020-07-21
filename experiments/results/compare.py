@@ -140,15 +140,15 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
     # prapare the files.
     for i in range(1, 11):
         prefix = agg_func+str(i)
-        mdn = read_results("experiments/results/mdn/1t/" +
+        mdn = read_results("experiments/results/mdn/10g/" +
                            prefix+suffix, split_char=",")
         truth = read_results(
-            "experiments/results/groundtruth/1t/"+prefix+".result")
+            "experiments/results/groundtruth/10g/"+prefix+".result")
         mdn_error = compare_dicts(truth, mdn)
         mdn_errors.append(mdn_error)
         if b_two_methods:
             kde = read_results(
-                "experiments/results/deepdb/1t/"+prefix+".txt", split_char=",")
+                "experiments/results/deepdb/10g/"+prefix+".txt", split_char=",")
             kde_error = compare_dicts(truth, kde)
             kde_errors.append(kde_error)
 
