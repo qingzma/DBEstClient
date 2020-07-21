@@ -68,7 +68,7 @@ class Query1:
         self.sql_executor = SqlExecutor()
 
         self.sql_executor.execute("set v='True'")
-        self.sql_executor.execute("set device='cpu'")
+        # self.sql_executor.execute("set device='cpu'")
         self.sql_executor.execute("set encoder='binary'")
         self.sql_executor.execute("set b_grid_search='false'")
         self.sql_executor.execute("set b_print_to_screen='false'")
@@ -102,7 +102,7 @@ class Query1:
         self.sql_executor = SqlExecutor()
 
         self.sql_executor.execute("set v='True'")
-        self.sql_executor.execute("set device='cpu'")
+        # self.sql_executor.execute("set device='cpu'")
         self.sql_executor.execute("set encoder='binary'")
         self.sql_executor.execute("set b_grid_search='false'")
         self.sql_executor.execute("set b_print_to_screen='false'")
@@ -125,7 +125,7 @@ class Query1:
         self.sql_executor.execute("set n_epoch=20")
         self.sql_executor.execute("set n_gaussians_reg=3")
         self.sql_executor.execute("set n_gaussians_density=10")
-        
+
         self.sql_executor.execute("set encoder='embedding'")
         self.sql_executor.execute(
             "create table "+"ss10g_embedding_30"+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")
