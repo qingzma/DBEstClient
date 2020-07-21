@@ -54,8 +54,21 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_reg=3")
         self.sql_executor.execute("set n_gaussians_density=10")
         # sql_executor.execute("set result2file='/home/u1796377/Desktop/hah.txt'")
+        # self.sql_executor.execute(
+        #     "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")  # num_of_points57.csv
+        
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")  # num_of_points57.csv
+            "create table "+"ss10g_binary_30"+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")  # num_of_points57.csv
+        
+
+        self.sql_executor.execute("set encoder='onehot'")
+        self.sql_executor.execute(
+            "create table "+"ss10g_onehot_30"+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")
+        
+        self.sql_executor.execute("set encoder='embedding'")
+        self.sql_executor.execute(
+            "create table "+"ss10g_embedding_30"+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")
+
 
     def workload(self, result2file: str = '/home/u1796377/Documents/workspace/DBEstClient/experiments/results/mdn/10g/', n_jobs=1):
         self.sql_executor.execute("set n_jobs=" + str(n_jobs)+'"')
@@ -184,4 +197,4 @@ class Query1:
 if __name__ == "__main__":
     query1 = Query1()
     query1.build_model(mdl_name="ss_10g_520k_binary_30")
-    query1.workload(result2file="experiments/results/mdn/10g/")
+    # query1.workload(result2file="experiments/results/mdn/10g/")

@@ -31,17 +31,18 @@ class WordEmbedding:
     def __init__(self):
         self.embedding = None
         self.dim = None
+        print("start training embedding")
 
-    def describing(self, Indata):
-        describe = {}
-        for j in range(0, len(Indata.columns.values)):
-            valueList = []
-            valueList.append(len(Indata.iloc[:, j].unique()))
-            valueList.append(
-                round(len(Indata.iloc[:, j].unique())/Indata.shape[0], 3))
-            describe[Indata.columns.values[j]] = valueList
-        # print(describe)
-        return describe
+    # def describing(self, Indata):
+        # describe = {}
+        # for j in range(0, len(Indata.columns.values)):
+        #     valueList = []
+        #     valueList.append(len(Indata.iloc[:, j].unique()))
+        #     valueList.append(
+        #         round(len(Indata.iloc[:, j].unique())/Indata.shape[0], 3))
+        #     describe[Indata.columns.values[j]] = valueList
+        # # print(describe)
+        # return describe
 
     def fit(self, sentences, gbs, dim=20 ,window=1, min_count=1,negative=60,iter=50,workers=30):
         # group_by_column = group_by_column
@@ -91,6 +92,8 @@ class WordEmbedding:
         # print("finish")
         self.embedding = Group
         # print("embedding", Group)
+
+        print("finish training embedding")
         return Group
         
 

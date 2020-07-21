@@ -110,6 +110,10 @@ class ReservoirSampling:
                     usecols).get_continous_and_categorical_cols()
 
                 for col in columns_as_categorical:
+                    # print("self.origin_sample")
+                    # print(self.origin_sample)
+                    # print(col)
+                    # raise
                     self.origin_sample[col] = self.origin_sample[col].astype(
                         str)
 
