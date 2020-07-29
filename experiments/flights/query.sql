@@ -14,7 +14,7 @@
 
 SELECT dest_state_abr, COUNT(*) FROM flights WHERE 1500<=distance<=2500 GROUP BY dest_state_abr;
 SELECT unique_carrier, COUNT(*) FROM flights WHERE   50<=air_time<=200  GROUP BY unique_carrier;
-SELECT unique_carrier, COUNT(*) FROM flights WHERE -10<=dep_delay<=10 AND origin_state_abr='LA'  GROUP BY unique_carrier;   !--AND  dest_state_abr='CA'
+SELECT unique_carrier, COUNT(*) FROM flights WHERE 1000<=dep_delay<=1200 AND origin_state_abr='LA'  GROUP BY unique_carrier;   !--AND  dest_state_abr='CA'
 
 
 SELECT unique_carrier, SUM(dep_delay) FROM flights WHERE 300<=distance<=1000 GROUP BY unique_carrier;

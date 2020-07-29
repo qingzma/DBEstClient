@@ -26,7 +26,7 @@
 # hive -e "SELECT unique_carrier, SUM(dep_delay) FROM flights WHERE distance >= 1000  AND distance <= 1500 GROUP BY unique_carrier" > flights_avg2.csv
 # hive -e "SELECT unique_carrier, SUM(dep_delay) FROM flights WHERE distance >= 1500  AND distance <= 2000 GROUP BY unique_carrier" > flights_avg3.csv
 
-# hive -e "SELECT unique_carrier, COUNT(*) FROM flights WHERE dep_delay>=-10 AND dep_delay<=10 AND origin_state_abr='TX'  GROUP BY unique_carrier" > flights_one_model_1_x.csv
+# hive -e "SELECT unique_carrier, COUNT(*) FROM flights WHERE dep_delay>=1000 AND dep_delay<=1200 AND origin_state_abr='LA'  GROUP BY unique_carrier" > flights_one_model_1_x.csv
 
 from dbestclient.executor.executor import SqlExecutor
 
@@ -85,12 +85,12 @@ class Query1:
         self.sql_executor.execute("set n_mdn_layer_node_density=30")      # 30
         self.sql_executor.execute("set n_jobs=1")                         # 2
         self.sql_executor.execute("set n_hidden_layer=1")                 # 1
-        self.sql_executor.execute("set n_epoch=20")                       # 20
+        self.sql_executor.execute("set n_epoch=40")                       # 20
         self.sql_executor.execute("set n_gaussians_reg=8")                # 3
         self.sql_executor.execute("set n_gaussians_density=8")           # 10
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(distance real, dep_delay real, origin_state_abr categorical) from '../data/flights/flight_1m.csv' GROUP BY unique_carrier method uniform size 0.001")#'num_points/flights_group.csv' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(distance real, dep_delay real, origin_state_abr categorical) from '../data/flights/flight_5m.csv' GROUP BY unique_carrier method uniform size 0.001")#'num_points/flights_group.csv' ")  # num_of_points57.csv
         #SELECT unique_carrier, COUNT(*) FROM flights WHERE origin_state_abr='LA' AND  dest_state_abr='CA' GROUP BY unique_carrier;
 
     def workload(self, mdl_name, result2file: str = 'experiments/flights/results/mdn1m/', n_jobs=1):
@@ -103,7 +103,7 @@ class Query1:
         self.sql_executor.execute(
             "set result2file='" + result2file + "one_model_1x.txt'")
         
-        self.sql_executor.execute("SELECT unique_carrier, COUNT(distance) FROM flight_one_model where 1000<=dep_delay<=1200 AND origin_state_abr='TX'  GROUP BY unique_carrier")
+        self.sql_executor.execute("SELECT unique_carrier, COUNT(distance) FROM flight_one_model where 1000<=dep_delay<=1200 AND origin_state_abr='LA'  GROUP BY unique_carrier")
         
 
 
