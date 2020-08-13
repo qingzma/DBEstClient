@@ -12,16 +12,40 @@
 !--SELECT year_date, SUM(arr_delay*dep_delay) FROM flights WHERE origin_state_abr = 'CA' AND dest_state_abr = 'HI' GROUP BY year_date;
 !--SELECT dest_state_abr, SUM(taxi_out)-SUM(taxi_in) FROM flights WHERE unique_carrier = 'UA' AND origin = 'ATL' GROUP BY dest_state_abr;
 
+
+!-- query 1
 SELECT dest_state_abr, COUNT(*) FROM flights WHERE 1500<=distance<=2500 GROUP BY dest_state_abr;
+!-- query 2
 SELECT unique_carrier, COUNT(*) FROM flights WHERE   50<=air_time<=200  GROUP BY unique_carrier;
-SELECT unique_carrier, COUNT(*) FROM flights WHERE 1000<=dep_delay<=1200 AND origin_state_abr='LA'  GROUP BY unique_carrier;   !--AND  dest_state_abr='CA'
+!-- query 3
+SELECT unique_carrier, COUNT(*) FROM flights WHERE 1000<=dep_delay<=1200 AND origin_state_abr='LA'  GROUP BY unique_carrier; 
+!-- SELECT unique_carrier, COUNT(*) FROM flights WHERE  origin_state_abr='LA'  GROUP BY unique_carrier;
+!-- query 4
+SELECT unique_carrier, COUNT(*) FROM flights WHERE 1000<=dep_delay<=1200 AND origin_state_abr='LA'  AND  dest_state_abr='CA' GROUP BY unique_carrier; 
+!-- query 5
+SELECT dest_state_abr, SUM(taxi_out) FROM flights WHERE 1500<=distance<=2500 unique_carrier = 'UA'  GROUP BY dest_state_abr; 
+!-- query 6
+SELECT dest_state_abr, SUM(taxi_out) FROM flights WHERE 1500<=distance<=2500 unique_carrier = 'UA'  AND origin = 'ATL' GROUP BY dest_state_abr; 
 
 
+!-- query 7
+SELECT unique_carrier, COUNT(dep_delay) FROM flights WHERE 300<=distance<=1000 GROUP BY unique_carrier;
+!--SELECT unique_carrier, COUNT(dep_delay) FROM flights WHERE distance >= 300 and distance <=1000 GROUP BY unique_carrier;
+!-- query 8
+SELECT unique_carrier, COUNT(dep_delay) FROM flights WHERE 1000<=distance<=1500 GROUP BY unique_carrier;
+!-- query 9
+SELECT unique_carrier, COUNT(dep_delay) FROM flights WHERE 1500<=distance<=2000 GROUP BY unique_carrier;
+
+!-- query 10
 SELECT unique_carrier, SUM(dep_delay) FROM flights WHERE 300<=distance<=1000 GROUP BY unique_carrier;
+!-- query 11
 SELECT unique_carrier, SUM(dep_delay) FROM flights WHERE 1000<=distance<=1500 GROUP BY unique_carrier;
+!-- query 12
 SELECT unique_carrier, SUM(dep_delay) FROM flights WHERE 1500<=distance<=2000 GROUP BY unique_carrier;
 
-
+!-- query 13
 SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE 300<=distance<=1000 GROUP BY unique_carrier;
+!-- query 14
 SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE 1000<=distance<=1500 GROUP BY unique_carrier;
+!-- query 15
 SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE 1500<=distance<=2000 GROUP BY unique_carrier;

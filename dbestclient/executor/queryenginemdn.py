@@ -886,7 +886,9 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
                 # print("n-d")
                 scaling_factor = np.array([self.n_total_points[key][k]
                                            for k in groups_no_categorical])
-
+            # print("SF",self.n_total_points[key])
+            # for item in self.n_total_points[key]:
+            #     print(item, self.n_total_points[key][item])
             # print("scaling_factor",scaling_factor)
             # print("self.n_total_point", self.n_total_point)
             pre_density, pre_reg, step = prepare_reg_density_data(
