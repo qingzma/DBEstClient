@@ -30,7 +30,7 @@ RUNTIME_CONF = {
 
     # integral related parameters
     "b_use_integral": False,
-    "n_division": 40, #20
+    "n_division": 20, #20
     # integral package related parameters
     "epsabs": 10.0,
     "epsrel": 0.1,
@@ -87,6 +87,7 @@ class DbestConfig:
             "n_hidden_layer": 1,
             "n_mdn_layer_node_reg": 10,
             "n_mdn_layer_node_density": 10,
+            "n_embedding_dim":20,
             "encoder": "binary",  # onehot, embedding
             "batch_size": 1000,
             "one_model": False,

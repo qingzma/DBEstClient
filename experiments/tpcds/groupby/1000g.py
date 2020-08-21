@@ -46,16 +46,17 @@ class Query1:
         #                     "'ss_sold_date_sk|ss_store_sk|ss_sales_price'")
 
         self.sql_executor.execute("set encoder='"+ encoder +"'")
-        self.sql_executor.execute("set n_mdn_layer_node_reg=20")          # 30
+        self.sql_executor.execute("set n_mdn_layer_node_reg=30")          # 30
         self.sql_executor.execute("set n_mdn_layer_node_density=30")      # 30
         self.sql_executor.execute("set n_jobs=1")                         # 2
         self.sql_executor.execute("set n_hidden_layer=1")                 # 1
-        self.sql_executor.execute("set n_epoch=20")                       # 6
-        self.sql_executor.execute("set n_gaussians_reg=8")                # 3
-        self.sql_executor.execute("set n_gaussians_density=8")           # 20
+        self.sql_executor.execute("set n_epoch=30")                       # 6
+        self.sql_executor.execute("set n_gaussians_reg=5")                # 3
+        self.sql_executor.execute("set n_gaussians_density=15")            # 20
+        self.sql_executor.execute("set n_embedding_dim=30")               # 
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/1t/ss_1t_5m.csv' GROUP BY ss_store_sk method uniform size 10000")#'num_points/ss_1t.csv' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/1t/ss_1t_25m.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_1t.csv' ")  # num_of_points57.csv
 
         # self.sql_executor.execute("create table "+"ss1000g_binary_30"+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/1t/ss_1t_5m.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_1t.csv' ")  # num_of_points57.csv
 
@@ -186,11 +187,12 @@ class Query1:
         self.sql_executor.execute("select avg(ss_sales_price)   from " + self.mdl_name +
                                   "  where  2452031 <=ss_sold_date_sk<= 2452395 group by   ss_store_sk",)
 
+        
 
 if __name__ == "__main__":
     query1 = Query1()
     # query1.build_model(mdl_name="ss_1t_binary",encoder="binary")
     # query1.build_model(mdl_name="ss_1t_onehot",encoder="onehot")
-    query1.build_model(mdl_name="ss_1t_embedding",encoder="embedding")
-    # query1.workload("ss_1t_binary",result2file="experiments/results/mdn/1t/",n_jobs=1)
+    query1.build_model(mdl_name="ss_1t_25m_embedding_epoch30_node_3030_gaussian_1530_embedding_30",encoder="embedding")
+    query1.workload("ss_1t_25m_embedding_epoch30_node_3030_gaussian_1530_embedding_30",result2file="experiments/results/mdn/1t/",n_jobs=1)
 

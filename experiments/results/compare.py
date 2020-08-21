@@ -141,7 +141,7 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
     for i in range(1, 11):
         prefix = agg_func+str(i)
         # print(prefix)
-        mdn = read_results("experiments/results/verdict/1t/" +
+        mdn = read_results("experiments/results/mdn/1t/" +
                            prefix+suffix, split_char=",")
         truth = read_results(
             "experiments/results/groundtruth/1t/"+prefix+".result")

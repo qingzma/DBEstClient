@@ -342,7 +342,7 @@ class RegMdnGroupBy():
             elif encoder == "embedding":
                 sentences = columns2sentences(z_group, x_points, y_points)
                 self.enc = WordEmbedding()
-                self.enc.fit(sentences, gbs=["gb"])
+                self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"])
                 gbs_data = z_group.reshape(1,-1)[0]
                 zs_encoded = self.enc.predicts(gbs_data)
                 # raise TypeError("embedding is not supported yet.")
@@ -1201,7 +1201,7 @@ class KdeMdn:
             elif encoder == "embedding":
                 sentences = columns2sentences(zs, xs, ys_data=None)
                 self.enc = WordEmbedding()
-                self.enc.fit(sentences, gbs=["gb"])
+                self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"])
                 gbs_data = zs.reshape(1,-1)[0]
                 zs_encoded = self.enc.predicts(gbs_data)
                 tensor_zs = torch.stack([torch.Tensor(i)

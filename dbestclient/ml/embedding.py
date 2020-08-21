@@ -100,7 +100,7 @@ class WordEmbedding:
     def predict(self, key):
         return(self.embedding[key])
 
-    def predicts(self, keys):
+    def predicts_low_efficient(self, keys):
         results = np.array(self.embedding[keys[0]])
         # print(results)
         for key in keys[1:]:
@@ -109,6 +109,16 @@ class WordEmbedding:
             
             results = np.vstack((results, self.embedding[key]))
             
+        return results
+    
+    def predicts(self, keys):
+        print("start embedding inference")
+        results = []
+        # print(results)
+        for key in keys:
+            results.extend(self.embedding[key])
+        results = np.reshape(results, (-1, self.dim))
+        print("end embedding inference")
         return results
 
 def dataframe2sentences(df:pd.DataFrame, gbs:list):
@@ -160,6 +170,7 @@ def columns2sentences(gbs_data, xs_data, ys_data=None):
 
 
 if __name__ == "__main__":
+    from datetime import datetime
     header=[
     "ss_sold_date_sk","ss_sold_time_sk","ss_item_sk","ss_customer_sk","ss_cdemo_sk","ss_hdemo_sk",
                                   "ss_addr_sk","ss_store_sk","ss_promo_sk","ss_ticket_number","ss_quantity","ss_wholesale_cost",
@@ -174,7 +185,15 @@ if __name__ == "__main__":
     word_embedding.fit(sentenses, gbs=["ss_store_sk"])
     print(word_embedding.predict('92'))
     print("*"*20)
+    t1= datetime.now()
     print(word_embedding.predicts(['92','70','4']))
+    t2 = datetime.now()
+    print("time cost is ", (t2-t1).total_seconds())
+
+    t1= datetime.now()
+    print(word_embedding.predicts_low_efficient(['92','70','4']))
+    t2 = datetime.now()
+    print("time cost is ", (t2-t1).total_seconds())
     # # file_name, Max_rate,groupby_column,Embedding_dimension_size,number_of_iteration
     # word_embedding.fit("/data/tpcds/40G/ss_600k_headers.csv",
     #                    0.2, "ss_store_sk", 20, 1)
