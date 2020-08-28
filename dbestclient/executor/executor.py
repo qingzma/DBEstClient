@@ -124,6 +124,7 @@ class SqlExecutor:
         else:
             print("Unrecognized SQL! Please check it!")
             exit(-1)
+        
 
         # execute the query
         if self.parser.if_nested_query():
@@ -421,13 +422,14 @@ class SqlExecutor:
                 return
 
             elif sql_type == "select":  # process SELECT query
+                start_time = datetime.now()
                 predictions = None
                 # DML, provide the prediction using models
                 mdl = self.parser.get_from_name()
                 gb_to_print, [
                     func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
                 if self.parser.if_where_exists():
-                    start = datetime.now()
+                    
                     print("OK")
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
                     # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
@@ -448,10 +450,18 @@ class SqlExecutor:
                                                  self.runtime_config, groups=None, filter_dbest=filter_dbest)
                     # predictions = model.predict_one_pass(
                     #     func, x_lb, x_ub, n_jobs=n_jobs)
-
+                elif func == "var":
+                    print("var!!")
+                    model = self.model_catalog.model_catalog[mdl +
+                                                             self.runtime_config["model_suffix"]]
+                    x_header_density = model.density_column
+                    # print(x_header_density)
+                    predictions = model.predicts("var",runtime_config=self.runtime_config)
+                    # return predictions
                 else:
                     print(
                         "support for query without where clause is not implemented yet! abort!")
+                    return 
 
                 # if not self.parser.if_contain_groupby():  # if group by is not involved in the query
                 #     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
@@ -542,8 +552,8 @@ class SqlExecutor:
                 #             #     pass
 
                 if self.runtime_config['b_show_latency']:
-                    end = datetime.now()
-                    time_cost = (end - start).total_seconds()
+                    end_time = datetime.now()
+                    time_cost = (end_time - start_time).total_seconds()
                     print("Time cost: %.4fs." % time_cost)
                 print("------------------------")
                 return predictions

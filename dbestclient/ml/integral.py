@@ -99,6 +99,11 @@ def prepare_reg_density_data(density, x_lb: float, x_ub: float, groups: list, re
 
     return pre_density, pre_reg, step
 
+def prepare_var(density, groups, runtime_config):
+    print("groups", groups)
+
+    return density.var(groups, runtime_config) #{"group":99999.99}
+
 
 def approx_count(pred_density, step: float):
     #  the integral only use the left point in the interval, not the central point, need improvement

@@ -540,17 +540,17 @@ if __name__ == "__main__":
     # DML
     # parser.parse(
     #     "select z, count ( y ) from t_m where x BETWEEN  unix_timestamp('2019-02-28T16:00:00.000Z') and unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
-    # parser.parse(
-    #     "select z, count ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+    parser.parse(
+        "select z, var ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
     # print(parser.if_contain_scaling_factor())
-    # if parser.if_contain_groupby():
-    #     print("yes, group by")
-    #     print(parser.get_groupby_value())
-    # else:
-    #     print("no group by")
-    # if not parser.if_ddl():
-    #     print("DML")
-    #     print(parser.get_dml_aggregate_function_and_variable())
+    if parser.if_contain_groupby():
+        print("yes, group by")
+        print(parser.get_groupby_value())
+    else:
+        print("no group by")
+    if not parser.if_ddl():
+        print("DML")
+        print(parser.get_dml_aggregate_function_and_variable())
 
     # if parser.if_where_exists():
     #     print("where exists!")
@@ -559,14 +559,14 @@ if __name__ == "__main__":
 
     # print("method, ", parser.get_sampling_method())
 
-    # print("scaling factor ", parser.get_scaling_method())
+    # # print("scaling factor ", parser.get_scaling_method())
 
     # # print(parser.get_where_x_and_range())
     # print(parser.get_dml_where_categorical_equal_and_range())
 
     # print(parser.get_query_type())
 
-    # # print(parser.get_filter())
+    # print(parser.get_filter())
 
     # ---------------------------------------------------------------------------------------------------------------------------------
     # set SQL
@@ -583,5 +583,5 @@ if __name__ == "__main__":
 
     # ---------------------------------------------------------------------------------------------------------------------------------
     # show SQL
-    parser.parse("show tables")
-    print(parser.get_query_type())
+    # parser.parse("show tables")
+    # print(parser.get_query_type())

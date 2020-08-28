@@ -194,5 +194,5 @@ if __name__ == "__main__":
     # query1.build_model(mdl_name="ss_1t_binary",encoder="binary")
     # query1.build_model(mdl_name="ss_1t_onehot",encoder="onehot")
     query1.build_model(mdl_name="ss_1t_25m_embedding_epoch30_node_3030_gaussian_1530_embedding_30",encoder="embedding")
-    query1.workload("ss_1t_25m_embedding_epoch30_node_3030_gaussian_1530_embedding_30",result2file="experiments/results/mdn/1t/",n_jobs=1)
+    query1.workload("ss_1t_25m_embedding_epoch40_node_4040_gaussian_88_embedding_40",result2file="experiments/results/mdn/1t/",n_jobs=1)
 

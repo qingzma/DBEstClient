@@ -20,7 +20,7 @@ from torch.multiprocessing import Pool as PoolGPU
 # from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
-                                     prepare_reg_density_data)
+                                     prepare_reg_density_data, prepare_var)
 from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.socket import app_client
@@ -146,17 +146,32 @@ class MdnQueryEngine(GenericQueryEngine):
             time_cost = (end - start).total_seconds()
 
         return result, time_cost
+    
+    def approx_var(self,runtime_config):
+        start = datetime.now()
+        print("within approx_var!")
 
-    def predict(self, func, x_lb, x_ub, groupby_value, runtime_config):
+        result = 9999999.9999
+        if runtime_config['b_show_latency'] and result != None:
+            end = datetime.now()
+            time_cost = (end - start).total_seconds()
+
+        return result, time_cost
+
+    def predict(self, func, x_lb=None, x_ub=None, groupby_value=None, runtime_config=None):
         if func.lower() == "count":
             p, t = self.approx_count(x_lb, x_ub, groupby_value, runtime_config)
         elif func.lower() == "sum":
             p, t = self.approx_sum(x_lb, x_ub, groupby_value, runtime_config)
         elif func.lower() == "avg":
             p, t = self.approx_avg(x_lb, x_ub, groupby_value, runtime_config)
+        elif func.lower() == "var":
+            p, t = self.approx_var(runtime_config=runtime_config)
         else:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
+    
+    
 
     # def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, filter_dbest=None):  # result2file=None
     #     result2file = self.config.get_config()["result2file"]
@@ -206,7 +221,7 @@ class MdnQueryEngine(GenericQueryEngine):
     #                 f.write(key + "," + str(predictions[key]))
     #     return predictions, times
 
-    def predicts(self, func: str, x_lb: float, x_ub: float,  x_categorical_conditions, runtime_config=None, groups: list = None, filter_dbest=None, time2exclude_from_multiprocessing=None):
+    def predicts(self, func: str, x_lb: float=None, x_ub: float=None,  x_categorical_conditions=None, runtime_config=None, groups: list = None, filter_dbest=None, time2exclude_from_multiprocessing=None):
         if time2exclude_from_multiprocessing is not None:
             t_after_multiple_processing = datetime.now()
             print("should reduce time {} from the query response time.".format(
@@ -223,7 +238,7 @@ class MdnQueryEngine(GenericQueryEngine):
             n_jobs = runtime_config["n_jobs"]
         # result2file = self.config.get_config()["result2file"]
 
-        if func.lower() not in ("count", "sum", "avg"):
+        if func.lower() not in ("count", "sum", "avg","var"):
             raise ValueError("function not supported: "+func)
         if groups is None:  # provide predictions for all groups.
             groups = self.groupby_values
@@ -253,102 +268,112 @@ class MdnQueryEngine(GenericQueryEngine):
                         f.write(str(key) + "," + str(results[key]) + "\n")
             return results
 
-        if n_jobs == 1:
-            # print(groups)
-            # print(self.n_total_point)
-            # print(groups[0], "*******************")
-            # print(",".join(groups[0]))
-            # for key in groups:
-            # print("key is ", key, end="----- ")
-            # print(",".join(key))
-            if len(groups[0].split(",")) == 1:  # 1d group by
-                # print(groups[0].split(","))
-                # print("1d")
-                scaling_factor = np.array([self.n_total_point[key]
-                                           for key in groups])
-            else:
-                # print(groups[0].split(","))
-                # print("n-d")
-                scaling_factor = np.array([self.n_total_point[key]
-                                           for key in groups])
-            # print("self.n_total_point", self.n_total_point)
-            pre_density, pre_reg, step = prepare_reg_density_data(
-                self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
-            # print("pre_density, pre_reg",pre_density,)
-            # print(pre_reg)
-
-            if func.lower() == "count":
-                preds = approx_count(pre_density, step)
-                preds = np.multiply(preds, scaling_factor)
-            elif func.lower() == "sum":
-                preds = approx_sum(pre_density, pre_reg, step)
-                preds = np.multiply(preds, scaling_factor)
-            else:  # avg
-                preds = approx_avg(pre_density, pre_reg, step)
-            results = dict(zip(groups, preds))
-
-        else:
-            runtime_config_process = shrink_runtime_config(
-                runtime_config)
-            # use multi-processing to achieve parallel
-            if runtime_config["slaves"].is_empty():
-                instances = []
-                results = {}
-                # print("n_jobs,", n_jobs)
-                n_per_chunk = math.ceil(len(groups)/n_jobs)
-                group_chunks = [groups[i:i+n_per_chunk]
-                                for i in range(0, len(groups), n_per_chunk)]
-                # print("create Pool...", datetime.now())
-                if runtime_config["device"] == "cpu":
-                    pool = PoolCPU(processes=n_jobs)
+        if func.lower() in ["count", "sum", "avg"]:
+            if n_jobs == 1:
+                # print(groups)
+                # print(self.n_total_point)
+                # print(groups[0], "*******************")
+                # print(",".join(groups[0]))
+                # for key in groups:
+                # print("key is ", key, end="----- ")
+                # print(",".join(key))
+                if len(groups[0].split(",")) == 1:  # 1d group by
+                    # print(groups[0].split(","))
+                    # print("1d")
+                    scaling_factor = np.array([self.n_total_point[key]
+                                            for key in groups])
                 else:
-                    pool = PoolGPU(processes=n_jobs)
-                    # from torch.multiprocessing import Pool, set_start_method
-                    # try:
-                    #     set_start_method('spawn')
-                    # except RuntimeError:
-                    #     print("Fail to set start method as spawn for pytorch multiprocessing, " +
-                    #           "use default in advance. (see queryenginemdn "
-                    #           "for more info.)")
+                    # print(groups[0].split(","))
+                    # print("n-d")
+                    scaling_factor = np.array([self.n_total_point[key]
+                                            for key in groups])
+                # print("self.n_total_point", self.n_total_point)
+                pre_density, pre_reg, step = prepare_reg_density_data(
+                    self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
+                # print("pre_density, pre_reg",pre_density,)
+                # print(pre_reg)
 
-                # with Pool(processes=n_jobs) as pool:
-                # print(self.group_keys_chunk)
+                if func.lower() == "count":
+                    preds = approx_count(pre_density, step)
+                    preds = np.multiply(preds, scaling_factor)
+                elif func.lower() == "sum":
+                    preds = approx_sum(pre_density, pre_reg, step)
+                    preds = np.multiply(preds, scaling_factor)
+                elif func.lower() == "avg":  # avg
+                    preds = approx_avg(pre_density, pre_reg, step)
+                else:
+                    raise TypeError("wrong aggregate!")
+                results = dict(zip(groups, preds))
 
-                time2exclude_from_multiprocessing = datetime.now()
+            else:
+                runtime_config_process = shrink_runtime_config(
+                    runtime_config)
+                # use multi-processing to achieve parallel
+                if runtime_config["slaves"].is_empty():
+                    instances = []
+                    results = {}
+                    # print("n_jobs,", n_jobs)
+                    n_per_chunk = math.ceil(len(groups)/n_jobs)
+                    group_chunks = [groups[i:i+n_per_chunk]
+                                    for i in range(0, len(groups), n_per_chunk)]
+                    # print("create Pool...", datetime.now())
+                    if runtime_config["device"] == "cpu":
+                        pool = PoolCPU(processes=n_jobs)
+                    else:
+                        pool = PoolGPU(processes=n_jobs)
+                        # from torch.multiprocessing import Pool, set_start_method
+                        # try:
+                        #     set_start_method('spawn')
+                        # except RuntimeError:
+                        #     print("Fail to set start method as spawn for pytorch multiprocessing, " +
+                        #           "use default in advance. (see queryenginemdn "
+                        #           "for more info.)")
 
-                for sub_group in group_chunks:
+                    # with Pool(processes=n_jobs) as pool:
+                    # print(self.group_keys_chunk)
 
-                    i = pool.apply_async(
-                        self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest, time2exclude_from_multiprocessing))
-                    instances.append(i)
+                    time2exclude_from_multiprocessing = datetime.now()
 
-                for i in instances:
-                    result = i.get()
-                    results.update(result)
-            else:  # slaves are used
-                slaves = runtime_config["slaves"]
-                instances = []
-                results = {}
-                n_jobs = slaves.size()
-                n_per_chunk = math.ceil(len(groups)/n_jobs)
-                group_chunks = [groups[i:i+n_per_chunk]
-                                for i in range(0, len(groups), n_per_chunk)]
+                    for sub_group in group_chunks:
 
-                pool = ThreadPool(processes=n_jobs)
-                hosts = slaves.get()
-                for sub_group, host in zip(group_chunks, hosts):
-                    # print("host", host)
-                    query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
-                                 sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
-                    i = pool.apply_async(
-                        app_client.run, (hosts[host].host, hosts[host].port, "select", query))
-                    instances.append(i)
+                        i = pool.apply_async(
+                            self.predicts, (func, x_lb, x_ub, x_categorical_conditions, runtime_config_process, sub_group, filter_dbest, time2exclude_from_multiprocessing))
+                        instances.append(i)
 
-                for i in instances:
-                    result = i.get()
-                    results.update(result)
-                    # result = app_client.run(
-                    #     host, slaves.get()[host], "select", query)
+                    for i in instances:
+                        result = i.get()
+                        results.update(result)
+                else:  # slaves are used
+                    slaves = runtime_config["slaves"]
+                    instances = []
+                    results = {}
+                    n_jobs = slaves.size()
+                    n_per_chunk = math.ceil(len(groups)/n_jobs)
+                    group_chunks = [groups[i:i+n_per_chunk]
+                                    for i in range(0, len(groups), n_per_chunk)]
+
+                    pool = ThreadPool(processes=n_jobs)
+                    hosts = slaves.get()
+                    for sub_group, host in zip(group_chunks, hosts):
+                        # print("host", host)
+                        query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
+                                    sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
+                        i = pool.apply_async(
+                            app_client.run, (hosts[host].host, hosts[host].port, "select", query))
+                        instances.append(i)
+
+                    for i in instances:
+                        result = i.get()
+                        results.update(result)
+                        # result = app_client.run(
+                        #     host, slaves.get()[host], "select", query)
+        
+        elif func.lower() == "var":
+            print("predict var")
+
+            results= prepare_var(self.kde, groups=groups, runtime_config=runtime_config)#{"group":999.99}
+        else:
+            raise TypeError("unexpected aggregated.")
         runtime_config["b_print_to_screen"] = b_print_to_screen
         if runtime_config["b_print_to_screen"]:
             for key in results:

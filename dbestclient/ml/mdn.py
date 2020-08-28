@@ -1438,6 +1438,66 @@ class KdeMdn:
             return result
         else:
             return gm(pis[0], mus[0], sigmas[0], xs, b_plot=b_plot, n_division=runtime_config["n_division"])
+    
+    def var(self, zs, runtime_config):
+        encoder = self.config.config["encoder"]
+        device = runtime_config["device"]
+        if encoder == "onehot":
+            zs_encoded = self.enc.transform(zs).toarray()
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_encoded])
+        elif encoder == "binary":
+            zs_encoded = self.enc.transform(zs).to_numpy()
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_encoded])
+        elif encoder == "embedding":
+            # zs_transformed =  zs.reshape(1,-1)[0]
+            zs_transformed =  np.array(zs).reshape(1,-1)[0]
+            zs_encoded = self.enc.predicts(zs_transformed)
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs_encoded])
+        else:
+            tensor_zs = torch.stack([torch.Tensor(i)
+                                     for i in zs])
+        tensor_zs = tensor_zs.to(device)
+        self.model = self.model.to(device)
+
+        pis, sigmas, mus = self.model(tensor_zs)
+
+        pis = pis.cpu()
+        sigmas = sigmas.cpu()
+        mus = mus.cpu()
+        mus = mus.detach().numpy().reshape(len(zs), -1)  # [0]
+        pis = pis.detach().numpy()  # [0]  # .reshape(-1,2)
+        sigmas = sigmas.detach().numpy().reshape(
+            len(sigmas), -1)  # [0]
+        print("pis",pis)
+        print("sigmas",sigmas)
+        print("mus",mus)
+        print("mean, width", self.meanx, self.widthx)
+        sigmas= sigmas * 0.5 * self.widthx# + self.meanx
+        mus = mus * 0.5 * self.widthx + self.meanx
+        print("mus",mus)
+        print("mus[0]",mus[0])
+        print("pis[0]",pis[0])
+        print("sigma[0]", sigmas[0])
+
+        mu_avg_2 = np.power(np.sum(np.multiply(mus,pis,dtype="float64"), axis=1),2)
+        print("mu_avg_2",mu_avg_2[0])
+        mu_2 = np.power(mus,2,dtype="float64")
+        sigmas_2 = np.power(sigmas,2,dtype="float64")
+        adds = np.add(mu_2, sigmas_2,dtype="float64")
+        print("adds", adds[0])
+        sums =np.multiply(adds, pis,dtype="float64").sum(axis=1,dtype="float64")
+        print("sums",sums[0])
+        print("types",type(sums[0]))
+        result = np.subtract(sums, mu_avg_2,dtype="float64").tolist()
+        result = np.sqrt(result)
+        print("result",result)
+        print(len(result))
+        result = dict(zip(zs, result))
+        return result
+
 
     def normalize(self, x: list, mean: float, width: float):
         """normalize the data

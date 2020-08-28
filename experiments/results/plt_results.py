@@ -192,6 +192,100 @@ def plt_tpcds_universal_relative_error_scalability():
 
     plt.show()
 
+def plt_tpcds_universal_relative_error_scalability_count():
+    plt.rcParams.update({'font.size': 16})
+    width = 0.2
+    # data = [
+    #     [0.011013,	0.010773,	0.008883],
+    #     [0.015733,	0.013967,	0.013487],
+    #     [0.021001,	0.025905,	0.020196],
+    # ]
+
+    data = [
+        [0.0149,	0.0108,	0.0118],
+        [0.0213,	0.0168,	0.0126],
+        [0.0203,	0.0259,	0.0200],
+    ]
+
+
+    X = np.arange(3)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='lower left')
+
+    plt.xticks(X + 1 * width, ("10", '100', '1000'))
+    ax.set_ylabel("Relative Error (%)")
+    ax.set_xlabel("TPC-DS Scaling Factor")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.17)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True)
+    plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability_count.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+def plt_tpcds_universal_relative_error_scalability_sum():
+    plt.rcParams.update({'font.size': 16})
+    width = 0.2
+    # data = [
+    #     [0.011013,	0.010773,	0.008883],
+    #     [0.015733,	0.013967,	0.013487],
+    #     [0.021001,	0.025905,	0.020196],
+    # ]
+
+    data = [
+        [0.0148,	0.0111,	0.0112],
+        [0.0200,	0.0178,	0.0125],
+        [0.0216,	0.0259,	0.0203],
+    ]
+
+    X = np.arange(3)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='lower left')
+
+    plt.xticks(X + 1 * width, ("10", '100', '1000'))
+    ax.set_ylabel("Relative Error (%)")
+    ax.set_xlabel("TPC-DS Scaling Factor")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.17)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True)
+    plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability_sum.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+
 def plt_tpcds_universal_response_time_scalability():
     plt.rcParams.update({'font.size': 20})
     width = 0.3
@@ -534,6 +628,55 @@ def plt_flight_relative_error():
 
     plt.show()
 
+def plt_flight_relative_error_overall():
+    plt.rcParams.update({'font.size': 12})
+    width = 0.3
+    data = [
+        [0.01300,	0.01310,	0.00022,	0.00877],
+        [0.01131,	0.01132,	0.00008,	0.00757],
+        [0.00674,	0.00678,	0.00016,	0.00456],
+        [0.00517,	0.00516,	0.000075,	0.00369],
+    ]
+
+    data = [
+        [0.00877, 0.00456],
+        [0.00757, 0.00369],
+    ]
+
+
+    X = np.arange(2)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    # p3 = plt.bar(
+    #     X + 2*width, data[2], color=colors["DBEst_10k"], width=width, alpha=0.7)
+    # p4 = plt.bar(
+    #     X + 3*width, data[3], color=colors["BlinkDB_10k"], width=width, alpha=0.3)
+    # p5 = plt.bar(
+    #     X + 4*width, data[4], color=colors["green1"], width=width, alpha=alpha['6'])
+
+    plt.legend((p1[0], p2[0]),# p3[0], p4[0]),#,p5[0]),
+               ('DBEst++', 'DeepDB', 'DBEst++_5m', 'DeepDB_5m',"haha"), loc='lower left', prop={'size': 12})
+
+    plt.xticks(X + 0.5 * width, ("1m", '5m', 'AVG', 'OVERALL'))
+    ax.set_xlabel("Sample Size")
+    ax.set_ylabel("Relative Error (%)")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    plt.subplots_adjust(bottom=0.25) #0.14
+    # plt.subplots_adjust(left=0.23)
+
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
+    plt.savefig("/Users/scott/Pictures/flight_accuracy.pdf")
+    print("figure saved.")
+
+    plt.show()
+
 def plt_flight_response_time():
     plt.rcParams.update({'font.size': 20})
     width = 0.3
@@ -576,12 +719,12 @@ def plt_flight_response_time():
     plt.show()
 
 def plt_flight_space():
-    plt.rcParams.update({'font.size': 20})
+    plt.rcParams.update({'font.size': 12}) #20
     width = 0.3
     data = [
         [170,	35],
-        [1200,	1200],
-        # [0.021001,	0.025905,	0.020196],
+        # [1200,	1200],
+        [3502, 4314],
     ]
 
     X = np.arange(2)
@@ -607,8 +750,8 @@ def plt_flight_space():
     # ax.yaxis.set_major_formatter(formatter)
     # plt.subplots_adjust(bottom=0.11)
     # plt.subplots_adjust(left=0.12)
-    plt.subplots_adjust(bottom=0.18)
-    plt.subplots_adjust(left=0.2)
+    # plt.subplots_adjust(bottom=0.18)
+    # plt.subplots_adjust(left=0.2)
 
     add_value_labels(ax,b_float=False,b_percent=False,fontsize=12)
     plt.savefig("/Users/scott/Pictures/flight_space.pdf")
@@ -625,7 +768,7 @@ def plt_distributed():
     y2=[7,7,7,7,7,7]
     plt.plot(x,y1,'-g', marker='o', linewidth=3, label='DBEst++')#color='tab:blue', marker='o')
     plt.plot(x,y2,':b', marker='x', linewidth=3, label='DeepDB')#color='g', marker='*')
-    plt.xlabel("Number of Processes")
+    plt.xlabel("Degree of Parallelism")
     plt.ylabel("Time Cost (s)")
     plt.xlim([0,20])
     plt.xticks(np.arange(0, 20, 2.0))
@@ -648,9 +791,12 @@ if __name__ == "__main__":
     # plt_tpcds_compact_relative_error()
     # plt_tpcds_compact_relative_error_scalability()
     # plt_tpcds_compact_response_time_scalability()
-    plt_tpcds_compact_space_scalability()
+    # plt_tpcds_compact_space_scalability()
     # plt_3d_chart()
+    # plt_tpcds_universal_relative_error_scalability_count()
+    # plt_tpcds_universal_relative_error_scalability_sum()
 
+    plt_flight_relative_error_overall()
     # plt_flight_relative_error()
     # plt_flight_response_time()
     # plt_flight_space()
