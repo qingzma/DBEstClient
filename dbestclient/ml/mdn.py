@@ -340,11 +340,26 @@ class RegMdnGroupBy():
                 self.enc = ce.BinaryEncoder(cols=columns)
                 zs_encoded = self.enc.fit_transform(z_group).to_numpy()
             elif encoder == "embedding":
+                print("z_group before converting  ",z_group[0:10], " len(z_group) ", len(z_group))
+
+                temp_z_group=[]
+                for ez in z_group:
+                    tz=""
+                    for i in range(0,len(ez)):
+                        tz=tz+ez[i]+"_"
+                    temp_z_group.append(tz)
+                    #temp_z_group.append(ez[0]+"_"+ez[1])
+                z_group=temp_z_group
+                print("z_group after converting   ",z_group[0:10], " len(z_group) ", len(z_group))
+
+                
                 sentences = columns2sentences(z_group, x_points, y_points)
+                #print(sentences, len(sentences))
                 self.enc = WordEmbedding()
                 self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"])
-                gbs_data = z_group.reshape(1,-1)[0]
-                zs_encoded = self.enc.predicts(gbs_data)
+                #gbs_data = z_group.reshape(1,-1)[0]
+                print("gbs_data    ",len(z_group), "some samples: ",z_group[0:10])
+                zs_encoded = self.enc.predicts(z_group)
                 # raise TypeError("embedding is not supported yet.")
 
             if self.b_normalize_data:
@@ -574,8 +589,21 @@ class RegMdnGroupBy():
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
         elif encoder == "embedding":
-            zs_transformed =  z_group.reshape(1,-1)[0]
-            zs_encoded = self.enc.predicts(zs_transformed)
+            print("z_group before converting  ",z_group[0:10], " len(z_group) ", len(z_group))
+            temp_z_group=[]
+            for ez in z_group:
+                tz=""
+                for i in range(0,len(ez)):
+                    tz=tz+ez[i]+"_"
+                temp_z_group.append(tz)
+            #for ez in z_group:
+            #   temp_z_group.append(ez[0]+"_"+ez[1])
+            z_group=temp_z_group
+            print("z_group after converting   ",z_group[0:10], " len(z_group) ", len(z_group))
+            #zs_transformed =  z_group.reshape(1,-1)[0]
+			
+            zs_encoded = self.enc.predicts(z_group)
+			
             x_points = x_points[:, np.newaxis]
             xzs_encoded = np.concatenate(
                 [x_points, zs_encoded], axis=1).tolist()
@@ -1199,11 +1227,23 @@ class KdeMdn:
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
             elif encoder == "embedding":
+                print("zs are ",zs [0:10], " len(zs) ",len(zs))
+                temp_z_group=[]
+                for ez in zs:
+                    tz=""
+                    for i in range(0,len(ez)):
+                        tz=tz+ez[i]+"_"
+                    temp_z_group.append(tz)
+                #for ez in zs:
+                #    temp_z_group.append(ez[0]+"_"+ez[1])
+                zs=temp_z_group
+                print("zs after converting   ",zs[0:10], " len(zs) ", len(zs))
+				
                 sentences = columns2sentences(zs, xs, ys_data=None)
                 self.enc = WordEmbedding()
                 self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"])
-                gbs_data = zs.reshape(1,-1)[0]
-                zs_encoded = self.enc.predicts(gbs_data)
+                #gbs_data = zs.reshape(1,-1)[0]
+                zs_encoded = self.enc.predicts(zs)
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
                 input_dim =  self.enc.dim
@@ -1389,8 +1429,21 @@ class KdeMdn:
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
         elif encoder == "embedding":
-            zs_transformed =  zs.reshape(1,-1)[0]
-            zs_encoded = self.enc.predicts(zs_transformed)
+            print("zs before converting   ",zs[0:10], " len(zs) ", len(zs))
+            temp_z_group=[]
+            for ez in zs:
+                tz=""
+                for i in range(0,len(ez)):
+                    tz=tz+ez[i]+"_"
+                temp_z_group.append(tz)
+            #for ez in zs:
+            #    temp_z_group.append(ez[0]+"_"+ez[1])
+            zs=temp_z_group
+            print("zs after converting   ",zs[0:10], " len(zs) ", len(zs))
+            
+			
+			#zs_transformed =  zs.reshape(1,-1)[0]
+            zs_encoded = self.enc.predicts(zs)
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
         else:

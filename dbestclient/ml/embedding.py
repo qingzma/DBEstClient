@@ -16,6 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from difflib import SequenceMatcher
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 import math
 import multiprocessing
@@ -79,20 +83,24 @@ class WordEmbedding:
         vocab = w2v.wv.vocab   # Vocabulary
         self.dim = dim
 
-        # print("vocab", vocab)
+        #print("vocab", vocab)
         # print(word_vectors)
         count = 0
         Group = {}
         group_by_column =  gbs[0]
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+        print(group_by_column)
         for each in vocab:
             if group_by_column in each:
-                Group[each.split(" ")[1].split(".")[0]
-                        ] = word_vectors.vectors[count]
+                Group[each.split(" ")[1]] = word_vectors.vectors[count]
+                #Group[each.split(" ")[1].split(".")[0]
+                        #] = word_vectors.vectors[count]
             count = count+1
         # print("finish")
         self.embedding = Group
-        # print("embedding", Group)
-
+        #print("embedding", self.embedding.keys(), "len(Group.keys()):", len(Group.keys()))
+        if "2776.68" in self.embedding.keys():
+            print("Horay*")
         print("finish training embedding")
         return Group
         
@@ -114,7 +122,11 @@ class WordEmbedding:
     def predicts(self, keys):
         print("start embedding inference")
         results = []
-        # print(results)
+        a=set(keys)
+        b=set(self.embedding.keys())
+        c=a-b
+        print("difference is: ",len(c))
+		
         for key in keys:
             results.extend(self.embedding[key])
         results = np.reshape(results, (-1, self.dim))
@@ -153,17 +165,29 @@ def columns2sentences(gbs_data, xs_data, ys_data=None):
     # print("gbs_data",gbs_data)
     # print("xs_data",xs_data)
     # print("ys_data",ys_data)
-    if len(gbs_data[0])>1:
-        raise TypeError("Embedding only supports one GROUP BY attribute at this moment, use use binay or onehot encoding instead.")
+    #if len(gbs_data[0])>1:
+    #    raise TypeError("Embedding only supports one GROUP BY attribute at this moment, use use binay or onehot encoding instead.")
     # cols_gb=["cols_gb"]
     # cols_x = ["cols_x0"]
     # cols_y = ["cols_y"] if ys_data is not None else []
-    gbs_data = gbs_data.reshape(1,-1)[0]
+    # print("gbs_data_B", gbs_data)
+    #gbs_data = gbs_data.reshape(1,-1)[0]
+
+    cn=0
+    for each_e in gbs_data:
+        if each_e=='2776.68':
+            cn=cn+1
+            #print ("@@yesy ther is@@",each_e)
     # print("gbs_data",gbs_data)
+    print("after compresing ",cn)
+    #print(similar("Apple","Appel"))
+    
     if ys_data is None:
         df = pd.DataFrame({"gb":gbs_data, "x":xs_data})
     else:
+        #print("gbs_data", gbs_data)
         df = pd.DataFrame({"gb":gbs_data, "x":xs_data,"y":ys_data})
+
     
 
     return dataframe2sentences(df, ["gb"])

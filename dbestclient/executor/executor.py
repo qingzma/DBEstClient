@@ -169,6 +169,7 @@ class SqlExecutor:
                         headers=table_header, usecols={"y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": None})
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
+					
                     sampler = DBEstSampling(headers=table_header, usecols={
                                             "y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": groupby_attribute})
 
