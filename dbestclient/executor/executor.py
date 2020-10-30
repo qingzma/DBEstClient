@@ -13,8 +13,6 @@ from multiprocessing import set_start_method as set_start_method_cpu
 import dill
 import numpy as np
 import torch
-from torch.multiprocessing import set_start_method as set_start_method_torch
-
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (
@@ -31,6 +29,7 @@ from dbestclient.tools.dftools import (get_group_count_from_df,
                                        get_group_count_from_table)
 from dbestclient.tools.running_parameters import RUNTIME_CONF, DbestConfig
 from dbestclient.tools.variables import Slave, UseCols
+from torch.multiprocessing import set_start_method as set_start_method_torch
 
 
 class SqlExecutor:
@@ -124,7 +123,6 @@ class SqlExecutor:
         else:
             print("Unrecognized SQL! Please check it!")
             exit(-1)
-        
 
         # execute the query
         if self.parser.if_nested_query():
@@ -140,9 +138,6 @@ class SqlExecutor:
                 # DDL, create the model as requested
                 mdl = self.parser.get_ddl_model_name()
                 tbl = self.parser.get_from_name()
-
-                if self.parser.if_model_need_filter():
-                    self.config.set_parameter("accept_filter", True)
 
                 # remove unnecessary charactor '
                 tbl = tbl.replace("'", "")
@@ -162,6 +157,9 @@ class SqlExecutor:
                 if table_header is not None:
                     table_header = table_header.split(
                         self.config.get_config()['csv_split_char'])
+                if xheader_continous:  # there is no continuous attribute
+                    if self.parser.if_model_need_filter():
+                        self.config.set_parameter("accept_filter", True)
 
                 # make samples
                 if not self.parser.if_contain_groupby():  # if group by is not involved
@@ -169,7 +167,7 @@ class SqlExecutor:
                         headers=table_header, usecols={"y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": None})
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
-					
+
                     sampler = DBEstSampling(headers=table_header, usecols={
                                             "y": yheader, "x_continous": xheader_continous, "x_categorical": xheader_categorical, "gb": groupby_attribute})
 
@@ -395,6 +393,7 @@ class SqlExecutor:
                                 qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
                                        runtime_config=self.runtime_config)
                             else:
+                                print(xys)
                                 qe = MdnQueryEngineXCategorical(
                                     self.config.copy())
                                 qe.fit(mdl, tbl, xys, n_total_point, usecols={
@@ -430,7 +429,7 @@ class SqlExecutor:
                 gb_to_print, [
                     func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
                 if self.parser.if_where_exists():
-                    
+
                     print("OK")
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
                     # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
@@ -457,12 +456,13 @@ class SqlExecutor:
                                                              self.runtime_config["model_suffix"]]
                     x_header_density = model.density_column
                     # print(x_header_density)
-                    predictions = model.predicts("var",runtime_config=self.runtime_config)
+                    predictions = model.predicts(
+                        "var", runtime_config=self.runtime_config)
                     # return predictions
                 else:
                     print(
                         "support for query without where clause is not implemented yet! abort!")
-                    return 
+                    return
 
                 # if not self.parser.if_contain_groupby():  # if group by is not involved in the query
                 #     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(

@@ -8,12 +8,11 @@ import re
 import warnings
 
 import sqlparse
+from dbestclient.tools.date import unix_timestamp
 from sqlparse import sql
 # from sqlparse.sql import Function, Identifier, IdentifierList
 # from sqlparse.sql import Identifier
 from sqlparse.tokens import DDL, DML, Keyword
-
-from dbestclient.tools.date import unix_timestamp
 
 # from dataclasses import replace
 # from os.path import abspath
@@ -334,10 +333,15 @@ class DBEstParser:
 
     def get_y(self):
         item = self.parsed.tokens[4].value
-        index_comma = item.index(",")
-        item = item[:index_comma]
+        # print("item", item)
+        try:
+            index_comma = item.index(",")
+            item = item[:index_comma]
+        except ValueError:
+            pass
         y_list = item.lower().replace(
             "(", " ").replace(")", " ").replace(",", " ").split()
+        # print("y_list", y_list)
         # print("y_list", y_list)
         if y_list[2] not in ["real", "categorical"]:
             raise TypeError("Unsupported type for " +
@@ -380,11 +384,16 @@ class DBEstParser:
 
     def get_x(self):
         item = self.parsed.tokens[4].value
-        index_comma = item.index(",")
-        item = item[index_comma+1:]
+        # print("item ", item)
+        try:
+            index_comma = item.index(",")
+            item = item[index_comma+1:]
+        except ValueError:
+            pass
+
         x_list = item.lower().replace(
-            "(", "").replace(")", "").replace(",", " ").split()
-        # print(x_list)
+            "(", " ").replace(")", " ").replace(",", " ").split()
+        # print("x_list", x_list, "---------->")
         continous = []
         categorical = []
         for idx in range(1, len(x_list), 2):
@@ -512,25 +521,27 @@ if __name__ == "__main__":
     parser = DBEstParser()
     # ---------------------------------------------------------------------------------------------------------------------------------
     # DDL
-    # parser.parse(
-    #     "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'")
+    parser.parse(
+        "create table mdl ( y categorical distinct, x0 real , x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'")
+    parser.parse(
+        "create table mdl ( y categorical distinct, x0 categorical , x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'")
 
-    # print(parser.get_query_type())
-    # if parser.if_contain_groupby():
-    #     print("yes, group by")
-    #     print(parser.get_groupby_value())
-    # else:
-    #     print("no group by")
+    print(parser.get_query_type())
+    if parser.if_contain_groupby():
+        print("yes, group by")
+        print(parser.get_groupby_value())
+    else:
+        print("no group by")
 
-    # if parser.if_ddl():
-    #     print("ddl")
-    #     print(parser.get_ddl_model_name())
-    #     print(parser.get_y())
-    #     print(parser.get_x())
-    #     print(parser.get_from_name())
-    #     print(parser.get_sampling_method())
-    #     print(parser.get_sampling_ratio())
-    #     print(parser.if_model_need_filter())
+    if parser.if_ddl():
+        print("ddl")
+        print(parser.get_ddl_model_name())
+        print(parser.get_y())
+        print(parser.get_x())
+        print(parser.get_from_name())
+        print(parser.get_sampling_method())
+        print(parser.get_sampling_ratio())
+        # print(parser.if_model_need_filter())
 
     # parser.parse(
     #     "select count(y) from t_m where    1 <=x <=2 GROUP BY z1, z2 ,z3 method uniform")  # scale file
@@ -542,6 +553,8 @@ if __name__ == "__main__":
     #     "select z, count ( y ) from t_m where x BETWEEN  unix_timestamp('2019-02-28T16:00:00.000Z') and unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
     parser.parse(
         "select z, var ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
+    parser.parse(
+        "select z, var ( y ) from t_m where   x2 = 'HaHaHa' and x3='' and  GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23")
     # print(parser.if_contain_scaling_factor())
     if parser.if_contain_groupby():
         print("yes, group by")
@@ -552,10 +565,9 @@ if __name__ == "__main__":
         print("DML")
         print(parser.get_dml_aggregate_function_and_variable())
 
-    # if parser.if_where_exists():
-    #     print("where exists!")
-    #     # print(parser.get_where_x_and_range())
-    #     # print(parser.get_dml_where_categorical_equal_and_range())
+    if parser.if_where_exists():
+        print("where exists!")
+        print(parser.get_dml_where_categorical_equal_and_range())
 
     # print("method, ", parser.get_sampling_method())
 

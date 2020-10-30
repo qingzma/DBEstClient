@@ -42,13 +42,13 @@ class TestParser(unittest.TestCase):
             types.append(self.parser.get_query_type())
         self.assertEqual(types, ["set", "create", "select", "drop"])
 
-    def test_query_type_create(self):
-        sql = "create table ss40g_1(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 60000 scale data num_of_points2.csv"
-        self.assertEqual(1, 1)
+    # def test_query_type_create(self):
+    #     sql = "create table ss40g_1(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from '/data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 60000 scale data num_of_points2.csv"
+    #     self.assertEqual(1, 1)
 
-    def test_query_type_select(self):
-        sql = "select avg(ss_sales_price)  from ss40g_1 where ss_sold_date_sk between 2451119  and 2451483 and ss_coupon_amt=''  group by ss_store_sk"
-        self.assertEqual(1, 1)
+    # def test_query_type_select(self):
+    #     sql = "select avg(ss_sales_price)  from ss40g_1 where ss_sold_date_sk between 2451119  and 2451483 and ss_coupon_amt=''  group by ss_store_sk"
+    #     self.assertEqual(1, 1)
 
     def test_drop_get_model(self):
         """Test DROP query
@@ -71,6 +71,64 @@ class TestParser(unittest.TestCase):
             self.parser.parse(sql)
             sizes.append(self.parser.get_sampling_ratio())
         self.assertEqual(sizes, [0.1, 1000, '/data/file/haha.csv'])
+
+    def test_get_dml_aggregate_function_and_variable(self):
+        sql1 = "select z, var ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23"
+        sql2 = "select z, count ( y ) from t_m where   x2 = 'HaHaHa' and x3='' and  GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23"
+        sqls = [sql1, sql2]
+        sizes = []
+        for sql in sqls:
+            self.parser.parse(sql)
+            sizes.append(
+                list(self.parser.get_dml_aggregate_function_and_variable()))
+
+        self.assertEqual(
+            sizes, [['z', ['var', 'y', None]], ['z', ['count', 'y', None]]])
+
+    def test_get_dml_where_categorical_equal_and_range(self):
+        sql1 = "select z, var ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23"
+        sql2 = "select z, count ( y ) from t_m where   x2 = 'HaHaHa' and x3='' and  GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23"
+        sqls = [sql1, sql2]
+        sizes = []
+        for sql in sqls:
+            self.parser.parse(sql)
+            sizes.append(
+                list(self.parser.get_dml_where_categorical_equal_and_range()))
+
+        self.assertEqual(
+            sizes, [[['x2', 'x3'], ["'HaHaHa'", "''"], {'x': [1551369600000, 1553788800000, False, True], 'X1': [321.0, 1123.0, False, False], 'x4': [None, '5', False, False]}], [['x2', 'x3'], ["'HaHaHa'", "''"], {}]])
+
+    def test_ddl_get_y(self):
+        """get the attribute which is aggregated.
+        """
+        sql1 = "create table mdl(y categorical distinct, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'"
+        sql2 = "create table mdl(y categorical, x2 categorical) from tbl group by z method uniform size '/data/haha.csv'"
+        sql3 = "create table mdl(y categorical distinct) from tbl group by z method uniform size '/data/haha.csv'"
+        sqls = [sql1, sql2, sql3]
+        sizes = []
+        for sql in sqls:
+            self.parser.parse(sql)
+            sizes.append(
+                list(self.parser.get_y()))
+        #     print(list(self.parser.get_y()))
+        # print("sizes", sizes)
+        self.assertEqual(
+            sizes, [['y', 'categorical', 'distinct'], ['y', 'categorical', None], ['y', 'categorical', 'distinct']])
+
+    def test_ddl_get_x(self):
+        sql1 = "create table mdl(y categorical distinct, x0 real, x2 categorical, x3 categorical) from tbl group by z method uniform size '/data/haha.csv'"
+        sql2 = "create table mdl(y categorical, x2 categorical) from tbl group by z method uniform size '/data/haha.csv'"
+        sql3 = "create table mdl(y categorical distinct) from tbl group by z method uniform size '/data/haha.csv'"
+        sqls = [sql1, sql2, sql3]
+        sizes = []
+        for sql in sqls:
+            self.parser.parse(sql)
+            sizes.append(
+                list(self.parser.get_x()))
+        #     print(list(self.parser.get_x()))
+        # print("sizes", sizes)
+        self.assertEqual(
+            sizes, [[['x0'], ['x2', 'x3']], [[], ['x2']], [[], []]])
 
 
 if __name__ == "__main__":
