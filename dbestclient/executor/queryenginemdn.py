@@ -154,18 +154,21 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
 
         if func.lower() in ["count", "sum", "avg"]:
             if n_jobs == 1:
+                groups_name = list(self.n_total_point.keys())
+                # groups_value = list(self.n_total_point.values())
                 if func.lower() == "count":
                     result = self.n_total_point
                 elif func.lower() == "sum":
-                    pass
-                    # preds = approx_sum(pre_density, pre_reg, step)
-                    # preds = np.multiply(preds, scaling_factor)
+                    result = self.reg.predict(
+                        groups_name, None, runtime_config)
+                    result = {g: res*self.n_total_point[g] for res,
+                              g in zip(result, groups_name)}
                 elif func.lower() == "avg":
-                    self.reg.predict(
-                        reg_g_points, reg_x_points, runtime_config)
-                    pre_density, pre_reg, step = prepare_reg_density_data(
-                        self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
-                    preds = approx_avg(pre_density, pre_reg, step)
+                    result = self.reg.predict(
+                        groups_name, None, runtime_config)
+                    result = {key: val for key, val in zip(
+                        groups_name, result)}
+
                 else:
                     raise TypeError("wrong aggregate!")
                 # results = dict(zip(groups, preds))

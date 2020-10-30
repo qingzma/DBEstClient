@@ -598,22 +598,28 @@ class RegMdnGroupBy():
                 except:
                     raise Exception
 
-        if self.b_normalize_data:
+        if self.b_normalize_data and x_points is not None:
             x_points = normalize(x_points, self.meanx, self.widthx)
 
         if encoder == "onehot":
             # zs_encoded = z_group  # [:, np.newaxis]
             zs_encoded = self.enc.transform(z_group).toarray()
-            x_points = x_points[:, np.newaxis]
-            xzs_encoded = np.concatenate(
-                [x_points, zs_encoded], axis=1).tolist()
+            if x_points is not None:
+                x_points = x_points[:, np.newaxis]
+                xzs_encoded = np.concatenate(
+                    [x_points, zs_encoded], axis=1).tolist()
+            else:
+                xzs_encoded = zs_encoded
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
         elif encoder == "binary":
             zs_encoded = self.enc.transform(z_group).to_numpy()
-            x_points = x_points[:, np.newaxis]
-            xzs_encoded = np.concatenate(
-                [x_points, zs_encoded], axis=1).tolist()
+            if x_points is not None:
+                x_points = x_points[:, np.newaxis]
+                xzs_encoded = np.concatenate(
+                    [x_points, zs_encoded], axis=1).tolist()
+            else:
+                xzs_encoded = zs_encoded
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
         elif encoder == "embedding":
