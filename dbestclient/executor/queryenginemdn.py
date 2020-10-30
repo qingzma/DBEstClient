@@ -14,9 +14,6 @@ from operator import itemgetter
 import dill
 import numpy as np
 import pandas as pd
-from scipy import integrate
-from torch.multiprocessing import Pool as PoolGPU
-
 # from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.integral import (approx_avg, approx_count,
                                      approx_integrate, approx_sum,
@@ -25,6 +22,8 @@ from dbestclient.ml.mdn import KdeMdn, RegMdnGroupBy
 from dbestclient.ml.modeltrainer import KdeModelTrainer
 from dbestclient.socket import app_client
 from dbestclient.tools.running_parameters import shrink_runtime_config
+from scipy import integrate
+from torch.multiprocessing import Pool as PoolGPU
 
 # from torch.multiprocessing import set_start_method
 
@@ -58,6 +57,112 @@ class GenericQueryEngine:
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         pass
+
+
+class MdnQueryEngineNoRange(GenericQueryEngine):
+    def __init__(self,  config):
+        super().__init__()
+        self.n_total_point = None
+        self.config = config
+        self.runtime_config = None
+        self.groupby_values = None
+        self.usecols = None
+
+    def approx_avg(self, x_min, x_max, groupby_value, runtime_config):
+        pass
+
+    def approx_sum(self, x_min, x_max, groupby_value, runtime_config):
+        pass
+
+    def approx_count(self, x_min, x_max, groupby_value, runtime_config):
+        pass
+
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
+        if runtime_config['v']:
+            print("fit MdnQueryEngineNoRange: "+mdl_name+"...")
+        self.mdl_name = mdl_name
+        self.n_total_point = total_points
+        self.runtime_config = runtime_config
+        self.groupby_values = list(total_points.keys())
+        self.usecols = usecols
+
+        self.density_column = usecols["x_continous"][0]
+        self.x_categorical_columns = usecols["x_categorical"]
+        self.group_by_columns = usecols['gb']
+
+        # configuration-related parameters.
+        device = runtime_config["device"]
+        encoding = self.config.get_config()["encoder"]
+        b_grid_search = self.config.get_config()["b_grid_search"]
+
+        if self.config.config['b_use_gg']:
+            raise ValueError("Method not implemented.")
+        else:
+            config = self.config.copy()
+
+            # if runtime_config['v']:
+            #     print("training density...")
+            # # print("usecols", usecols)
+            # self.density = KdeMdn(config, b_store_training_data=False).fit(
+            #     gbs, xs, runtime_config)
+
+            if runtime_config['v']:
+                print("training regression...")
+            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+                gbs, xs, ys, runtime_config)
+
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
+        b_print_to_screen = runtime_config["b_print_to_screen"]
+        result2file = runtime_config["result2file"]
+        if "slaves" in runtime_config:
+            if runtime_config["slaves"].size() == 0:
+                n_jobs = runtime_config["n_jobs"]
+            else:
+                n_jobs = runtime_config["slaves"].size()
+        else:
+            n_jobs = runtime_config["n_jobs"]
+        # result2file = self.config.get_config()["result2file"]
+
+        if func.lower() not in ("count", "sum", "avg", "var"):
+            raise ValueError("function not supported: "+func)
+        if groups is None:  # provide predictions for all groups.
+            groups = self.groupby_values
+
+        if self.config.get_config()["accept_filter"]:
+            print("not implemented yet")
+            return
+
+        if func.lower() not in ("count", "sum", "avg", "var"):
+            raise ValueError("function not supported: "+func)
+        if groups is None:  # provide predictions for all groups.
+            groups = self.groupby_values
+
+        if self.config.get_config()["accept_filter"]:
+            print("not implemented yet")
+            return
+
+        if func.lower() in ["count", "sum", "avg"]:
+            if n_jobs == 1:
+                print("here----------> ")
+                if func.lower() == "count":
+                    result = self.n_total_point
+                elif func.lower() == "sum":
+                    pass
+                    # preds = approx_sum(pre_density, pre_reg, step)
+                    # preds = np.multiply(preds, scaling_factor)
+                elif func.lower() == "avg":
+                    pass
+                    # preds = approx_avg(pre_density, pre_reg, step)
+                else:
+                    raise TypeError("wrong aggregate!")
+                # results = dict(zip(groups, preds))
+                result = pd.DataFrame(result.items(), columns=[self.usecols['gb'] +
+                                                               [self.usecols['y'][0]]])
+                return result
+
+            else:
+                print("parallel is not implemented yet.")
+                return
 
 
 class MdnQueryEngine(GenericQueryEngine):
@@ -146,8 +251,8 @@ class MdnQueryEngine(GenericQueryEngine):
             time_cost = (end - start).total_seconds()
 
         return result, time_cost
-    
-    def approx_var(self,runtime_config):
+
+    def approx_var(self, runtime_config):
         start = datetime.now()
         print("within approx_var!")
 
@@ -170,8 +275,6 @@ class MdnQueryEngine(GenericQueryEngine):
         else:
             print("Aggregate function " + func + " is not implemented yet!")
         return p, t
-    
-    
 
     # def predicts(self, func, x_lb, x_ub, b_parallel=True, n_jobs=4, filter_dbest=None):  # result2file=None
     #     result2file = self.config.get_config()["result2file"]
@@ -221,7 +324,7 @@ class MdnQueryEngine(GenericQueryEngine):
     #                 f.write(key + "," + str(predictions[key]))
     #     return predictions, times
 
-    def predicts(self, func: str, x_lb: float=None, x_ub: float=None,  x_categorical_conditions=None, runtime_config=None, groups: list = None, filter_dbest=None, time2exclude_from_multiprocessing=None):
+    def predicts(self, func: str, x_lb: float = None, x_ub: float = None,  x_categorical_conditions=None, runtime_config=None, groups: list = None, filter_dbest=None, time2exclude_from_multiprocessing=None):
         if time2exclude_from_multiprocessing is not None:
             t_after_multiple_processing = datetime.now()
             print("should reduce time {} from the query response time.".format(
@@ -238,7 +341,7 @@ class MdnQueryEngine(GenericQueryEngine):
             n_jobs = runtime_config["n_jobs"]
         # result2file = self.config.get_config()["result2file"]
 
-        if func.lower() not in ("count", "sum", "avg","var"):
+        if func.lower() not in ("count", "sum", "avg", "var"):
             raise ValueError("function not supported: "+func)
         if groups is None:  # provide predictions for all groups.
             groups = self.groupby_values
@@ -281,12 +384,12 @@ class MdnQueryEngine(GenericQueryEngine):
                     # print(groups[0].split(","))
                     # print("1d")
                     scaling_factor = np.array([self.n_total_point[key]
-                                            for key in groups])
+                                               for key in groups])
                 else:
                     # print(groups[0].split(","))
                     # print("n-d")
                     scaling_factor = np.array([self.n_total_point[key]
-                                            for key in groups])
+                                               for key in groups])
                 # print("self.n_total_point", self.n_total_point)
                 pre_density, pre_reg, step = prepare_reg_density_data(
                     self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
@@ -357,7 +460,7 @@ class MdnQueryEngine(GenericQueryEngine):
                     for sub_group, host in zip(group_chunks, hosts):
                         # print("host", host)
                         query = dict(func=func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config_process,
-                                    sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
+                                     sub_group=sub_group, filter_dbest=filter_dbest, mdl_name=self.mdl_name+runtime_config["model_suffix"])
                         i = pool.apply_async(
                             app_client.run, (hosts[host].host, hosts[host].port, "select", query))
                         instances.append(i)
@@ -367,11 +470,12 @@ class MdnQueryEngine(GenericQueryEngine):
                         results.update(result)
                         # result = app_client.run(
                         #     host, slaves.get()[host], "select", query)
-        
+
         elif func.lower() == "var":
             print("predict var")
 
-            results= prepare_var(self.kde, groups=groups, runtime_config=runtime_config)#{"group":999.99}
+            results = prepare_var(
+                self.kde, groups=groups, runtime_config=runtime_config)  # {"group":999.99}
         else:
             raise TypeError("unexpected aggregated.")
         runtime_config["b_print_to_screen"] = b_print_to_screen

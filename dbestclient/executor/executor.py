@@ -16,8 +16,8 @@ import torch
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (
-    MdnQueryEngine, MdnQueryEngineGoGs, MdnQueryEngineXCategorical,
-    MdnQueryEngineXCategoricalOneModel)
+    MdnQueryEngine, MdnQueryEngineGoGs, MdnQueryEngineNoRange,
+    MdnQueryEngineXCategorical, MdnQueryEngineXCategoricalOneModel)
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
                                          SimpleModelTrainer)
@@ -322,95 +322,126 @@ class SqlExecutor:
                             n_total_point = scaled_n_total_point
                             # print("scaled_n_total_point", scaled_n_total_point)
 
-                        # no categorical x attributes
-                        if not n_total_point['if_contain_x_categorical']:
-                            if not self.config.get_config()["b_use_gg"]:
-                                n_total_point.pop(
-                                    "if_contain_x_categorical")
-                                # xys.pop("if_contain_x_categorical")
-                                kdeModelWrapper = KdeModelTrainer(
-                                    mdl, tbl, xheader_continous[0], yheader,
-                                    groupby_attribute=groupby_attribute,
-                                    groupby_values=list(
-                                        n_total_point.keys()),
-                                    n_total_point=n_total_point,
-                                    x_min_value=-np.inf, x_max_value=np.inf,
-                                    config=self.config.copy()).fit_from_df(
-                                    xys["data"], self.runtime_config, network_size=None)
+                        # no range predicate. which means no continuous attribute with a range
 
-                                qe_mdn = MdnQueryEngine(
-                                    kdeModelWrapper, config=self.config.copy())
-                                qe_mdn.serialize2warehouse(
-                                    self.config.get_config()['warehousedir'], self.runtime_config)
-                                # kdeModelWrapper.serialize2warehouse()
-                                self.model_catalog.add_model_wrapper(
-                                    qe_mdn, self.runtime_config)
+                        # no categorical x attributes, which means there is not range predicate on continuous attribute
+                        if not xheader_continous:
+                            print("no range predicate")
+                            n_total_point.pop(
+                                "if_contain_x_categorical")
+                            # xys.pop("if_contain_x_categorical")
+                            # kdeModelWrapper = KdeModelTrainer(
+                            #     mdl, tbl, xheader_continous[0], yheader,
+                            #     groupby_attribute=groupby_attribute,
+                            #     groupby_values=list(
+                            #         n_total_point.keys()),
+                            #     n_total_point=n_total_point,
+                            #     x_min_value=-np.inf, x_max_value=np.inf,
+                            #     config=self.config.copy()).fit_from_df(
+                            #     xys["data"], self.runtime_config, network_size=None)
 
-                            else:
-                                # print("n_total_point ", n_total_point)
-                                queryEngineBundle = MdnQueryEngineGoGs(
-                                    config=self.config.copy()).fit(xys["data"], groupby_attribute,
-                                                                   n_total_point, mdl, tbl,
-                                                                   xheader_continous[0], yheader,
-                                                                   self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
+                            usecols = {
+                                "y": yheader, "x_continous": xheader_continous,
+                                "x_categorical": xheader_categorical, "gb": groupby_attribute}
 
-                                self.model_catalog.add_model_wrapper(
-                                    queryEngineBundle, self.runtime_config)
-                                queryEngineBundle.serialize2warehouse(
-                                    self.config.get_config()['warehousedir'], self.runtime_config)
-                        else:  # x has categorical attributes
-                            # if not self.config.get_config()["b_use_gg"]:
-                            # use a single model to support categorical conditions.
-                            if self.config.config["one_model"]:
-                                qe = MdnQueryEngineXCategoricalOneModel(
-                                    self.config.copy())
-                                usecols = {
-                                    "y": yheader, "x_continous": xheader_continous,
-                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}
-                                useCols = UseCols(usecols)
+                            qe_mdn = MdnQueryEngineNoRange(
+                                config=self.config.copy())
+                            qe_mdn.fit(
+                                mdl, tbl, xys["data"], n_total_point, usecols, self.runtime_config)
+                            qe_mdn.serialize2warehouse(
+                                self.config.get_config()['warehousedir'], self.runtime_config)
+                            # kdeModelWrapper.serialize2warehouse()
+                            self.model_catalog.add_model_wrapper(
+                                qe_mdn, self.runtime_config)
+                        else:
+                            if not n_total_point['if_contain_x_categorical']:
+                                if not self.config.get_config()["b_use_gg"]:
+                                    n_total_point.pop(
+                                        "if_contain_x_categorical")
+                                    # xys.pop("if_contain_x_categorical")
+                                    kdeModelWrapper = KdeModelTrainer(
+                                        mdl, tbl, xheader_continous[0], yheader,
+                                        groupby_attribute=groupby_attribute,
+                                        groupby_values=list(
+                                            n_total_point.keys()),
+                                        n_total_point=n_total_point,
+                                        x_min_value=-np.inf, x_max_value=np.inf,
+                                        config=self.config.copy()).fit_from_df(
+                                        xys["data"], self.runtime_config, network_size=None)
 
-                                # get the training data from samples.
-                                gbs, xs, ys = useCols.get_gb_x_y_cols_for_one_model()
-                                gbs_data, xs_data, ys_data = sampler.sample.get_columns_from_original_sample(
-                                    gbs, xs, ys)
-                                n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
-                                    groupby_attribute, xheader_categorical)
-                                # print("n_total_point-----------before",
-                                #       n_total_point)
-                                # print("ratio is ", ratio)
+                                    qe_mdn = MdnQueryEngine(
+                                        kdeModelWrapper, config=self.config.copy())
+                                    qe_mdn.serialize2warehouse(
+                                        self.config.get_config()['warehousedir'], self.runtime_config)
+                                    # kdeModelWrapper.serialize2warehouse()
+                                    self.model_catalog.add_model_wrapper(
+                                        qe_mdn, self.runtime_config)
 
-                                scaled_n_total_point = {}
-                                for key in n_total_point:
-                                    scaled_n_total_point[key] = {}
-                                    for sub_key in n_total_point[key]:
-                                        scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
-                                n_total_point = scaled_n_total_point
-                                # print("n_total_point-----------after",
-                                #       n_total_point)
+                                else:
+                                    # print("n_total_point ", n_total_point)
+                                    queryEngineBundle = MdnQueryEngineGoGs(
+                                        config=self.config.copy()).fit(xys["data"], groupby_attribute,
+                                                                       n_total_point, mdl, tbl,
+                                                                       xheader_continous[0], yheader,
+                                                                       self.runtime_config)  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
 
-                                # raise
+                                    self.model_catalog.add_model_wrapper(
+                                        queryEngineBundle, self.runtime_config)
+                                    queryEngineBundle.serialize2warehouse(
+                                        self.config.get_config()['warehousedir'], self.runtime_config)
+                            else:  # x has categorical attributes
+                                # if not self.config.get_config()["b_use_gg"]:
+                                # use a single model to support categorical conditions.
+                                if self.config.config["one_model"]:
+                                    qe = MdnQueryEngineXCategoricalOneModel(
+                                        self.config.copy())
+                                    usecols = {
+                                        "y": yheader, "x_continous": xheader_continous,
+                                        "x_categorical": xheader_categorical, "gb": groupby_attribute}
+                                    useCols = UseCols(usecols)
 
-                                qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
-                                       runtime_config=self.runtime_config)
-                            else:
-                                print(xys)
-                                qe = MdnQueryEngineXCategorical(
-                                    self.config.copy())
-                                qe.fit(mdl, tbl, xys, n_total_point, usecols={
-                                    "y": yheader, "x_continous": xheader_continous,
-                                    "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
-                                )  # device=device, encoding=encoding, b_grid_search=b_grid_search
+                                    # get the training data from samples.
+                                    gbs, xs, ys = useCols.get_gb_x_y_cols_for_one_model()
+                                    gbs_data, xs_data, ys_data = sampler.sample.get_columns_from_original_sample(
+                                        gbs, xs, ys)
+                                    n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
+                                        groupby_attribute, xheader_categorical)
+                                    # print("n_total_point-----------before",
+                                    #       n_total_point)
+                                    # print("ratio is ", ratio)
+
+                                    scaled_n_total_point = {}
+                                    for key in n_total_point:
+                                        scaled_n_total_point[key] = {}
+                                        for sub_key in n_total_point[key]:
+                                            scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
+                                    n_total_point = scaled_n_total_point
+                                    # print("n_total_point-----------after",
+                                    #       n_total_point)
+
+                                    # raise
+
+                                    qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
+                                           runtime_config=self.runtime_config)
+                                else:
+                                    # print(xys)
+                                    qe = MdnQueryEngineXCategorical(
+                                        self.config.copy())
+                                    qe.fit(mdl, tbl, xys, n_total_point, usecols={
+                                        "y": yheader, "x_continous": xheader_continous,
+                                        "x_categorical": xheader_categorical, "gb": groupby_attribute}, runtime_config=self.runtime_config
+                                    )  # device=device, encoding=encoding, b_grid_search=b_grid_search
+                                    qe.serialize2warehouse(
+                                        self.config.get_config()['warehousedir'], self.runtime_config)
+                                    self.model_catalog.add_model_wrapper(
+                                        qe, self.runtime_config)
+                                    # else:
+                                    #     raise ValueError(
+                                    #         "GoG support for categorical attributes is not supported.")
                                 qe.serialize2warehouse(
                                     self.config.get_config()['warehousedir'], self.runtime_config)
                                 self.model_catalog.add_model_wrapper(
                                     qe, self.runtime_config)
-                                # else:
-                                #     raise ValueError(
-                                #         "GoG support for categorical attributes is not supported.")
-                            qe.serialize2warehouse(
-                                self.config.get_config()['warehousedir'], self.runtime_config)
-                            self.model_catalog.add_model_wrapper(
-                                qe, self.runtime_config)
                 time2 = datetime.now()
                 t = (time2 - time1).seconds
                 if self.runtime_config['b_show_latency']:
@@ -428,7 +459,7 @@ class SqlExecutor:
                 mdl = self.parser.get_from_name()
                 gb_to_print, [
                     func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
-                if self.parser.if_where_exists():
+                if self.parser.if_where_exists():  # for query with WHERE clause
 
                     print("OK")
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
@@ -459,10 +490,14 @@ class SqlExecutor:
                     predictions = model.predicts(
                         "var", runtime_config=self.runtime_config)
                     # return predictions
-                else:
-                    print(
-                        "support for query without where clause is not implemented yet! abort!")
-                    return
+                else:  # for query without WHERE clause
+                    print("OK")
+                    model = self.model_catalog.model_catalog[mdl +
+                                                             self.runtime_config["model_suffix"]]
+                    predictions = model.predicts(func, None, None, None,
+                                                 self.runtime_config, groups=None, filter_dbest=None)
+                    print("tempory print")
+                    print(predictions.to_csv(sep='\t', index=False))
 
                 # if not self.parser.if_contain_groupby():  # if group by is not involved in the query
                 #     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
