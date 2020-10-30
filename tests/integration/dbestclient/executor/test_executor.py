@@ -176,9 +176,11 @@ class TestTpcDs(unittest.TestCase):
                             "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
                             "ss_net_paid_inc_tax|ss_net_profit|none'"
                             )
+        sqlExecutor.execute("drop table test_ss40g_no_continuous1")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous1(ss_sales_price real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")  # , ss_coupon_amt categorical
-        sqlExecutor.execute("select ss_store_sk, count(ss_sales_price)  from test_ss40g_no_continuous1  group by ss_store_sk")
+            "create table test_ss40g_no_continuous1(ss_sales_price real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")  # , ss_coupon_amt real
+        sqlExecutor.execute(
+            "select ss_store_sk, count(ss_sales_price)  from test_ss40g_no_continuous1  group by ss_store_sk")
         sqlExecutor.execute("drop table test_ss40g_no_continuous1")
         self.assertTrue(True)
 

@@ -85,10 +85,21 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
         self.runtime_config = runtime_config
         self.groupby_values = list(total_points.keys())
         self.usecols = usecols
+        self.reg = None
 
-        self.density_column = usecols["x_continous"][0]
+        # print("data")
+        # print(data)
+
         self.x_categorical_columns = usecols["x_categorical"]
         self.group_by_columns = usecols['gb']
+
+        gbs = data[usecols['gb']].values
+        # print("gbs", len(gbs))
+        # print(gbs)
+
+        ys = data[usecols['y'][0]].values.reshape(1, -1)[0]
+        # print("ys",len(ys))
+        # print(ys)
 
         # configuration-related parameters.
         device = runtime_config["device"]
@@ -109,7 +120,7 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
             if runtime_config['v']:
                 print("training regression...")
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
-                gbs, xs, ys, runtime_config)
+                gbs, None, ys, runtime_config)
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         b_print_to_screen = runtime_config["b_print_to_screen"]
@@ -143,7 +154,6 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
 
         if func.lower() in ["count", "sum", "avg"]:
             if n_jobs == 1:
-                print("here----------> ")
                 if func.lower() == "count":
                     result = self.n_total_point
                 elif func.lower() == "sum":
@@ -151,8 +161,11 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
                     # preds = approx_sum(pre_density, pre_reg, step)
                     # preds = np.multiply(preds, scaling_factor)
                 elif func.lower() == "avg":
-                    pass
-                    # preds = approx_avg(pre_density, pre_reg, step)
+                    self.reg.predict(
+                        reg_g_points, reg_x_points, runtime_config)
+                    pre_density, pre_reg, step = prepare_reg_density_data(
+                        self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
+                    preds = approx_avg(pre_density, pre_reg, step)
                 else:
                     raise TypeError("wrong aggregate!")
                 # results = dict(zip(groups, preds))

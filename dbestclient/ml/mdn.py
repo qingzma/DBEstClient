@@ -23,16 +23,14 @@ import scipy.stats as stats
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from dbestclient.ml.embedding import WordEmbedding, columns2sentences
+from dbestclient.ml.integral import approx_count, prepare_reg_density_data
 from matplotlib.widgets import Slider
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.preprocessing import OneHotEncoder
 from torch.autograd import Variable
 from torch.distributions import Categorical
 from torch.multiprocessing import Pool
-
-from dbestclient.ml.integral import approx_count, prepare_reg_density_data
-from dbestclient.ml.embedding import   columns2sentences,WordEmbedding
-
 
 # https://www.katnoria.com/mdn/
 # https://github.com/sagelywizard/pytorch-mdn
@@ -340,40 +338,46 @@ class RegMdnGroupBy():
                 self.enc = ce.BinaryEncoder(cols=columns)
                 zs_encoded = self.enc.fit_transform(z_group).to_numpy()
             elif encoder == "embedding":
-                print("z_group before converting  ",z_group[0:10], " len(z_group) ", len(z_group))
+                print("z_group before converting  ",
+                      z_group[0:10], " len(z_group) ", len(z_group))
 
-                temp_z_group=[]
+                temp_z_group = []
                 for ez in z_group:
-                    tz=""
-                    for i in range(0,len(ez)):
-                        tz=tz+ez[i]+"_"
+                    tz = ""
+                    for i in range(0, len(ez)):
+                        tz = tz+ez[i]+"_"
                     temp_z_group.append(tz)
-                    #temp_z_group.append(ez[0]+"_"+ez[1])
-                z_group=temp_z_group
-                print("z_group after converting   ",z_group[0:10], " len(z_group) ", len(z_group))
+                    # temp_z_group.append(ez[0]+"_"+ez[1])
+                z_group = temp_z_group
+                print("z_group after converting   ",
+                      z_group[0:10], " len(z_group) ", len(z_group))
 
-                
                 sentences = columns2sentences(z_group, x_points, y_points)
                 #print(sentences, len(sentences))
                 self.enc = WordEmbedding()
-                self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"])
+                self.enc.fit(sentences, gbs=[
+                             "gb"], dim=self.config.config["n_embedding_dim"])
                 #gbs_data = z_group.reshape(1,-1)[0]
-                print("gbs_data    ",len(z_group), "some samples: ",z_group[0:10])
+                print("gbs_data    ", len(z_group),
+                      "some samples: ", z_group[0:10])
                 zs_encoded = self.enc.predicts(z_group)
                 # raise TypeError("embedding is not supported yet.")
 
             if self.b_normalize_data:
-                self.meanx = (np.max(x_points) + np.min(x_points)) / 2
-                self.widthx = np.max(x_points) - np.min(x_points)
+                if x_points is not None:
+                    self.meanx = (np.max(x_points) + np.min(x_points)) / 2
+                    self.widthx = np.max(x_points) - np.min(x_points)
                 self.meany = (np.max(y_points) + np.min(y_points)) / 2
                 self.widthy = np.max(y_points) - np.min(y_points)
 
-                x_points = np.array([normalize(i, self.meanx, self.widthx)
-                                     for i in x_points])
+                if x_points is not None:
+                    x_points = np.array([normalize(i, self.meanx, self.widthx)
+                                         for i in x_points])
                 y_points = np.array([normalize(i, self.meany, self.widthy)
                                      for i in y_points])
             if self.b_store_training_data:
-                self.x_points = x_points
+                if x_points is not None:
+                    self.x_points = x_points
                 self.y_points = y_points
                 self.z_points = z_group
             else:
@@ -383,19 +387,31 @@ class RegMdnGroupBy():
                 self.z_points = None
 
             if encoder in ["onehot", "binary", "embedding"]:
-                xs_encoded = x_points[:, np.newaxis]
-                xzs_encoded = np.concatenate(
-                    [xs_encoded, zs_encoded], axis=1).tolist()
+                if x_points is not None:
+                    xs_encoded = x_points[:, np.newaxis]
+                    xzs_encoded = np.concatenate(
+                        [xs_encoded, zs_encoded], axis=1).tolist()
+                else:
+                    # print(zs_encoded)
+                    xzs_encoded = zs_encoded.tolist()
+                    # print(xzs_encoded[:10])
                 tensor_xzs = torch.stack([torch.Tensor(i)
                                           for i in xzs_encoded])
+                # print("tensor_xzs", len(tensor_xzs))
+                # print(tensor_xzs)
 
             else:
                 xzs = [[x_point, z_point]
                        for x_point, z_point in zip(x_points, z_group)]
                 tensor_xzs = torch.stack([torch.Tensor(i)
                                           for i in xzs])  # transform to torch tensors
+            # print("y_points", len(y_points))
+            # print(y_points[:10])
             y_points = y_points[:, np.newaxis]
             tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
+            # print("tensor_ys", len(tensor_ys))
+            # print(tensor_ys)
+            # print(y_points[:5])
 
             # move variables to cuda
             tensor_xzs = tensor_xzs.to(device)
@@ -403,17 +419,29 @@ class RegMdnGroupBy():
 
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_xzs, tensor_ys)  # create your dataloader
+            # print("my_dataset")
+            # print(my_dataset)
             my_dataloader = torch.utils.data.DataLoader(
                 my_dataset, batch_size=self.config.config["batch_size"], shuffle=True, num_workers=n_workers)
 
-            if encoder == "onehot":
-                input_dim = sum([len(i) for i in self.enc.categories_]) + 1
-            elif encoder == "binary":
-                input_dim = len(self.enc.base_n_encoder.feature_names) + 1
-            elif encoder == "embedding":
-                input_dim = self.enc.dim + 1
+            if x_points is not None:
+                if encoder == "onehot":
+                    input_dim = sum([len(i) for i in self.enc.categories_]) + 1
+                elif encoder == "binary":
+                    input_dim = len(self.enc.base_n_encoder.feature_names) + 1
+                elif encoder == "embedding":
+                    input_dim = self.enc.dim + 1
+                else:
+                    raise ValueError("Encoding should be binary or onehot")
             else:
-                raise ValueError("Encoding should be binary or onehot")
+                if encoder == "onehot":
+                    input_dim = sum([len(i) for i in self.enc.categories_])
+                elif encoder == "binary":
+                    input_dim = len(self.enc.base_n_encoder.feature_names)
+                elif encoder == "embedding":
+                    input_dim = self.enc.dim
+                else:
+                    raise ValueError("Encoding should be binary or onehot")
 
             # initialize the model
             if n_hidden_layer == 1:
@@ -589,27 +617,29 @@ class RegMdnGroupBy():
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
         elif encoder == "embedding":
-            print("z_group before converting  ",z_group[0:10], " len(z_group) ", len(z_group))
-            temp_z_group=[]
+            print("z_group before converting  ",
+                  z_group[0:10], " len(z_group) ", len(z_group))
+            temp_z_group = []
             for ez in z_group:
-                tz=""
-                for i in range(0,len(ez)):
-                    tz=tz+ez[i]+"_"
+                tz = ""
+                for i in range(0, len(ez)):
+                    tz = tz+ez[i]+"_"
                 temp_z_group.append(tz)
-            #for ez in z_group:
+            # for ez in z_group:
             #   temp_z_group.append(ez[0]+"_"+ez[1])
-            z_group=temp_z_group
-            print("z_group after converting   ",z_group[0:10], " len(z_group) ", len(z_group))
+            z_group = temp_z_group
+            print("z_group after converting   ",
+                  z_group[0:10], " len(z_group) ", len(z_group))
             #zs_transformed =  z_group.reshape(1,-1)[0]
-			
+
             zs_encoded = self.enc.predicts(z_group)
-			
+
             x_points = x_points[:, np.newaxis]
             xzs_encoded = np.concatenate(
                 [x_points, zs_encoded], axis=1).tolist()
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
-            
+
         else:
             xzs = [[x_point, z_point]
                    for x_point, z_point in zip(x_points, z_group)]
@@ -1227,26 +1257,27 @@ class KdeMdn:
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
             elif encoder == "embedding":
-                print("zs are ",zs [0:10], " len(zs) ",len(zs))
-                temp_z_group=[]
+                print("zs are ", zs[0:10], " len(zs) ", len(zs))
+                temp_z_group = []
                 for ez in zs:
-                    tz=""
-                    for i in range(0,len(ez)):
-                        tz=tz+ez[i]+"_"
+                    tz = ""
+                    for i in range(0, len(ez)):
+                        tz = tz+ez[i]+"_"
                     temp_z_group.append(tz)
-                #for ez in zs:
+                # for ez in zs:
                 #    temp_z_group.append(ez[0]+"_"+ez[1])
-                zs=temp_z_group
-                print("zs after converting   ",zs[0:10], " len(zs) ", len(zs))
-				
+                zs = temp_z_group
+                print("zs after converting   ", zs[0:10], " len(zs) ", len(zs))
+
                 sentences = columns2sentences(zs, xs, ys_data=None)
                 self.enc = WordEmbedding()
-                self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"])
+                self.enc.fit(sentences, gbs=[
+                             "gb"], dim=self.config.config["n_embedding_dim"])
                 #gbs_data = zs.reshape(1,-1)[0]
                 zs_encoded = self.enc.predicts(zs)
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
-                input_dim =  self.enc.dim
+                input_dim = self.enc.dim
                 # raise TypeError("embedding is not supported yet.")
             else:
                 input_dim = 1
@@ -1429,20 +1460,19 @@ class KdeMdn:
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
         elif encoder == "embedding":
-            print("zs before converting   ",zs[0:10], " len(zs) ", len(zs))
-            temp_z_group=[]
+            print("zs before converting   ", zs[0:10], " len(zs) ", len(zs))
+            temp_z_group = []
             for ez in zs:
-                tz=""
-                for i in range(0,len(ez)):
-                    tz=tz+ez[i]+"_"
+                tz = ""
+                for i in range(0, len(ez)):
+                    tz = tz+ez[i]+"_"
                 temp_z_group.append(tz)
-            #for ez in zs:
+            # for ez in zs:
             #    temp_z_group.append(ez[0]+"_"+ez[1])
-            zs=temp_z_group
-            print("zs after converting   ",zs[0:10], " len(zs) ", len(zs))
-            
-			
-			#zs_transformed =  zs.reshape(1,-1)[0]
+            zs = temp_z_group
+            print("zs after converting   ", zs[0:10], " len(zs) ", len(zs))
+
+            #zs_transformed =  zs.reshape(1,-1)[0]
             zs_encoded = self.enc.predicts(zs)
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
@@ -1491,7 +1521,7 @@ class KdeMdn:
             return result
         else:
             return gm(pis[0], mus[0], sigmas[0], xs, b_plot=b_plot, n_division=runtime_config["n_division"])
-    
+
     def var(self, zs, runtime_config):
         encoder = self.config.config["encoder"]
         device = runtime_config["device"]
@@ -1505,7 +1535,7 @@ class KdeMdn:
                                      for i in zs_encoded])
         elif encoder == "embedding":
             # zs_transformed =  zs.reshape(1,-1)[0]
-            zs_transformed =  np.array(zs).reshape(1,-1)[0]
+            zs_transformed = np.array(zs).reshape(1, -1)[0]
             zs_encoded = self.enc.predicts(zs_transformed)
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])
@@ -1524,33 +1554,34 @@ class KdeMdn:
         pis = pis.detach().numpy()  # [0]  # .reshape(-1,2)
         sigmas = sigmas.detach().numpy().reshape(
             len(sigmas), -1)  # [0]
-        print("pis",pis)
-        print("sigmas",sigmas)
-        print("mus",mus)
+        print("pis", pis)
+        print("sigmas", sigmas)
+        print("mus", mus)
         print("mean, width", self.meanx, self.widthx)
-        sigmas= sigmas * 0.5 * self.widthx# + self.meanx
+        sigmas = sigmas * 0.5 * self.widthx  # + self.meanx
         mus = mus * 0.5 * self.widthx + self.meanx
-        print("mus",mus)
-        print("mus[0]",mus[0])
-        print("pis[0]",pis[0])
+        print("mus", mus)
+        print("mus[0]", mus[0])
+        print("pis[0]", pis[0])
         print("sigma[0]", sigmas[0])
 
-        mu_avg_2 = np.power(np.sum(np.multiply(mus,pis,dtype="float64"), axis=1),2)
-        print("mu_avg_2",mu_avg_2[0])
-        mu_2 = np.power(mus,2,dtype="float64")
-        sigmas_2 = np.power(sigmas,2,dtype="float64")
-        adds = np.add(mu_2, sigmas_2,dtype="float64")
+        mu_avg_2 = np.power(
+            np.sum(np.multiply(mus, pis, dtype="float64"), axis=1), 2)
+        print("mu_avg_2", mu_avg_2[0])
+        mu_2 = np.power(mus, 2, dtype="float64")
+        sigmas_2 = np.power(sigmas, 2, dtype="float64")
+        adds = np.add(mu_2, sigmas_2, dtype="float64")
         print("adds", adds[0])
-        sums =np.multiply(adds, pis,dtype="float64").sum(axis=1,dtype="float64")
-        print("sums",sums[0])
-        print("types",type(sums[0]))
-        result = np.subtract(sums, mu_avg_2,dtype="float64").tolist()
+        sums = np.multiply(adds, pis, dtype="float64").sum(
+            axis=1, dtype="float64")
+        print("sums", sums[0])
+        print("types", type(sums[0]))
+        result = np.subtract(sums, mu_avg_2, dtype="float64").tolist()
         result = np.sqrt(result)
-        print("result",result)
+        print("result", result)
         print(len(result))
         result = dict(zip(zs, result))
         return result
-
 
     def normalize(self, x: list, mean: float, width: float):
         """normalize the data
@@ -1985,7 +2016,9 @@ def test_pm25_3d():
 
 def test_pm25_2d_density():
     import pandas as pd
-    from dbestclient.tools.running_parameters import DbestConfig, RUNTIME_CONF as runtime_config
+    from dbestclient.tools.running_parameters import \
+        RUNTIME_CONF as runtime_config
+    from dbestclient.tools.running_parameters import DbestConfig
     file = "/home/u1796377/Programs/dbestwarehouse/pm25.csv"
     # file = "/Users/scott/projects/pm25.csv"
     df = pd.read_csv(file)
@@ -2084,8 +2117,9 @@ def test_ss_2d_density():
 #     regMdn.predict(xzs_train, b_show_plot=True)
 
 def test_gm():
-    from sklearn import mixture
     import random
+
+    from sklearn import mixture
     kde = mixture.GaussianMixture(n_components=2, covariance_type='spherical')
     kde.fit(np.random.rand(100, 1))
     # x = np.array(np.linspace(-5, 15, 100)).reshape(-1, 1)
