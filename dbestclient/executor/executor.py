@@ -325,8 +325,8 @@ class SqlExecutor:
 
                         # no continuous x attributes, which means there is not range predicate on continuous attribute
                         if not xheader_continous:
-                            print(xheader_continous,
-                                  xheader_categorical, "---------->")
+                            # print(xheader_continous,
+                            #       xheader_categorical, "---------->")
 
                             usecols = {
                                 "y": yheader, "x_continous": xheader_continous,
@@ -491,9 +491,10 @@ class SqlExecutor:
                     # return predictions
                 else:  # for query without WHERE range selector clause
                     print("OK")
+                    where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
                     model = self.model_catalog.model_catalog[mdl +
                                                              self.runtime_config["model_suffix"]]
-                    predictions = model.predicts(func, None, None, None,
+                    predictions = model.predicts(func, None, None, where_conditions,
                                                  self.runtime_config, groups=None, filter_dbest=None)
                     print("tempory print")
                     print(predictions.to_csv(sep='\t', index=False))

@@ -165,6 +165,7 @@ class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
         self.config = config
         self.runtime_config = None
         self.models = {}
+        self.x_categorical_columns = None
 
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
         if runtime_config['v']:
@@ -175,50 +176,24 @@ class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
         self.groupby_values = list(total_points.keys())
         self.usecols = usecols
 
-        print("usecols", usecols)
-        print("data", data)
-
-        # # configuration-related parameters.
-        # device = runtime_config["device"]
-        # encoding = self.config.get_config()["encoder"]
-        # b_grid_search = self.config.get_config()["b_grid_search"]
-
         if self.config.config['b_use_gg']:
             raise ValueError("Method not implemented.")
         else:
             config = self.config.copy()
-            # if runtime_config['v']:
-            #     print("training regression...")
-            # self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
-            #     gbs, None, ys, runtime_config)
-            # config = self.config.copy()
 
             idx = 0
-            print("total_points",total_points)
             total_points.pop("if_contain_x_categorical")
             total_points.pop("categorical_distinct_values")
-            total_points.pop("x_categorical_columns")
+            self.x_categorical_columns = total_points.pop(
+                "x_categorical_columns")
             for categorical_attributes in total_points:
                 print("start training  sub_model " +
                       str(idx) + " for "+mdl_name+"...")
                 idx += 1
                 gbs = data[categorical_attributes][usecols['gb']].values
                 ys = data[categorical_attributes][usecols['y']
-                                                    [0]].values.reshape(1, -1)[0]
-                # print("total_points", total_points)
-                # print(list(total_points[categorical_attributes].keys()))
-                # GoG is not used, use kdeModelTrainer instead.
+                                                  [0]].values.reshape(1, -1)[0]
                 if not self.config.get_config()["b_use_gg"]:
-                    # kdeModelWrapper = KdeModelTrainer(
-                    #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
-                    #     groupby_attribute=usecols["gb"],
-                    #     groupby_values=list(
-                    #         total_points[categorical_attributes].keys()),
-                    #     n_total_point=total_points[categorical_attributes],
-                    #     x_min_value=-np.inf, x_max_value=np.inf,
-                    #     config=self.config).fit_from_df(
-                    #     # data[categorical_attributes]["data"], runtime_config=runtime_config, network_size="large",)
-                    #     data[categorical_attributes], runtime_config=runtime_config, network_size="large",)
                     qe_mdn = MdnQueryEngineNoRange(config).fit(
                         mdl_name, origin_table_name, data[categorical_attributes], total_points[categorical_attributes], usecols=usecols, runtime_config=self.runtime_config)
                 else:  # use GoGs
@@ -233,7 +208,23 @@ class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
                 self.models[categorical_attributes] = qe_mdn
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None) -> pd.DataFrame:
-        pass
+        # print("x_categorical_conditions", x_categorical_conditions)
+        cols = [item.lower() for item in x_categorical_conditions[0]]
+        keys = [item for item in x_categorical_conditions[1]]
+
+        if not x_categorical_conditions[2]:
+            # print("enter prediction X 1 model...")
+            sorted_keys = [keys[cols.index(col)].replace("'", "")
+                           for col in self.x_categorical_columns]
+            key = ",".join(sorted_keys)
+            predictions = self.models[key].predicts(
+                func, x_lb=x_lb, x_ub=x_ub, x_categorical_conditions=x_categorical_conditions, runtime_config=runtime_config, filter_dbest=filter_dbest)
+            return predictions
+        else:
+            print("enter prediction X multiple models...")
+            print("x_categorical_conditions[2]", x_categorical_conditions[2])
+            print("unexpected query")
+            return
 
 
 class MdnQueryEngine(GenericQueryEngine):
