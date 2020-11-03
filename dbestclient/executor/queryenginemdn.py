@@ -274,8 +274,8 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
         else:
             key = x_categorical_conditions[1][0].replace("'", "")
 
-        print("self.n_total_point",self.n_total_point)
-        
+        print("self.n_total_point", self.n_total_point)
+
         groups_no_categorical = list(self.n_total_point[key].keys())
 
         groups = [[item]+x_categorical_conditions[1]
@@ -315,7 +315,8 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
                                                            [self.usecols['y'][0]]])
             return result
         else:
-            pass
+            print("parallel inference for one model is not implemented.")
+            return
 
 
 class MdnQueryEngine(GenericQueryEngine):
