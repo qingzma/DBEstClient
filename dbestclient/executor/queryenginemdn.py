@@ -227,6 +227,97 @@ class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
             return
 
 
+class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.n_total_point = None
+        self.mdl_name = None
+        self.reg = None
+        self.usecols = None
+
+    def fit(self, mdl_name: str, origin_table_name: str, gbs, xs, ys, total_points: dict, usecols: dict, runtime_config: dict):
+        if runtime_config['v']:
+            print("training "+mdl_name+"...")
+        self.mdl_name = mdl_name
+        self.n_total_point = total_points
+        self.usecols = usecols
+        if self.config.config['b_use_gg']:
+            raise ValueError("Method not implemented.")
+        else:
+            config = self.config.copy()
+            if runtime_config['v']:
+                print("training regression...")
+
+            # print("xs", xs)
+            # print("ys", ys)
+            # print("gbs", gbs)
+            if not xs:
+                xs = None
+            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+                gbs, xs, ys, runtime_config)
+
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
+        if "slaves" in runtime_config:
+            if runtime_config["slaves"].size() == 0:
+                n_jobs = runtime_config["n_jobs"]
+            else:
+                n_jobs = runtime_config["slaves"].size()
+        else:
+            n_jobs = runtime_config["n_jobs"]
+
+        if func.lower() not in ("count", "sum", "avg", "var"):
+            raise ValueError("function not supported: "+func)
+
+        if len(x_categorical_conditions[1]) > 1:
+            key = ",".join(x_categorical_conditions[1]).replace("'", "")
+        else:
+            key = x_categorical_conditions[1][0].replace("'", "")
+
+        print("self.n_total_point",self.n_total_point)
+        
+        groups_no_categorical = list(self.n_total_point[key].keys())
+
+        groups = [[item]+x_categorical_conditions[1]
+                  for item in groups_no_categorical]
+        groups = [','.join(g).replace("'", "") for g in groups]
+
+        print("groups", groups)
+
+        reg_g_points = [g.split(",") for g in groups]
+        print("reg_g_points", reg_g_points)
+        print("x_categorical_conditions", x_categorical_conditions)
+        print("self.usecols", self.usecols)
+        group_key = ','.join(x_categorical_conditions[1]).replace("'", "")
+        print("key is ", group_key)
+        # g=reg_g_points[0][]
+
+        if n_jobs == 1:
+            groups_name = list(self.n_total_point[group_key].keys())
+            # groups_value = list(self.n_total_point.values())
+            if func.lower() == "count":
+                result = self.n_total_point[group_key]
+            elif func.lower() == "sum":
+                result = self.reg.predict(
+                    reg_g_points, None, runtime_config)
+                result = {g: res*self.n_total_point[group_key][g] for res,
+                          g in zip(result, groups_name)}
+            elif func.lower() == "avg":
+                result = self.reg.predict(
+                    reg_g_points, None, runtime_config)
+                result = {key: val for key, val in zip(
+                    groups, result)}
+
+            else:
+                raise TypeError("wrong aggregate!")
+            # results = dict(zip(groups, preds))
+            result = pd.DataFrame(result.items(), columns=[self.usecols['gb'] +
+                                                           [self.usecols['y'][0]]])
+            return result
+        else:
+            pass
+
+
 class MdnQueryEngine(GenericQueryEngine):
     t_before_multiple_processing = None
 
@@ -1037,7 +1128,7 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
         b_print_to_screen = runtime_config["b_print_to_screen"]
         result2file = runtime_config["result2file"]
 
-        if func.lower() not in ("count", "sum", "avg"):
+        if func.lower() not in ("count", "sum", "avg", "var"):
             raise ValueError("function not supported: "+func)
 
         # print("x_categorical_conditions", x_categorical_conditions)
