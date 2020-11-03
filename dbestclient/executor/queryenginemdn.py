@@ -67,15 +67,7 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
         self.runtime_config = None
         self.groupby_values = None
         self.usecols = None
-
-    def approx_avg(self, x_min, x_max, groupby_value, runtime_config):
-        pass
-
-    def approx_sum(self, x_min, x_max, groupby_value, runtime_config):
-        pass
-
-    def approx_count(self, x_min, x_max, groupby_value, runtime_config):
-        pass
+        self.reg = None
 
     def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
         if runtime_config['v']:
@@ -87,40 +79,26 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
         self.usecols = usecols
         self.reg = None
 
-        # print("data")
-        # print(data)
-
         self.x_categorical_columns = usecols["x_categorical"]
         self.group_by_columns = usecols['gb']
 
         gbs = data[usecols['gb']].values
-        # print("gbs", len(gbs))
-        # print(gbs)
-
         ys = data[usecols['y'][0]].values.reshape(1, -1)[0]
-        # print("ys",len(ys))
-        # print(ys)
 
-        # configuration-related parameters.
-        device = runtime_config["device"]
-        encoding = self.config.get_config()["encoder"]
-        b_grid_search = self.config.get_config()["b_grid_search"]
+        # # configuration-related parameters.
+        # device = runtime_config["device"]
+        # encoding = self.config.get_config()["encoder"]
+        # b_grid_search = self.config.get_config()["b_grid_search"]
 
         if self.config.config['b_use_gg']:
             raise ValueError("Method not implemented.")
         else:
             config = self.config.copy()
-
-            # if runtime_config['v']:
-            #     print("training density...")
-            # # print("usecols", usecols)
-            # self.density = KdeMdn(config, b_store_training_data=False).fit(
-            #     gbs, xs, runtime_config)
-
             if runtime_config['v']:
                 print("training regression...")
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
                 gbs, None, ys, runtime_config)
+        return self
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         b_print_to_screen = runtime_config["b_print_to_screen"]
@@ -132,7 +110,6 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
                 n_jobs = runtime_config["slaves"].size()
         else:
             n_jobs = runtime_config["n_jobs"]
-        # result2file = self.config.get_config()["result2file"]
 
         if func.lower() not in ("count", "sum", "avg", "var"):
             raise ValueError("function not supported: "+func)
@@ -179,6 +156,84 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
             else:
                 print("parallel is not implemented yet.")
                 return
+
+
+class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
+    def __init__(self, config):
+        super().__init__()
+        self.n_total_point = None
+        self.config = config
+        self.runtime_config = None
+        self.models = {}
+
+    def fit(self, mdl_name: str, origin_table_name: str, data: dict, total_points: dict, usecols: dict, runtime_config: dict):
+        if runtime_config['v']:
+            print("fit MdnQueryEngineNoRange: "+mdl_name+"...")
+        self.mdl_name = mdl_name
+        self.n_total_point = total_points
+        self.runtime_config = runtime_config
+        self.groupby_values = list(total_points.keys())
+        self.usecols = usecols
+
+        print("usecols", usecols)
+        print("data", data)
+
+        # # configuration-related parameters.
+        # device = runtime_config["device"]
+        # encoding = self.config.get_config()["encoder"]
+        # b_grid_search = self.config.get_config()["b_grid_search"]
+
+        if self.config.config['b_use_gg']:
+            raise ValueError("Method not implemented.")
+        else:
+            config = self.config.copy()
+            # if runtime_config['v']:
+            #     print("training regression...")
+            # self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+            #     gbs, None, ys, runtime_config)
+            # config = self.config.copy()
+
+            idx = 0
+            print("total_points",total_points)
+            total_points.pop("if_contain_x_categorical")
+            total_points.pop("categorical_distinct_values")
+            total_points.pop("x_categorical_columns")
+            for categorical_attributes in total_points:
+                print("start training  sub_model " +
+                      str(idx) + " for "+mdl_name+"...")
+                idx += 1
+                gbs = data[categorical_attributes][usecols['gb']].values
+                ys = data[categorical_attributes][usecols['y']
+                                                    [0]].values.reshape(1, -1)[0]
+                # print("total_points", total_points)
+                # print(list(total_points[categorical_attributes].keys()))
+                # GoG is not used, use kdeModelTrainer instead.
+                if not self.config.get_config()["b_use_gg"]:
+                    # kdeModelWrapper = KdeModelTrainer(
+                    #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
+                    #     groupby_attribute=usecols["gb"],
+                    #     groupby_values=list(
+                    #         total_points[categorical_attributes].keys()),
+                    #     n_total_point=total_points[categorical_attributes],
+                    #     x_min_value=-np.inf, x_max_value=np.inf,
+                    #     config=self.config).fit_from_df(
+                    #     # data[categorical_attributes]["data"], runtime_config=runtime_config, network_size="large",)
+                    #     data[categorical_attributes], runtime_config=runtime_config, network_size="large",)
+                    qe_mdn = MdnQueryEngineNoRange(config).fit(
+                        mdl_name, origin_table_name, data[categorical_attributes], total_points[categorical_attributes], usecols=usecols, runtime_config=self.runtime_config)
+                else:  # use GoGs
+                    print("GoGs is not supported yet")
+                    return
+                    # qe_mdn = MdnQueryEngineGoGs(
+                    #     config=self.config.copy()).fit(data[categorical_attributes], usecols["gb"],
+                    #                                    total_points[categorical_attributes], mdl_name, origin_table_name,
+                    #                                    usecols["x_continous"][0], usecols["y"],
+                    #                                    runtime_config)
+
+                self.models[categorical_attributes] = qe_mdn
+
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None) -> pd.DataFrame:
+        pass
 
 
 class MdnQueryEngine(GenericQueryEngine):

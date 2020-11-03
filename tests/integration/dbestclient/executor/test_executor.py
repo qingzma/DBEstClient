@@ -198,6 +198,8 @@ class TestTpcDs(unittest.TestCase):
     #                         )
     #     sqlExecutor.execute(
     #         "create table test_ss40g_no_continuous2(ss_sales_price real, ss_coupon_amt categorical) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")
+    #     sqlExecutor.execute(
+    #         "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous2 where ss_coupon_amt=''  group by ss_store_sk")
     #     sqlExecutor.execute("drop table test_ss40g_no_continuous2")
     #     self.assertTrue(True)
 
@@ -229,5 +231,5 @@ if __name__ == "__main__":
     # TestTpcDs().test_categorical_one_model()
     # TestHw().test_cpu()
     # TestTpcDs().test_embedding()
-    TestTpcDs().test_no_continuous1()
-    # TestTpcDs().test_no_continuous2()
+    # TestTpcDs().test_no_continuous1()
+    TestTpcDs().test_no_continuous2()

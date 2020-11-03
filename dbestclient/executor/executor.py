@@ -17,7 +17,8 @@ from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (
     MdnQueryEngine, MdnQueryEngineGoGs, MdnQueryEngineNoRange,
-    MdnQueryEngineXCategorical, MdnQueryEngineXCategoricalOneModel)
+    MdnQueryEngineNoRangeCategorical, MdnQueryEngineXCategorical,
+    MdnQueryEngineXCategoricalOneModel)
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
                                          SimpleModelTrainer)
@@ -322,32 +323,28 @@ class SqlExecutor:
                             n_total_point = scaled_n_total_point
                             # print("scaled_n_total_point", scaled_n_total_point)
 
-                        # no range predicate. which means no continuous attribute with a range
-
-                        # no categorical x attributes, which means there is not range predicate on continuous attribute
+                        # no continuous x attributes, which means there is not range predicate on continuous attribute
                         if not xheader_continous:
-                            print("no range predicate")
-                            n_total_point.pop(
-                                "if_contain_x_categorical")
-                            # xys.pop("if_contain_x_categorical")
-                            # kdeModelWrapper = KdeModelTrainer(
-                            #     mdl, tbl, xheader_continous[0], yheader,
-                            #     groupby_attribute=groupby_attribute,
-                            #     groupby_values=list(
-                            #         n_total_point.keys()),
-                            #     n_total_point=n_total_point,
-                            #     x_min_value=-np.inf, x_max_value=np.inf,
-                            #     config=self.config.copy()).fit_from_df(
-                            #     xys["data"], self.runtime_config, network_size=None)
+                            print(xheader_continous,
+                                  xheader_categorical, "---------->")
 
                             usecols = {
                                 "y": yheader, "x_continous": xheader_continous,
                                 "x_categorical": xheader_categorical, "gb": groupby_attribute}
 
-                            qe_mdn = MdnQueryEngineNoRange(
-                                config=self.config.copy())
-                            qe_mdn.fit(
-                                mdl, tbl, xys["data"], n_total_point, usecols, self.runtime_config)
+                            if not xheader_categorical:  # For WHERE clause without categorical equality
+                                n_total_point.pop(
+                                    "if_contain_x_categorical")
+                                qe_mdn = MdnQueryEngineNoRange(
+                                    config=self.config.copy())
+                                qe_mdn.fit(
+                                    mdl, tbl, xys["data"], n_total_point, usecols, self.runtime_config)
+                            else:  # For WHERE clause with categorical equality
+                                # print(xys)
+                                qe_mdn = MdnQueryEngineNoRangeCategorical(
+                                    config=self.config.copy())
+                                qe_mdn.fit(
+                                    mdl, tbl, xys, n_total_point, usecols, self.runtime_config)
                             qe_mdn.serialize2warehouse(
                                 self.config.get_config()['warehousedir'], self.runtime_config)
                             # kdeModelWrapper.serialize2warehouse()
@@ -459,10 +456,12 @@ class SqlExecutor:
                 mdl = self.parser.get_from_name()
                 gb_to_print, [
                     func, yheader, distinct_condition] = self.parser.get_dml_aggregate_function_and_variable()
-                if self.parser.if_where_exists():  # for query with WHERE clause
+                # for query with WHERE clause containing range selector
+                if self.parser.if_where_exists() and self.parser.get_dml_where_categorical_equal_and_range()[2]:
 
                     print("OK")
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
+                    # print("where_conditions", where_conditions)
                     # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
                     model = self.model_catalog.model_catalog[mdl +
                                                              self.runtime_config["model_suffix"]]
@@ -490,7 +489,7 @@ class SqlExecutor:
                     predictions = model.predicts(
                         "var", runtime_config=self.runtime_config)
                     # return predictions
-                else:  # for query without WHERE clause
+                else:  # for query without WHERE range selector clause
                     print("OK")
                     model = self.model_catalog.model_catalog[mdl +
                                                              self.runtime_config["model_suffix"]]
@@ -498,94 +497,6 @@ class SqlExecutor:
                                                  self.runtime_config, groups=None, filter_dbest=None)
                     print("tempory print")
                     print(predictions.to_csv(sep='\t', index=False))
-
-                # if not self.parser.if_contain_groupby():  # if group by is not involved in the query
-                #     simple_model_wrapper = self.model_catalog.model_catalog[get_pickle_file_name(
-                #         mdl)]
-                #     reg = simple_model_wrapper.reg
-
-                #     density = simple_model_wrapper.density
-                #     n_sample_point = int(simple_model_wrapper.n_sample_point)
-                #     n_total_point = int(simple_model_wrapper.n_total_point)
-                #     x_min_value = float(simple_model_wrapper.x_min_value)
-                #     x_max_value = float(simple_model_wrapper.x_max_value)
-                #     query_engine = QueryEngine(reg, density, n_sample_point,
-                #                                n_total_point, x_min_value, x_max_value,
-                #                                self.config)
-                #     p, t = query_engine.predict(func, x_lb=x_lb, x_ub=x_ub)
-                #     print("OK")
-                #     print(p)
-                #     if self.config.get_config()['verbose']:
-                #         print("time cost: " + str(t))
-                #     print("------------------------")
-                #     return p, t
-
-                # else:  # if group by is involved in the query
-                #     if self.config.get_config()['reg_type'] == "qreg":
-                #         start = datetime.now()
-                #         predictions = {}
-                #         groupby_attribute = self.parser.get_groupby_value()
-                #         groupby_key = mdl + "_groupby_" + groupby_attribute
-
-                #         for group_value, model_wrapper in self.model_catalog.model_catalog[groupby_key].items():
-                #             reg = model_wrapper.reg
-                #             density = model_wrapper.density
-                #             n_sample_point = int(model_wrapper.n_sample_point)
-                #             n_total_point = int(model_wrapper.n_total_point)
-                #             x_min_value = float(model_wrapper.x_min_value)
-                #             x_max_value = float(model_wrapper.x_max_value)
-                #             query_engine = QueryEngine(reg, density, n_sample_point, n_total_point, x_min_value,
-                #                                        x_max_value,
-                #                                        self.config)
-                #             predictions[model_wrapper.groupby_value] = query_engine.predict(
-                #                 func, x_lb=x_lb, x_ub=x_ub)[0]
-
-                #         print("OK")
-                #         for key, item in predictions.items():
-                #             print(key, item)
-
-                #     else:  # use mdn models to give the predictions.
-                #         start = datetime.now()
-                #         # predictions = {}
-                #         groupby_attribute = self.parser.get_groupby_value()
-                #         # no categorical x attributes
-                #         # x_categorical_attributes, x_categorical_values, x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
-                #         x_categorical_conditions = self.parser.get_dml_where_categorical_equal_and_range()
-
-                #         # no x categrical attributes, use a single model to predict.
-                #         if not x_categorical_conditions[0]:
-                #             if not self.config.get_config()["b_use_gg"]:
-                #                 # qe_mdn = MdnQueryEngine(self.model_catalog.model_catalog[mdl + ".pkl"],
-                #                 #                         self.config)
-                #                 where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
-                #                 # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
-
-                #                 qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
-                #                 x_header_density = qe_mdn.density_column
-                #                 [x_lb, x_ub] = [where_conditions[2][x_header_density][i]
-                #                                 for i in [0, 1]]
-                #                 print("OK")
-                #                 predictions = qe_mdn.predict_one_pass(func, x_lb=x_lb, x_ub=x_ub,
-                #                                                       n_jobs=n_jobs, )  # result2file=result2file,n_division=n_division
-                #             else:
-                #                 qe_mdn = self.model_catalog.model_catalog[mdl + ".pkl"]
-                #                 # qe_mdn = MdnQueryEngine(qe_mdn, self.config)
-                #                 print("OK")
-                #                 predictions = qe_mdn.predicts(func, x_lb=x_lb, x_ub=x_ub,
-                #                                               n_jobs=n_jobs, )
-
-                #         else:
-                #             pass
-                #             # print("OK")
-                #             # if not self.config.get_config()["b_use_gg"]:
-                #             #     # print("x_categorical_values",
-                #             #     #       x_categorical_values)
-                #             #     # print(",".join(x_categorical_values))
-                #             #     filter_dbest = self.parser.get_filter()
-                #             #     self.model_catalog.model_catalog[mdl + '.pkl'].predicts(
-                #             #         func, x_lb, x_ub, x_categorical_conditions,  n_jobs=1, filter_dbest=filter_dbest)  # ",".join(x_categorical_values)
-                #             # else:
-                #             #     pass
 
                 if self.runtime_config['b_show_latency']:
                     end_time = datetime.now()
