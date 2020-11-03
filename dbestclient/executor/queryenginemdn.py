@@ -274,7 +274,7 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
         else:
             key = x_categorical_conditions[1][0].replace("'", "")
 
-        print("self.n_total_point", self.n_total_point)
+        # print("self.n_total_point", self.n_total_point)
 
         groups_no_categorical = list(self.n_total_point[key].keys())
 
@@ -282,14 +282,14 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
                   for item in groups_no_categorical]
         groups = [','.join(g).replace("'", "") for g in groups]
 
-        print("groups", groups)
+        # print("groups", groups)
 
         reg_g_points = [g.split(",") for g in groups]
-        print("reg_g_points", reg_g_points)
-        print("x_categorical_conditions", x_categorical_conditions)
-        print("self.usecols", self.usecols)
+        # print("reg_g_points", reg_g_points)
+        # print("x_categorical_conditions", x_categorical_conditions)
+        # print("self.usecols", self.usecols)
         group_key = ','.join(x_categorical_conditions[1]).replace("'", "")
-        print("key is ", group_key)
+        # print("key is ", group_key)
         # g=reg_g_points[0][]
 
         if n_jobs == 1:
