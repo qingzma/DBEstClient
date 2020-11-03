@@ -178,10 +178,10 @@ class TestTpcDs(unittest.TestCase):
                             )
         sqlExecutor.execute("drop table test_ss40g_no_continuous1")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous1(ss_sales_price real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")  # , ss_coupon_amt real
+            "create table test_ss40g_no_continuous1(ss_sales_price real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 6000")  # , ss_coupon_amt real
         sqlExecutor.execute(
             "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous1  group by ss_store_sk")
-        sqlExecutor.execute("drop table test_ss40g_no_continuous1")
+        # sqlExecutor.execute("drop table test_ss40g_no_continuous1")
         self.assertTrue(True)
 
     # def test_no_continuous2(self):
