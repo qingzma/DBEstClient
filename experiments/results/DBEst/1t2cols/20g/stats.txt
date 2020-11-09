@@ -1,0 +1,152 @@
+
+query 1
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 45.353570754
+query 2
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 23.173152734
+query 3
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 20.101221582
+query 4
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 20.747024505
+query 5
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 24.393299911
+query 6
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 20.224533375
+query 7
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 20.529400601
+query 8
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 23.3699571
+query 9
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 20.607981724
+query 10
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 20.39761834
+query 1
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 23.590583981
+query 2
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 20.09702959
+query 3
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 20.84097579
+query 4
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 24.920326907
+query 5
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 21.25693887
+query 6
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 21.335753041
+query 7
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 24.728334415
+query 8
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 21.712352575
+query 9
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 21.962945314
+query 10
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 23.564182928
+
+query 1
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 21.828350332
+query 2
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 21.916766936
+query 3
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 22.931053477
+query 4
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 21.541813791
+query 5
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 24.10319469
+query 6
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 21.64498513
+query 7
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 21.095824683
+query 8
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 25.331258175
+query 9
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 22.399385235
+query 10
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 21.465167367

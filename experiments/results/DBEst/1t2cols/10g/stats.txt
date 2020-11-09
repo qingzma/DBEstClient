@@ -1,0 +1,152 @@
+
+query 1
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 22.824502834
+query 2
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 10.205812187
+query 3
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 14.675361322
+query 4
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 10.75574974
+query 5
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 11.575493741
+query 6
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 10.460829795
+query 7
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 11.189218283
+query 8
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 14.029227231
+query 9
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 10.239691799
+query 10
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 11.094814203
+query 1
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 10.856617957
+query 2
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 11.589320335
+query 3
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 10.946920929
+query 4
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 14.518338377
+query 5
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 11.303146737
+query 6
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 10.247214068
+query 7
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 10.616460055
+query 8
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 11.481163837
+query 9
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 14.851456356
+query 10
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 10.68182957
+
+query 1
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 11.313801127
+query 2
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 11.161443007
+query 3
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 11.81478867
+query 4
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 10.780483846
+query 5
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 14.559378837
+query 6
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 10.86438646
+query 7
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 11.399272832
+query 8
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 11.603194142
+query 9
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 10.831427102
+query 10
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 13.678313017

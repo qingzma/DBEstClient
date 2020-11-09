@@ -1,0 +1,166 @@
+
+query 1
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 74.503736082
+query 2
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 58.035723368
+query 3
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 53.107414867
+query 4
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 33.5136227
+query 5
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 69.504720754
+query 6
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 29.369419236
+query 7
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 91.745286644
+query 8
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 29.907978794
+query 9
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 94.749938791
+query 10
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 29.164172871
+query 1
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 117.615791932
+query 2
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 29.257639746
+
+
+
+
+
+
+
+query 3
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 33.988032872
+query 4
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 100.693671099
+query 5
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 30.661692645
+query 6
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 122.766414378
+query 7
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 31.492834145
+query 8
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 180.762548545
+query 9
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 35.032656158
+query 10
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 182.280146702
+
+
+
+
+
+
+query 1
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 52.345174877
+query 2
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 109.850384876
+query 3
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 31.543830632
+query 4
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 164.730727693
+query 5
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 32.67393647
+query 6
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 40.508498919
+
+
+query 7
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 42.859182521
+query 8
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 120.063608104
+query 9
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 30.586859248
+query 10
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 179.078458161

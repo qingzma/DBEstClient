@@ -1,0 +1,150 @@
+query 1
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 17.81563685
+query 2
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.881604275
+query 3
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.720108609
+query 4
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.616234485
+query 5
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.638260676
+query 6
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.560205063
+query 7
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.483403016
+query 8
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.323943376
+query 9
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 4.243815074
+query 10
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 5.120280833
+query 1
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.801287132
+query 2
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.334665944
+query 3
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.876585034
+query 4
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.404373997
+query 5
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 5.001855686
+query 6
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.418899245
+query 7
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.43895807
+query 8
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.532255138
+query 9
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.503225439
+query 10
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 4.431995223
+
+query 1
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.47363389
+query 2
+
+
+time cost is 5.115891794
+query 3
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.355195253
+query 4
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.564140326
+query 5
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.741211528
+query 6
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 8.492120119
+query 7
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.502079164
+query 8
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 5.212835327
+query 9
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.383382973
+query 10
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 4.552847101

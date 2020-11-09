@@ -1,0 +1,110 @@
+
+generating 1t5g
+2020-11-06 21:30:44 ERROR KeyProviderCache:87 - Could not find uri with key [dfs.encryption.key.provider.uri] to create a keyProvider !!
+time cost is 3177.233662616
+time cost is 2.51E-7
+query 1
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 15.089380591
+query 2
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 6.727717158
+query 3
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 9.561386133
+query 4
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 6.280700741
+query 5
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 6.817035879
+query 6
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 5.942556732
+query 7
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 5.972672712
+query 8
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 5.991114511
+query 9
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 6.703839064
+query 10
+ss_store_sk,ss_quantity,c2
+
+
+time cost is 6.256794423
+query 1
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.306203533
+query 2
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.691122702
+query 3
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 9.824819836
+query 4
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 5.769680984
+query 5
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.570643951
+query 6
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.535700604
+query 7
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.125592961
+query 8
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.119633311
+query 9
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.175247302
+query 10
+ss_store_sk,ss_quantity,s2
+
+
+time cost is 6.906078775
+query 1
+ss_store_sk,ss_quantity,a2
+
+
+time cost is 6.527228053
