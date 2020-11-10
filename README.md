@@ -181,6 +181,18 @@ Cluster mode could be enabled to enhance the inference performance.
 	```
 	Then you are ready to go.
 
+## Run tests
+you need to install tox to run the tests.
+assuming you are using Anaconda, simply call
+```
+conda install -c conda-forge tox
+```
+after that, call
+```
+tox
+```
+to run all tests.
+
 ## Documentation
 
 ## TODO 
