@@ -14,4 +14,5 @@ notebook/
 .tox/
 .eggs/
 dbestclient/test.py
+dbestwarehouse/*
 
