@@ -9,7 +9,7 @@ from dbestclient.executor.executor import SqlExecutor
 
 def run():
     #
-    sqlExecutor = SqlExecutor(config)
+    sqlExecutor = SqlExecutor()
     sqlExecutor.set_table_headers("ss_sold_date_sk,ss_sold_time_sk,ss_item_sk,ss_customer_sk,ss_cdemo_sk,ss_hdemo_sk," +
                                   "ss_addr_sk,ss_store_sk,ss_promo_sk,ss_ticket_number,ss_quantity,ss_wholesale_cost," +
                                   "ss_list_price,ss_sales_price,ss_ext_discount_amt,ss_ext_sales_price," +
