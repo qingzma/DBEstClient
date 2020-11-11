@@ -345,11 +345,12 @@ class RegMdnGroupBy():
                 #print("start embedding process")
                 #t1= datetime.now()
                 self.enc = WordEmbedding()
-                #print(len(z_group[0]))
-                self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"],NG=len(z_group[0]))
+                # print(len(z_group[0]))
+                self.enc.fit(sentences, gbs=[
+                             "gb"], dim=self.config.config["n_embedding_dim"], NG=len(z_group[0]))
                 #t2 = datetime.now()
                 #print("Embedding time is ", (t2-t1).total_seconds())
-				
+
                 #gbs_data = z_group.reshape(1,-1)[0]
                 #print("gbs_data    ",len(z_group), "some samples: ",z_group[0:10])
                 zs_encoded = self.enc.predicts(z_group)
@@ -616,10 +617,12 @@ class RegMdnGroupBy():
                                       for i in xzs_encoded])
         elif encoder == "embedding":
             zs_encoded = self.enc.predicts(z_group)
-			
-            x_points = x_points[:, np.newaxis]
-            xzs_encoded = np.concatenate(
-                [x_points, zs_encoded], axis=1).tolist()
+            if x_points is not None:
+                x_points = x_points[:, np.newaxis]
+                xzs_encoded = np.concatenate(
+                    [x_points, zs_encoded], axis=1).tolist()
+            else:
+                xzs_encoded = zs_encoded
             tensor_xzs = torch.stack([torch.Tensor(i)
                                       for i in xzs_encoded])
 
@@ -1245,16 +1248,17 @@ class KdeMdn:
 
                 #t1= datetime.now()
                 self.enc = WordEmbedding()
-                #print(zs)
-                self.enc.fit(sentences, gbs=["gb"],dim=self.config.config["n_embedding_dim"],NG=len(zs[0]))
+                # print(zs)
+                self.enc.fit(sentences, gbs=[
+                             "gb"], dim=self.config.config["n_embedding_dim"], NG=len(zs[0]))
                 #t2 = datetime.now()
                 #print("Embedding time cost is ", (t2-t1).total_seconds())
-				
+
                 #gbs_data = zs.reshape(1,-1)[0]
                 zs_encoded = self.enc.predicts(zs)
                 tensor_zs = torch.stack([torch.Tensor(i)
                                          for i in zs_encoded])
-                input_dim =  self.enc.dim
+                input_dim = self.enc.dim
                 # raise TypeError("embedding is not supported yet.")
             else:
                 input_dim = 1
@@ -1499,7 +1503,7 @@ class KdeMdn:
                                      for i in zs_encoded])
         elif encoder == "embedding":
             # zs_transformed =  zs.reshape(1,-1)[0]
-            zs_transformed =  np.array(zs).reshape(1,-1)[0]
+            zs_transformed = np.array(zs).reshape(1, -1)[0]
             zs_encoded = self.enc.predicts(zs_transformed)
             tensor_zs = torch.stack([torch.Tensor(i)
                                      for i in zs_encoded])

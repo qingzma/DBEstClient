@@ -229,7 +229,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor = SqlExecutor()
         sqlExecutor.execute("set b_grid_search='False'")
         sqlExecutor.execute("set csv_split_char='|'")
-        sqlExecutor.execute("set encoder='binary'")
+        sqlExecutor.execute("set encoder='embedding'")
         sqlExecutor.execute("set one_model='true'")
         sqlExecutor.execute("set table_header=" +
                             "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
