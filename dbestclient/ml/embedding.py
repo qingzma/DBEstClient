@@ -1,4 +1,4 @@
-#
+
 # Created by Qingzhi Ma on Fri Jun 05 2020
 #
 # Copyright (c) 2020 Department of Computer Science, University of Warwick
@@ -16,10 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from difflib import SequenceMatcher
 
-def similar(a, b):
-    return SequenceMatcher(None, a, b).ratio()
+
+NumberOFAtrributes=0
 
 import math
 import multiprocessing
@@ -48,59 +47,31 @@ class WordEmbedding:
         # # print(describe)
         # return describe
 
-    def fit(self, sentences, gbs, dim=20 ,window=1, min_count=1,negative=60,iter=50,workers=30):
-        # group_by_column = group_by_column
-        # rate = rate
-        # data = pd.read_csv(file_address, sep='|', header=0)
-        # IndexOfGroupBy = 0
+    def fit(self, sentences, gbs, dim=20 ,window=1, min_count=1,negative=20,iter=30,workers=30,NG=1):
+        
 
-        # for i in range(0, len(data.columns.values)):
-        #     if data.columns.values[i] == group_by_column:
-        #         IndexOfGroupBy = i
-        # print(str(IndexOfGroupBy)+"  "+data.columns.values[IndexOfGroupBy])
-
-        # des = self.describing(data)
-
-        # sentences = []
-        # for i in range(0, data.shape[0]):
-        #     for j in range(0, data.shape[1]):
-        #         if (j != IndexOfGroupBy) and (float(des[data.columns.values[j]][1]) < rate) and (math.isnan(data.iloc[i, IndexOfGroupBy]) == False) and (math.isnan(data.iloc[i, j]) == False):
-        #             temp = []
-        #             temp.append(str(
-        #                 data.columns.values[IndexOfGroupBy])+" "+str(int(data.iloc[i, IndexOfGroupBy])))
-        #             temp.append(
-        #                 str(data.columns.values[j])+" "+str(data.iloc[i, j]))
-        #             sentences.append(temp)
-        # EMB_DIM = EMB_DIM  # number of dimension
-        # print("the embedding process has been started")
-
-        if len(gbs)>1:
-            raise TypeError("Embedding only supports one GROUP BY attribute at this moment, use use binay or onehot encoding instead.")
-
-        w2v = Word2Vec(sentences, size=dim, window=1, min_count=1,
-                       negative=20, iter=iter, workers=multiprocessing.cpu_count())
+        #print(NG)# number of group by attributes
+        w2v = Word2Vec(sentences, size=int(dim/NG), window=1, min_count=1,
+                       negative=30, iter=iter, workers=multiprocessing.cpu_count())#,ns_exponent=0.0
         word_vectors = w2v.wv  # Matix of model
         vocab = w2v.wv.vocab   # Vocabulary
         self.dim = dim
 
-        #print("vocab", vocab)
-        # print(word_vectors)
+
         count = 0
         Group = {}
-        group_by_column =  gbs[0]
-        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-        print(group_by_column)
+        
+        count=0
         for each in vocab:
-            if group_by_column in each:
-                Group[each.split(" ")[1]] = word_vectors.vectors[count]
-                #Group[each.split(" ")[1].split(".")[0]
-                        #] = word_vectors.vectors[count]
-            count = count+1
-        # print("finish")
+            if "gb" in each:
+                Group[each.split(" ")[1]]=word_vectors.vectors[count]
+            count=count+1
+
+        del(word_vectors) ############################
+        del(vocab)        ############################
         self.embedding = Group
-        #print("embedding", self.embedding.keys(), "len(Group.keys()):", len(Group.keys()))
-        if "2776.68" in self.embedding.keys():
-            print("Horay*")
+        
+        
         print("finish training embedding")
         return Group
         
@@ -110,10 +81,9 @@ class WordEmbedding:
 
     def predicts_low_efficient(self, keys):
         results = np.array(self.embedding[keys[0]])
-        # print(results)
+
         for key in keys[1:]:
-            # print("results", results)
-            # print("key", key, self.embedding[key])
+
             
             results = np.vstack((results, self.embedding[key]))
             
@@ -121,80 +91,89 @@ class WordEmbedding:
     
     def predicts(self, keys):
         print("start embedding inference")
-        results = []
-        a=set(keys)
-        b=set(self.embedding.keys())
-        c=a-b
-        print("difference is: ",len(c))
+
 		
+        results = []
+
         for key in keys:
-            results.extend(self.embedding[key])
+            if len(key[0])>=2:
+                ttt=list(self.embedding[key[0]])
+
+			
+                for i in range(1,len(key)):
+                    ttt1=list(self.embedding[key[i]])
+
+                    ttt=ttt+ttt1
+
+                results.append(ttt)
+                #print(len(ttt))
+            else:
+ 
+                ttt=list(self.embedding[key[0]])
+
+                for i in range(1,len(key)):
+                    ttt1=list(self.embedding[key[i]])
+                    ttt=ttt+ttt1
+
+                results.append(ttt)
+
         results = np.reshape(results, (-1, self.dim))
+		
         print("end embedding inference")
+
         return results
 
 def dataframe2sentences(df:pd.DataFrame, gbs:list):
     headers = df.columns#.to_list()
     sentences = []
     no_gbs = list(set(headers)-set(gbs))
-    # print("no_gbs",no_gbs)
-    # print("gbs",gbs)
+    #print(gbs)
     for row in df.itertuples():
-        front_words = []
+
+        CCC=0
         for gb in gbs:
-            # print("gb",gb)
-            # print("row",row)
-            # print("column",getattr(row, gb))
-            # front_words = front_words + gb
-            front_words.append(gb+ " "+ str(getattr(row, gb)))
-        # print('front_words',front_words)
-        for no_gb in no_gbs:
-            each_sentence = list(front_words)
-            each_sentence.append(no_gb + " "+str(getattr(row, no_gb)))
-            sentences.append(each_sentence)
-            # sentences.append([front_words + no_gb + " "+str(getattr(row, no_gb))])
-    # for row in df.itertuples():
-    #     sentences.append([headers[0]+" "+ str(row[1]), headers[1]+" "+ str(row[2])])
-    #     sentences.append([headers[0]+" "+ str(row[1]), headers[2]+" "+ str(row[3])])
-    #     print(row[1],row[2],row[3])
-    # print(headers)
-    # print(sentences)
+            while (CCC<len(str(getattr(row, gb)).split(","))):
+                front_words = []
+
+                front_words.append(gb+ " "+ str(getattr(row, gb)).split(",")[CCC])
+                CCC=CCC+1
+
+                for no_gb in no_gbs:
+                    each_sentence = list(front_words)
+                    each_sentence.append(no_gb + " "+str(getattr(row, no_gb)))
+                    sentences.append(each_sentence)
+            
     return sentences
 
 def columns2sentences(gbs_data, xs_data, ys_data=None):
-    # print("gbs_data",gbs_data)
-    # print("xs_data",xs_data)
-    # print("ys_data",ys_data)
-    #if len(gbs_data[0])>1:
-    #    raise TypeError("Embedding only supports one GROUP BY attribute at this moment, use use binay or onehot encoding instead.")
-    # cols_gb=["cols_gb"]
-    # cols_x = ["cols_x0"]
-    # cols_y = ["cols_y"] if ys_data is not None else []
-    # print("gbs_data_B", gbs_data)
-    #gbs_data = gbs_data.reshape(1,-1)[0]
 
-    cn=0
-    for each_e in gbs_data:
-        if each_e=='2776.68':
-            cn=cn+1
-            #print ("@@yesy ther is@@",each_e)
-    # print("gbs_data",gbs_data)
-    print("after compresing ",cn)
-    #print(similar("Apple","Appel"))
-    
+    NumberOFAtrributes=len(gbs_data[0])
+
+    new_gbs_data=[]
+    #print((gbs_data))
+    for k in range(0, len(gbs_data)):
+        temp=""
+        for i in range(0,NumberOFAtrributes):
+            temp=temp+gbs_data[k][i]+","
+
+        new_gbs_data.append(temp[:-1])
+
+    gbs_data=new_gbs_data
+    #print((gbs_data))
     if ys_data is None:
         df = pd.DataFrame({"gb":gbs_data, "x":xs_data})
     else:
-        #print("gbs_data", gbs_data)
+
         df = pd.DataFrame({"gb":gbs_data, "x":xs_data,"y":ys_data})
 
-    
+    #print(df.gb)
 
     return dataframe2sentences(df, ["gb"])
 
 
 if __name__ == "__main__":
     from datetime import datetime
+	
     header=[
     "ss_sold_date_sk","ss_sold_time_sk","ss_item_sk","ss_customer_sk","ss_cdemo_sk","ss_hdemo_sk",
                                   "ss_addr_sk","ss_store_sk","ss_promo_sk","ss_ticket_number","ss_quantity","ss_wholesale_cost",
@@ -207,10 +186,10 @@ if __name__ == "__main__":
     sentenses = dataframe2sentences(df,gbs=["ss_store_sk"])
     word_embedding = WordEmbedding()
     word_embedding.fit(sentenses, gbs=["ss_store_sk"])
-    print(word_embedding.predict('92'))
-    print("*"*20)
+    #print(word_embedding.predict('92'))
+    #print("*"*20)
     t1= datetime.now()
-    print(word_embedding.predicts(['92','70','4']))
+    #print(word_embedding.predicts(['92','70','4']))
     t2 = datetime.now()
     print("time cost is ", (t2-t1).total_seconds())
 
