@@ -1,10 +1,10 @@
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
-import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib
 import matplotlib._color_data as mcd
 import matplotlib.patches as mpatch
-import matplotlib 
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import FuncFormatter
+
 matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
 # matplotlib.rcParams['text.usetex'] = True
@@ -187,7 +187,50 @@ def plt_tpcds_universal_relative_error_scalability():
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True)
-    plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+
+def plt_tpcds_universal_relative_error_scalability_large_number_of_groups():
+    plt.rcParams.update({'font.size': 12})
+    width = 0.25
+
+    data = [
+        [0.1146,	0.0562,	0.0460,	0.0332,	0.0297],
+        [0.0394,	0.0381,	0.0375,	0.0377,	0.0374],
+        [0.2955,	0.2089,	0.1493,	0.1068,	0.0882],
+    ]
+
+
+    X = np.arange(5)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='upper right')
+
+    plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
+    ax.set_ylabel("Relative Error (%)")
+    ax.set_xlabel("Sample Size")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    # plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.15)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
+    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
     print("figure saved.")
 
     plt.show()
@@ -537,9 +580,10 @@ def plt_tpcds_compact_space_scalability():
     plt.show()
 
 def plt_3d_chart():
-    from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
     import numpy as np
+    from mpl_toolkits.mplot3d import Axes3D
+
     # %matplotlib inline
 
     data = np.array([
@@ -787,6 +831,7 @@ if __name__ == "__main__":
     # plt_tpcds_universal_relative_error_scalability()
     # plt_tpcds_universal_response_time_scalability()
     # plt_tpcds_universal_space_scalability()
+    plt_tpcds_universal_relative_error_scalability_large_number_of_groups()
 
     # plt_tpcds_compact_relative_error()
     # plt_tpcds_compact_relative_error_scalability()
@@ -796,7 +841,7 @@ if __name__ == "__main__":
     # plt_tpcds_universal_relative_error_scalability_count()
     # plt_tpcds_universal_relative_error_scalability_sum()
 
-    plt_flight_relative_error_overall()
+    # plt_flight_relative_error_overall()
     # plt_flight_relative_error()
     # plt_flight_response_time()
     # plt_flight_space()
