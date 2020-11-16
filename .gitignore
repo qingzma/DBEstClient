@@ -12,5 +12,3 @@ dbest.sublime-workspace
 notebook/
 .tox/
 .eggs/
-dbestclient/test.py
-# dbestwarehouse/*
