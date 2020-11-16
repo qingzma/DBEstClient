@@ -61,7 +61,7 @@ class DbestConfig:
         self.config = {
             # system-level configuration.
             # 'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-            'warehousedir': 'dbestwarehouse',
+            'warehousedir': 'DBEstClient/DBEstClient/dbestwarehouse',
             # 'warehousedir': '/home/runner/work/DBEstClient/DBEstClient/',
             "reg_type": "mdn",
             "density_type": "mdn",  # qreg
