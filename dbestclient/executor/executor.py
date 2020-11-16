@@ -56,8 +56,8 @@ class SqlExecutor:
         # search the warehouse, and add all available models.
         n_model = 0
         t1 = datetime.now()
+        print("current directory is ",os.getcwd())
         for file_name in os.listdir(self.config.get_config()['warehousedir']):
-
             # load simple models
             if file_name.endswith(self.runtime_config["model_suffix"]):
                 if n_model == 0:
