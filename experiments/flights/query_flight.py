@@ -178,17 +178,68 @@ class Query1:
         self.sql_executor.execute("SELECT unique_carrier, COUNT(distance) FROM "+mdl_name+" where 1000<=dep_delay<=1200 AND origin_state_abr='LA'  GROUP BY unique_carrier")
         
 
+class query_equal_condition():
+    '''
+    SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='9E' GROUP BY year_date;
+    SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='HPN' GROUP BY origin_state_abr;
+    SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2005 AND origin='PHX' GROUP BY unique_carrier;
+    '''
+    def __init__(self):
+        self.mdl_name = None
+        self.sql_executor = None
+        self.model_size = "1m"
+    
+    def build_model(self, mdl_name,encoder="embedding", model_size="1m"):
+        self.mdl_name = mdl_name
+        self.sql_executor = SqlExecutor()
+
+        self.sql_executor.execute("set v='True'")
+        # self.sql_executor.execute("set device='cpu'")
+        self.sql_executor.execute("set one_model='true'")
+        self.sql_executor.execute("set b_grid_search='false'")
+        self.sql_executor.execute("set b_print_to_screen='false'")
+        self.sql_executor.execute("set csv_split_char=','")
+        self.sql_executor.execute("set batch_size=1000")
+        self.sql_executor.execute("set table_header=" +
+                                  "'year_date,unique_carrier,origin,origin_state_abr,dest,dest_state_abr,dep_delay,taxi_out,taxi_in,arr_delay,air_time,distance'")
+        
+        self.sql_executor.execute("set encoder='"+ encoder +"'")
+
+        if model_size =="1m":
+            self.sql_executor.execute("set n_mdn_layer_node_reg=20")          # 5
+            self.sql_executor.execute("set n_mdn_layer_node_density=30")      # 30
+            self.sql_executor.execute("set n_jobs=1")                         # 2
+            self.sql_executor.execute("set n_hidden_layer=2")                 # 1
+            self.sql_executor.execute("set n_epoch=20")                       # 20
+            self.sql_executor.execute("set n_gaussians_reg=8")                # 3
+            self.sql_executor.execute("set n_gaussians_density=8")            # 10
+            self.sql_executor.execute(
+            "create table "+mdl_name+"(distance real, unique_carrier categorical) from '../data/flights/flight_1m.csv' GROUP BY year_date method uniform size 1000")
+        elif model_size == "5m":
+            self.sql_executor.execute("set n_mdn_layer_node_reg=50")          # 20
+            self.sql_executor.execute("set n_mdn_layer_node_density=50")      # 30
+            self.sql_executor.execute("set n_jobs=1")                         # 
+            self.sql_executor.execute("set n_hidden_layer=2")                 # 1
+            self.sql_executor.execute("set n_epoch=20")                       # 50
+            self.sql_executor.execute("set n_gaussians_reg=8")                # 3
+            self.sql_executor.execute("set n_gaussians_density=8")            # 10
+            self.sql_executor.execute(
+            "create table "+mdl_name+"(distance real, unique_carrier categorical) from '../data/flights/flight_5m.csv' GROUP BY year_date method uniform size 0.005")
 
 if __name__ == "__main__":
-    query1 = Query1()
-    query1.model_size = "1m"
-    query1.build_model(mdl_name="flights_1m_binary_small",encoder="binary")
-    # # query1.build_model(mdl_name="flights_1m_onehot",encoder="onehot")
-    # # query1.build_model(mdl_name="flights_1m_embedding",encoder="embedding")
-    # query1.workload("flights_5m_binary",result2file="experiments/flights/results/mdn5m/")
+    # query1 = Query1()
+    # query1.model_size = "1m"
+    # query1.build_model(mdl_name="flights_1m_binary_small",encoder="binary")
+    # # # query1.build_model(mdl_name="flights_1m_onehot",encoder="onehot")
+    # # # query1.build_model(mdl_name="flights_1m_embedding",encoder="embedding")
+    # # query1.workload("flights_5m_binary",result2file="experiments/flights/results/mdn5m/")
 
-    query1.build_one_model("flight_one_model1",encoder="binary")
-    # query1.build_one_model("flight_one_model_embedding",encoder="embedding")
-    query1.workload("flight_one_model1",result2file="experiments/flights/results/mdn5m/")
+    # query1.build_one_model("flight_one_model1",encoder="binary")
+    # # query1.build_one_model("flight_one_model_embedding",encoder="embedding")
+    # query1.workload("flight_one_model1",result2file="experiments/flights/results/mdn5m/")
+
+    q = query_equal_condition()
+    q.build_model("flights_equal_1m",encoder="embedding",model_size="1m")
+    q.build_model("flights_equal_1m",encoder="embedding",model_size="5m")
 
 

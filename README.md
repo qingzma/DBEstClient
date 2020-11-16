@@ -204,3 +204,4 @@ to run all tests.
 - query check
 - distinct and not distinct using one model only.
 - ~~show models~~
+- 3, 4, 5 hidden layers.
