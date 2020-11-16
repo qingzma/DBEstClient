@@ -1,7 +1,6 @@
 .DS_Store
 .idea/
 config.json
-dbestwarehouse/
 *.pyc
 resources/
 dbestclient.egg-info/
@@ -14,4 +13,4 @@ notebook/
 .tox/
 .eggs/
 dbestclient/test.py
-dbestwarehouse/*
+# dbestwarehouse/*
