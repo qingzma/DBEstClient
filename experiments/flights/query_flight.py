@@ -213,8 +213,9 @@ class query_equal_condition():
             self.sql_executor.execute("set n_epoch=20")                       # 20
             self.sql_executor.execute("set n_gaussians_reg=8")                # 3
             self.sql_executor.execute("set n_gaussians_density=8")            # 10
+            self.sql_executor.execute("drop table "+mdl_name)
             self.sql_executor.execute(
-            "create table "+mdl_name+"(distance real, unique_carrier categorical) from '../data/flights/flight_1m.csv' GROUP BY year_date method uniform size 1000")
+            "create table "+mdl_name+"(distance real, unique_carrier categorical) from '../data/flights/flight_1m.csv' GROUP BY year_date method uniform size 10000")
         elif model_size == "5m":
             self.sql_executor.execute("set n_mdn_layer_node_reg=50")          # 20
             self.sql_executor.execute("set n_mdn_layer_node_density=50")      # 30
@@ -240,6 +241,6 @@ if __name__ == "__main__":
 
     q = query_equal_condition()
     q.build_model("flights_equal_1m",encoder="embedding",model_size="1m")
-    q.build_model("flights_equal_1m",encoder="embedding",model_size="5m")
+    # q.build_model("flights_equal_1m",encoder="embedding",model_size="5m")
 
 

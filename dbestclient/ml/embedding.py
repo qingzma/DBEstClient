@@ -64,7 +64,7 @@ class WordEmbedding:
         count=0
         for each in vocab:
             if "gb" in each:
-                Group[each.split(" ")[1]]=word_vectors.vectors[count]
+                Group[each.split(",@,")[1]]=word_vectors.vectors[count]
             count=count+1
 
         del(word_vectors) ############################
@@ -135,12 +135,12 @@ def dataframe2sentences(df:pd.DataFrame, gbs:list):
             while (CCC<len(str(getattr(row, gb)).split(","))):
                 front_words = []
 
-                front_words.append(gb+ " "+ str(getattr(row, gb)).split(",")[CCC])
+                front_words.append(gb+ ",@,"+ str(getattr(row, gb)).split(",")[CCC])
                 CCC=CCC+1
 
                 for no_gb in no_gbs:
                     each_sentence = list(front_words)
-                    each_sentence.append(no_gb + " "+str(getattr(row, no_gb)))
+                    each_sentence.append(no_gb + ",@,"+str(getattr(row, no_gb)))
                     sentences.append(each_sentence)
             
     return sentences
