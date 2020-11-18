@@ -249,25 +249,7 @@ class TestTpcDs(unittest.TestCase):
         self.assertFalse(results.empty)
 
 
-class TestHw(unittest.TestCase):
-    def test_cpu(self):
-        sqlExecutor = SqlExecutor()
-        sqlExecutor.execute("create table test_hw(usermac categorical , ts real,tenantId categorical, ssid  categorical,kpiCount categorical,regionLevelEight categorical)  "  #
-                            "FROM 'data/hw/sample_1k.csv' "
-                            "GROUP BY ts "
-                            "method uniform "
-                            "size  1000 "  # 118567, 81526479
-                            "scale data;")
-        predictions = sqlExecutor.execute("select ts, count(usermac) from test_hw "
-                                          "where   unix_timestamp('2020-02-05T12:00:00.000Z') <=ts<= unix_timestamp('2020-04-06T12:00:00.000Z') "
-                                          "AND tenantId = 'default-organization-id' "
-                                          "AND ssid = 'Tencent' "
-                                          "AND kpiCount >=1  "
-                                          "AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'"
-                                          "GROUP BY ts;")
-        sqlExecutor.execute("drop table test_hw")
-        # print("predictions", predictions)
-        self.assertTrue(abs(predictions['1583402400000']-316.683) < 10)
+
 
 
 if __name__ == "__main__":

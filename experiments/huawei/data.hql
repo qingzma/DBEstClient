@@ -121,3 +121,35 @@ AND kpiCount >=2
 AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'
 GROUP BY ts;
 
+
+
+##correct.
+select ts, count(distinct usermac) from ci_campusclient_clientstat_5m 
+where  ts BETWEEN unix_timestamp('2020-02-05T12:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND unix_timestamp('2020-04-06T12:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Tencent' 
+AND kpiCount >=1  
+AND regionLevelEight='3151a52f-0755-11ea-840e-60def3781da5'
+GROUP BY ts
+
+
+##correct.
+select ts, count(distinct usermac) from ci_campusclient_clientstat_5m 
+where  ts BETWEEN unix_timestamp('2020-03-05T12:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND unix_timestamp('2020-03-06T12:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Tencent' 
+AND kpiCount >=1  
+AND regionLevelEight='3151a52f-0755-11ea-840e-60def3781da5'
+GROUP BY ts
+
+
+
+
+# another query
+select ts, count(distinct usermac) from  ci_campusclient_clientstat_5m
+where  ts BETWEEN unix_timestamp('2020-03-05T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000 AND unix_timestamp('2020-03-06T16:00:00.000Z',"yyyy-MM-dd'T'HH:mm:ss.SSSX")*1000
+AND tenantId = 'default-organization-id' 
+AND ssid = 'Huawei'
+AND kpiCount >=1  
+AND regionLevelEight='287d4300-06bb-11ea-840e-60def3781da5'
+GROUP BY ts
