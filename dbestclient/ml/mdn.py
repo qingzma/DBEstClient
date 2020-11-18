@@ -410,6 +410,11 @@ class RegMdnGroupBy():
             tensor_xzs = tensor_xzs.to(device)
             tensor_ys = tensor_ys.to(device)
 
+            # print("tensor_xzs")
+            # print(tensor_xzs)
+            # print("tensor_ys")
+            # print(tensor_ys)
+
             my_dataset = torch.utils.data.TensorDataset(
                 tensor_xzs, tensor_ys)  # create your dataloader
             # print("my_dataset")

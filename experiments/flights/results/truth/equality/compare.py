@@ -35,8 +35,7 @@ def read_results(file, b_remove_null=True, split_char="\s"):
                     # print("key_value",line)
                     key_value = line.replace('OH (1)',"OH    ").replace(
                         "(", " ").replace(")", " ").replace(";", "").replace("\n", "").replace(
-                        "                                                                                                  ","").replace(
-                        "	",",").replace("OH    ", "OH")  # .replace(",", "")
+                        "                                                                                                  ","").replace("OH    ", "OH")  # .replace("	",",")
                     # print("key_value",key_value)
                     # self.logger.logger.info(key_value)
                     key_value = re.split(split_char, key_value)
@@ -50,6 +49,7 @@ def read_results(file, b_remove_null=True, split_char="\s"):
                         key_value[0] = key_value[0].replace(",", "")
                         # print(key_value)
                         # print(int('506.0'))
+                        # print(key_value)
                         key_values[key_value[0]] = float(key_value[1])
 
     if ('NULL' in key_values) and b_remove_null:
@@ -58,6 +58,7 @@ def read_results(file, b_remove_null=True, split_char="\s"):
         key_values.pop('0', None)
 
     # print("key_values",key_values)
+
     return key_values
 
 
@@ -72,13 +73,19 @@ def compare_dicts(true: dict, pred: dict) -> dict:
         dict: relative error
     """
     res = []
+    cnt=0
     for key in true:
         # print("key", key)
+        if key not in pred:
+            pred[key]=0.0
+            cnt+=1
         res.append(abs(((true[key]-pred[key])/true[key])))
         # print(key)
     # print(res)
     # plt.hist(res,bins=50)
     # plt.show()
+    if cnt!=0:
+        print(cnt, " missing values out of ", len(true))
     return res
 
 
@@ -91,17 +98,18 @@ def plt_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge_re
     if agg_func == "count":
         files = [7]
     elif  agg_func == "sum":
-        files = [10,11,12]
+        files = [16,17,18,19,20]  
+        files = [21,24,25]
     elif agg_func == "avg":
-        files = [13,14,15]
+        files = [31,32,33,34,35]
     else:
         raise TypeError("wrong aggregate function.")
     for file_name in files:
         # prefix = agg_func+str(i)
-        mdn = read_results("experiments/flights/results/mdn1m/" +
-                           str(file_name)+".txt", split_char=",")
+        mdn = read_results("experiments/flights/results/mdn5m/equality/" +
+                           str(file_name)+".txt", split_char="," )
         truth = read_results(
-            "experiments/flights/results/truth/"+str(file_name)+".csv", split_char=",")
+            "experiments/flights/results/truth/equality/"+str(file_name)+".txt")  #, split_char=","   ,split_char='	'
         mdn_error = compare_dicts(truth, mdn)
         mdn_errors.append(mdn_error)
         if b_two_methods:
@@ -156,19 +164,24 @@ def plt_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge_re
         if b_two_methods:
             print("DBEst error " + str(np.mean(kde_errors)) + "%")
     else:
-        print("MDN error " + str(np.mean(mdn_errors)*100) + "%")
+        errors=[]
+        for error in mdn_errors:
+            errors.append(np.mean(error))
+        # print(np.mean(errors), "#$%@#$%----------------------------------->>")
+        
+        print("MDN error " + str(np.mean(np.mean(errors))*100.0) + "%")
         if b_two_methods:
-            print("DBEst error " + str(np.mean(kde_errors)*100) + "%")
+            print("DBEst error " + str(np.mean(kde_errors)*100.0) + "%")
     if b_two_methods:
         return np.mean(mdn_errors), np.mean(kde_errors)
     else:
-        return np.mean(mdn_errors)
+        return np.mean(errors)  #np.mean(mdn_errors)
 
 
 if __name__ == "__main__":
-    plt_workload(agg_func="count", suffix=".txt", b_plot=False,
-                    b_merge_result_for_group=False, b_two_methods=False)
-    plt_workload(agg_func="sum", suffix=".txt", b_plot=False,
-                    b_merge_result_for_group=False, b_two_methods=False)
     plt_workload(agg_func="avg", suffix=".txt", b_plot=False,
                     b_merge_result_for_group=False, b_two_methods=False)
+    # plt_workload(agg_func="sum", suffix=".txt", b_plot=False,
+    #                 b_merge_result_for_group=False, b_two_methods=False)
+    # plt_workload(agg_func="avg", suffix=".txt", b_plot=False,
+    #                 b_merge_result_for_group=False, b_two_methods=False)

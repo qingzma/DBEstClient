@@ -500,6 +500,9 @@ class SqlExecutor:
                     where_conditions = self.parser.get_dml_where_categorical_equal_and_range()
                     # print("where_conditions", where_conditions)
                     # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
+                    if mdl + self.runtime_config["model_suffix"] not in self.model_catalog.model_catalog:
+                        print("Model " + mdl + " does not exist.")
+                        return
                     model = self.model_catalog.model_catalog[mdl +
                                                              self.runtime_config["model_suffix"]]
                     x_header_density = model.density_column

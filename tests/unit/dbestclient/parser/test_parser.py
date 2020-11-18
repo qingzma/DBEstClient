@@ -88,6 +88,7 @@ class TestParser(unittest.TestCase):
     def test_get_dml_where_categorical_equal_and_range(self):
         sql1 = "select z, var ( y ) from t_m where  unix_timestamp('2019-02-28T16:00:00.000Z')<=x <=unix_timestamp('2019-03-28T16:00:00.000Z') and 321<X1 < 1123 and x2 = 'HaHaHa' and x3='' and x4<5 GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23"
         sql2 = "select z, count ( y ) from t_m where   x2 = 'HaHaHa' and x3='' and  GROUP BY z1, z2 ,x method uniform scale data   haha/num.csv  size 23"
+        # sql3= "SELECT dest_state_abr, AVG( taxi_out ) FROM  tbl  where  1500 <=distance <= 2500 and  unique_carrier = 'UA'  GROUP BY dest_state_abr"
         sqls = [sql1, sql2]
         sizes = []
         for sql in sqls:

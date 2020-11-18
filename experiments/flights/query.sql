@@ -49,3 +49,29 @@ SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE 300<=distance<=1000 GRO
 SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE 1000<=distance<=1500 GROUP BY unique_carrier;
 !-- query 15
 SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE 1500<=distance<=2000 GROUP BY unique_carrier;
+
+
+!-- query 16-20
+SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='9E' GROUP BY year_date;
+SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='AA' GROUP BY year_date;
+SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='B6' GROUP BY year_date;
+SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='HA' GROUP BY year_date;
+SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='VX' GROUP BY year_date;
+!-- query 21-25
+SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='ABE' GROUP BY origin_state_abr;
+SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='ACK' GROUP BY origin_state_abr;
+SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='BLI' GROUP BY origin_state_abr;
+SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='CHO' GROUP BY origin_state_abr;
+SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='FAT' GROUP BY origin_state_abr;
+!-- query 26-30
+SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2005 AND origin='ATW' GROUP BY unique_carrier;
+SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2006 AND origin='BQK' GROUP BY unique_carrier;
+SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2007 AND origin='DEN' GROUP BY unique_carrier;
+SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2008 AND origin='MKE' GROUP BY unique_carrier;
+SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2009 AND origin='PHX' GROUP BY unique_carrier;
+!-- query 31-35
+SELECT dest_state_abr, AVG(taxi_out) FROM flights WHERE 1500<=distance<=2500 unique_carrier = 'AQ'  GROUP BY dest_state_abr; 
+SELECT dest_state_abr, AVG(taxi_out) FROM flights WHERE 2000<=distance<=3000 unique_carrier = 'F9'  GROUP BY dest_state_abr; 
+SELECT dest_state_abr, AVG(taxi_out) FROM flights WHERE 1500<=distance<=2500 unique_carrier = 'NW'  GROUP BY dest_state_abr; 
+SELECT dest_state_abr, AVG(taxi_out) FROM flights WHERE 2000<=distance<=3000 unique_carrier = 'TZ'  GROUP BY dest_state_abr; 
+SELECT dest_state_abr, AVG(taxi_out) FROM flights WHERE 1500<=distance<=2500 unique_carrier = 'UA'  GROUP BY dest_state_abr; 

@@ -183,15 +183,17 @@ class query_equal_condition():
     SELECT year_date, SUM(distance) FROM flights WHERE unique_carrier='9E' GROUP BY year_date;
     SELECT origin_state_abr, SUM(air_time) FROM flights WHERE dest='HPN' GROUP BY origin_state_abr;
     SELECT unique_carrier, AVG(dep_delay) FROM flights WHERE year_date=2005 AND origin='PHX' GROUP BY unique_carrier;
+    SELECT dest_state_abr, AVG(taxi_out) FROM flights WHERE 1500<=distance<=2500 unique_carrier = 'AQ'  GROUP BY dest_state_abr; 
     '''
     def __init__(self):
         self.mdl_name = None
-        self.sql_executor = None
+        # self.sql_executor = None
         self.model_size = "1m"
-    
-    def build_model(self, mdl_name,encoder="embedding", model_size="1m"):
-        self.mdl_name = mdl_name
         self.sql_executor = SqlExecutor()
+    
+    def build_model(self,encoder="embedding", model_size="1m"):
+        # self.mdl_name = mdl_name
+        
 
         self.sql_executor.execute("set v='True'")
         # self.sql_executor.execute("set device='cpu'")
@@ -213,9 +215,15 @@ class query_equal_condition():
             self.sql_executor.execute("set n_epoch=20")                       # 20
             self.sql_executor.execute("set n_gaussians_reg=8")                # 3
             self.sql_executor.execute("set n_gaussians_density=8")            # 10
-            self.sql_executor.execute("drop table "+mdl_name)
+            # self.sql_executor.execute("drop table "+mdl_name)
             self.sql_executor.execute(
-            "create table "+mdl_name+"(distance real, unique_carrier categorical) from '../data/flights/flight_1m.csv' GROUP BY year_date method uniform size 10000")
+            "create table "+ " flights_1m_q16_20 "+"(distance real, unique_carrier categorical) from '../data/flights/flight_1m.csv' GROUP BY year_date method uniform size 0.001")
+            self.sql_executor.execute(
+            "create table "+ " flights_1m_q21_25 "+"(air_time real, dest categorical) from '../data/flights/flight_1m.csv' GROUP BY origin_state_abr method uniform size 0.001")
+            # self.sql_executor.execute(
+            # "create table "+ " flights_1m_q26_30 "+"(dep_delay real, year_date categorical, origin categorical) from '../data/flights/flight_1m.csv' GROUP BY unique_carrier method uniform size 10000")
+            self.sql_executor.execute(
+            "create table "+ " flights_1m_q31_35 "+"(taxi_out real, distance real, unique_carrier categorical) from '../data/flights/flight_1m.csv' GROUP BY dest_state_abr method uniform size 0.001")
         elif model_size == "5m":
             self.sql_executor.execute("set n_mdn_layer_node_reg=50")          # 20
             self.sql_executor.execute("set n_mdn_layer_node_density=50")      # 30
@@ -224,8 +232,36 @@ class query_equal_condition():
             self.sql_executor.execute("set n_epoch=20")                       # 50
             self.sql_executor.execute("set n_gaussians_reg=8")                # 3
             self.sql_executor.execute("set n_gaussians_density=8")            # 10
+            # self.sql_executor.execute(
+            # "create table "+ " flights_5m_q16_20 "+"(distance real, unique_carrier categorical) from '../data/flights/flight_5m.csv' GROUP BY year_date method uniform size 0.005")
             self.sql_executor.execute(
-            "create table "+mdl_name+"(distance real, unique_carrier categorical) from '../data/flights/flight_5m.csv' GROUP BY year_date method uniform size 0.005")
+            "create table "+ " flights_5m_q21_25 "+"(air_time real, dest categorical) from '../data/flights/flight_5m.csv' GROUP BY origin_state_abr method uniform size 0.005")
+            # self.sql_executor.execute(
+            # "create table "+ " flights_5m_q26_30 "+"(dep_delay real, year_date categorical, origin categorical) from '../data/flights/flight_5m.csv' GROUP BY unique_carrier method uniform size 0.005")
+            self.sql_executor.execute(
+            "create table "+ " flights_5m_q31_35 "+"(taxi_out real, distance real, unique_carrier categorical) from '../data/flights/flight_5m.csv' GROUP BY dest_state_abr method uniform size 0.005")
+    
+    def query(self,mdl_size):
+        # result=self.sql_executor.execute("SELECT year_date, SUM(distance) FROM  "+"flights_equal_"+mdl_size+ "  WHERE unique_carrier='9E' GROUP BY year_date")
+        # result=self.sql_executor.execute("SELECT year_date, SUM(distance) FROM  "+"flights_equal_"+mdl_size+ "  WHERE unique_carrier='AA' GROUP BY year_date")
+        # result=self.sql_executor.execute("SELECT year_date, SUM(distance) FROM  "+"flights_equal_"+mdl_size+ "  WHERE unique_carrier='B6' GROUP BY year_date")
+        # result=self.sql_executor.execute("SELECT year_date, SUM(distance) FROM  "+"flights_equal_"+mdl_size+ "  WHERE unique_carrier='HA' GROUP BY year_date")
+        # result=self.sql_executor.execute("SELECT year_date, SUM(distance) FROM  "+"flights_equal_"+mdl_size+ "  WHERE unique_carrier='VX' GROUP BY year_date")
+        # result=self.sql_executor.execute("SELECT origin_state_abr, SUM(air_time) FROM  "+"flights_"+mdl_size+"_q21_25"+ "  WHERE dest='ABE' GROUP BY origin_state_abr")
+        # result=self.sql_executor.execute("SELECT origin_state_abr, SUM(air_time) FROM  "+"flights_"+mdl_size+"_q21_25"+ "  WHERE dest='ACK' GROUP BY origin_state_abr")
+        # result=self.sql_executor.execute("SELECT origin_state_abr, SUM(air_time) FROM  "+"flights_"+mdl_size+"_q21_25"+ "  WHERE dest='BLI' GROUP BY origin_state_abr")
+        # result=self.sql_executor.execute("SELECT origin_state_abr, SUM(air_time) FROM  "+"flights_"+mdl_size+"_q21_25"+ "  WHERE dest='CHO' GROUP BY origin_state_abr")
+        # result=self.sql_executor.execute("SELECT origin_state_abr, SUM(air_time) FROM  "+"flights_"+mdl_size+"_q21_25"+ "  WHERE dest='FAT' GROUP BY origin_state_abr")
+        # result=self.sql_executor.execute("SELECT unique_carrier, AVG(dep_delay) FROM  "+"flights_"+mdl_size+"_q26_30"+ "  WHERE year_date=2005 AND origin='ATW' GROUP BY unique_carrier")
+        # result=self.sql_executor.execute("SELECT unique_carrier, AVG(dep_delay) FROM  "+"flights_"+mdl_size+"_q26_30"+ "  WHERE year_date=2006 AND origin='BQK' GROUP BY unique_carrier")
+        # result=self.sql_executor.execute("SELECT unique_carrier, AVG(dep_delay) FROM  "+"flights_"+mdl_size+"_q26_30"+ "  WHERE year_date=2007 AND origin='DEN' GROUP BY unique_carrier")
+        # result=self.sql_executor.execute("SELECT unique_carrier, AVG(dep_delay) FROM  "+"flights_"+mdl_size+"_q26_30"+ "  WHERE year_date=2008 AND origin='MKE' GROUP BY unique_carrier")
+        # result=self.sql_executor.execute("SELECT unique_carrier, AVG(dep_delay) FROM  "+"flights_"+mdl_size+"_q26_30"+ "  WHERE year_date=2009 AND origin='PHX' GROUP BY unique_carrier")
+        result=self.sql_executor.execute("SELECT dest_state_abr, AVG(taxi_out) FROM  "+"flights_"+mdl_size+"_q31_35"+ "  where 1500 <=distance <= 2500 AND unique_carrier = 'AQ'  GROUP BY dest_state_abr")
+        result=self.sql_executor.execute("SELECT dest_state_abr, AVG(taxi_out) FROM  "+"flights_"+mdl_size+"_q31_35"+ "  where 2000 <=distance <= 3000 AND unique_carrier = 'F9'  GROUP BY dest_state_abr")
+        result=self.sql_executor.execute("SELECT dest_state_abr, AVG(taxi_out) FROM  "+"flights_"+mdl_size+"_q31_35"+ "  where 1500 <=distance <= 2500 AND unique_carrier = 'NW'  GROUP BY dest_state_abr")
+        result=self.sql_executor.execute("SELECT dest_state_abr, AVG(taxi_out) FROM  "+"flights_"+mdl_size+"_q31_35"+ "  where 2000 <=distance <= 3000 AND unique_carrier = 'TZ'  GROUP BY dest_state_abr")
+        result=self.sql_executor.execute("SELECT dest_state_abr, AVG(taxi_out) FROM  "+"flights_"+mdl_size+"_q31_35"+ "  where 1500 <=distance <= 2500 AND unique_carrier = 'UA'  GROUP BY dest_state_abr")
 
 if __name__ == "__main__":
     # query1 = Query1()
@@ -240,7 +276,9 @@ if __name__ == "__main__":
     # query1.workload("flight_one_model1",result2file="experiments/flights/results/mdn5m/")
 
     q = query_equal_condition()
-    q.build_model("flights_equal_1m",encoder="embedding",model_size="1m")
-    # q.build_model("flights_equal_1m",encoder="embedding",model_size="5m")
-
-
+    # q.build_model(encoder="embedding",model_size="1m")
+    # q.build_model(encoder="embedding",model_size="5m")
+    
+    # q.build_model("flights_equal_5m",encoder="embedding",model_size="5m")
+    # q.query("1m")
+    q.query("5m")
