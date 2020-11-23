@@ -96,25 +96,30 @@ def plt_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge_re
     # prapare the files.
 
     if agg_func == "count":
-        files = [7]
+        files = [16,17,18,19,20]
+        files = [31,32,33,34,35]
     elif  agg_func == "sum":
         files = [16,17,18,19,20]  
-        files = [21,24,25]
-    elif agg_func == "avg":
         files = [31,32,33,34,35]
+        # files = [21,24,25]
+        # files = [21,22,23,24,25]
+    elif agg_func == "avg":
+        files = [16,17,18,19,20]  
+        files = [31,32,33,34,35]
+        # files = [26,27,28,29,30]
     else:
         raise TypeError("wrong aggregate function.")
     for file_name in files:
         # prefix = agg_func+str(i)
         mdn = read_results("experiments/flights/results/mdn5m/equality/" +
-                           str(file_name)+".txt", split_char="," )
+                           str(file_name)+"_"+agg_func.upper()+".txt" , split_char=",") #, split_char=","
         truth = read_results(
-            "experiments/flights/results/truth/equality/"+str(file_name)+".txt")  #, split_char=","   ,split_char='	'
+            "experiments/flights/results/truth/equality/"+str(file_name)+"_"+agg_func.upper()+".txt")  #, split_char=","   ,split_char='	'
         mdn_error = compare_dicts(truth, mdn)
         mdn_errors.append(mdn_error)
         if b_two_methods:
             kde = read_results(
-                "experiments/flights/results/deepdb/"+str(file_name)+".txt", split_char=",")
+                "experiments/flights/results/deepdb/equality/5m/"+str(file_name)+".txt", split_char=",")
             kde_error = compare_dicts(truth, kde)
             kde_errors.append(kde_error)
 
@@ -171,9 +176,13 @@ def plt_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge_re
         
         print("MDN error " + str(np.mean(np.mean(errors))*100.0) + "%")
         if b_two_methods:
-            print("DBEst error " + str(np.mean(kde_errors)*100.0) + "%")
+            errors=[]
+            for error in kde_errors:
+                errors.append(np.mean(error))
+            # print("kde_errors",kde_errors)
+            print("DeepDB error " + str(np.mean(errors)*100.0) + "%")
     if b_two_methods:
-        return np.mean(mdn_errors), np.mean(kde_errors)
+        return None #np.mean(mdn_errors), np.mean(kde_errors)
     else:
         return np.mean(errors)  #np.mean(mdn_errors)
 

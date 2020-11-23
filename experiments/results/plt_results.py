@@ -193,7 +193,7 @@ def plt_tpcds_universal_relative_error_scalability():
     plt.show()
 
 
-def plt_tpcds_universal_relative_error_scalability_large_number_of_groups():
+def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_overall():
     plt.rcParams.update({'font.size': 12})
     width = 0.25
 
@@ -221,6 +221,135 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups():
 
     plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
     ax.set_ylabel("Relative Error (%)")
+    ax.set_xlabel("Sample Size")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    # plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.15)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
+    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_count():
+    plt.rcParams.update({'font.size': 12})
+    width = 0.25
+
+    data = [
+        [0.1190,	0.0802,	0.0614,	0.0452,	0.0384],
+        [0.0547,	0.0536,	0.0525,	0.0527,	0.0523],
+        [0.2723,	0.1961,	0.1424,	0.1038,	0.0870],
+    ]
+
+
+
+    X = np.arange(5)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='upper right')
+
+    plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
+    ax.set_ylabel("Relative Error of COUNT Queries(%)")
+    ax.set_xlabel("Sample Size")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    # plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.15)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
+    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_sum():
+    plt.rcParams.update({'font.size': 12})
+    width = 0.25
+
+    data = [
+        [0.1267,	0.0802,	0.0625,	0.0460,	0.0402,],
+        [0.0564,	0.0537,	0.0530,	0.0533,	0.0527,],
+        [0.3576,	0.2527,	0.1791,	0.1259,	0.1029,],
+    ]
+
+
+
+    X = np.arange(5)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='upper right')
+
+    plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
+    ax.set_ylabel("Relative Error of SUM Queries (%)")
+    ax.set_xlabel("Sample Size")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    # plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.15)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
+    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_avg():
+    plt.rcParams.update({'font.size': 12})
+    width = 0.25
+
+    data = [
+        [0.0981,	0.0083,	0.0142,	0.0085,	0.0106,],
+        [0.0072,	0.0071,	0.0071,	0.0071,	0.0071,],
+        [0.2567,	0.1780,	0.1264,	0.0907,	0.0748,],
+
+    ]
+
+
+    X = np.arange(5)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='upper right')
+
+    plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
+    ax.set_ylabel("Relative Error of AVG Queries(%)")
     ax.set_xlabel("Sample Size")
     # ax.set_yscale('log')
     formatter = FuncFormatter(to_percent)
@@ -831,7 +960,10 @@ if __name__ == "__main__":
     # plt_tpcds_universal_relative_error_scalability()
     # plt_tpcds_universal_response_time_scalability()
     # plt_tpcds_universal_space_scalability()
-    plt_tpcds_universal_relative_error_scalability_large_number_of_groups()
+    # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_overall()
+    # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_count()  #large_group_count
+    # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_sum()
+    plt_tpcds_universal_relative_error_scalability_large_number_of_groups_avg()
 
     # plt_tpcds_compact_relative_error()
     # plt_tpcds_compact_relative_error_scalability()
