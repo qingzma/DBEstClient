@@ -74,6 +74,7 @@ class StratifiedReservoir:
         self.feature_cols = feature_cols
         self.label_cols = label_cols
 
+        gb_cols_idx = [headers.index(item) for item in gb_cols]
         categorical_cols = gb_cols+equality_cols if equality_cols is not None else gb_cols
         categorical_cols_idx = [headers.index(item)
                                 for item in categorical_cols]
@@ -200,25 +201,68 @@ class StratifiedReservoir:
         #     self.ft[key] = len(self.sample[key])
 
         # shuffle
-        if b_shuffle:
-            for key in self.sample:
-                shuffle(self.sample[key])
+        # if b_shuffle:
+        #     for key in self.sample:
+        #         shuffle(self.sample[key])
 
         # post-process the sample into 3 parts: categoricals, features and labels.
-        self.data_categoricals = {}
-        self.data_features = {}
-        self.data_labels = {}
+        s = []
         for key in self.sample:
-            self.data_categoricals[key] = [[row[idx] for idx in range(0, len(
-                categorical_cols_idx))] for row in self.sample[key]]
-            if feature_cols is not None:
-                self.data_features[key] = [[row[idx] for idx in range(len(categorical_cols_idx), len(
-                    categorical_cols_idx)+len(feature_cols_idx))] for row in self.sample[key]]
-                self.data_labels[key] = [row[idx] for idx in range(len(categorical_cols_idx)+len(feature_cols_idx),
-                                                                   len(categorical_cols_idx)+len(feature_cols_idx) + len(label_cols_idx)) for row in self.sample[key]]
-            else:
-                self.data_labels[key] = [row[idx] for idx in range(len(categorical_cols_idx),
-                                                                   len(categorical_cols_idx) + len(label_cols_idx)) for row in self.sample[key]]
+            s += self.sample[key]
+        s = np.array(s)
+
+        # shuffle
+        np.random.shuffle(s)
+        # print("sample is", s)
+
+        # remove null values for continuous attributes
+        if feature_cols is not None:
+            cols_idx = range(len(categorical_cols_idx),
+                             len(categorical_cols_idx)+len(feature_cols_idx)+len(label_cols_idx))
+        else:
+            cols_idx = range(len(categorical_cols_idx),
+                             len(categorical_cols_idx) + len(label_cols_idx))
+        # print("idx is ", cols_idx)
+        s_continuous_cols = s[:, cols_idx]
+        # print("s_continuous_cols", s_continuous_cols)
+        s = s[~np.any(s_continuous_cols == "", axis=1)]
+
+        # print("s", s)
+
+        # print("sample", s)
+        # print(s[:, :])
+        # print(s[:, 2])
+        self.data_categoricals = s[:, :len(categorical_cols_idx)]
+        if feature_cols is not None:
+            self.data_features = s[:, len(categorical_cols_idx):len(
+                categorical_cols_idx)+len(feature_cols_idx)]
+            self.data_labels = s[:, len(categorical_cols_idx)+len(feature_cols_idx):len(
+                categorical_cols_idx)+len(feature_cols_idx)+len(label_cols_idx)]
+        else:
+            self.data_features = None
+            self.data_labels = s[:, len(categorical_cols_idx):len(
+                categorical_cols_idx) + len(label_cols_idx)]
+        self.data_features = self.data_features.astype(float)
+        self.data_labels = self.data_labels.astype(float).reshape(1, -1)[0]
+
+        # print("self.data_categoricals", self.data_categoricals)
+        # exit()
+
+        # self.data_categoricals = {}
+        # self.data_features = {}
+        # self.data_labels = {}
+        # for key in self.sample:
+        #     print("1234sadf", key, self.sample[key])
+        #     self.data_categoricals[key] = [[row[idx] for idx in range(0, len(
+        #         categorical_cols_idx))] for row in self.sample[key]]
+        #     if feature_cols is not None:
+        #         self.data_features[key] = [[row[idx] for idx in range(len(categorical_cols_idx), len(
+        #             categorical_cols_idx)+len(feature_cols_idx))] for row in self.sample[key]]
+        #         self.data_labels[key] = [row[idx] for idx in range(len(categorical_cols_idx)+len(feature_cols_idx),
+        #                                                            len(categorical_cols_idx)+len(feature_cols_idx) + len(label_cols_idx)) for row in self.sample[key]]
+        #     else:
+        #         self.data_labels[key] = [row[idx] for idx in range(len(categorical_cols_idx),
+        #                                                            len(categorical_cols_idx) + len(label_cols_idx)) for row in self.sample[key]]
 
         # cntt = 0
         # for key in self.ft_table:

@@ -338,9 +338,14 @@ class SqlExecutor:
 
                                 elif method.lower() == "stratified":
                                     gbs_data, xs_data, ys_data = sampler.sample.get_categorical_features_label()
+                                    n_total_point = sampler.sample.get_ft()
 
-                                print("gbs_data", gbs_data)
-                                print("type", type(gbs_data))
+                                # print("gbs_data", gbs_data)
+                                # print("xs_data", xs_data)
+                                # print("ys_data", ys_data)
+                                print("n_total_point", n_total_point)
+
+                                # print("type", type(gbs_data))
                                 exit()
 
                                 qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
