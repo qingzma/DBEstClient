@@ -42,6 +42,9 @@ class StratifiedReservoir:
         else:
             self.b_skip_first_row = True
 
+    def make_sample_for_sql_condition(self):
+        pass
+
     def make_sample(self, gb_cols: list, equality_cols: list, feature_cols: list, label_cols: list, split_char=',', b_shuffle=False, b_fast=False, b_return_sample=False):
         print("Start making a sample as requested...")
         t1 = datetime.now()
@@ -80,7 +83,7 @@ class StratifiedReservoir:
                         continue
                     cnt += 1
                     if cnt % 1000000 == 0:
-                        print(f"processed {cnt} records.")
+                        print(f'processed {cnt/1000000:5.0f} million records.')
                     splits = line.split(split_char)
                     splits[len(splits)-1] = splits[len(splits) -
                                                    1].replace("\n", '')

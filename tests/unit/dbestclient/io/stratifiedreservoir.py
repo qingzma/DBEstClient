@@ -74,21 +74,24 @@ class TestStratifiedReservoir(unittest.TestCase):
                          'store_id1', 'cust_id1', 'london', 'male', '1.1', '2.1', 'salary2']],
             'store_id1,cust_id2,paris,male': [['store_id1', 'cust_id2', 'paris', 'male', '1.1', '2.1', 'salary3']]})
 
-    # def test_hw(self):
-    #     sr = StratifiedReservoir("../data/huawei/merged",
-    #                              file_header="ts,apmac,accType,radioid,band,ssid,usermac,downSpeed,rssi,upLinkSpeed,downLinkSpeed,txDiscardRatio,latency,downBytes,upBytes,kpiCount,authTimeoutTimes,assoFailTimes,authFailTimes,dhcpFailTimes,assoSuccTimes,authSuccTimes,dhcpSuccTimes,dot1XSuccTimes,dot1XFailTimes,onlineSuccTimes,txDiscardFrames,txFrames,tenantId,siteId,siteName,directRegion,regionLevelOne,regionLevelTwo,regionLevelThree,regionLevelFour,regionLevelFive,regionLevelSix,regionLevelSeven,regionLevelEight,parentResId,acName,resId,apname,publicArea,vendor,duration,badCount,badTime,lowRssiCount,lowRssiDur,highLatencyCount,highLatencyDur,highDiscardCount,highDiscardDur,nonFiveGCount,nonFiveGDur,exception_flag,last_acc_rst,linkQuality,portal_succ_times,portal_fail_times,roam_succ_times,roam_fail_times",
-    #                              n_jobs=16, capacity=100)
-    #     sr.make_sample(gb_cols=["ts"], equality_cols=["regionLevelEight", "ssid"], feature_cols=["downSpeed"],
-    #                    label_cols=["latency"], split_char=',')
+    def test_hw(self):
+        sr = StratifiedReservoir("../data/huawei/merged",
+                                 file_header="ts,apmac,accType,radioid,band,ssid,usermac,downSpeed,rssi,upLinkSpeed,downLinkSpeed,txDiscardRatio,latency,downBytes,upBytes,kpiCount,authTimeoutTimes,assoFailTimes,authFailTimes,dhcpFailTimes,assoSuccTimes,authSuccTimes,dhcpSuccTimes,dot1XSuccTimes,dot1XFailTimes,onlineSuccTimes,txDiscardFrames,txFrames,tenantId,siteId,siteName,directRegion,regionLevelOne,regionLevelTwo,regionLevelThree,regionLevelFour,regionLevelFive,regionLevelSix,regionLevelSeven,regionLevelEight,parentResId,acName,resId,apname,publicArea,vendor,duration,badCount,badTime,lowRssiCount,lowRssiDur,highLatencyCount,highLatencyDur,highDiscardCount,highDiscardDur,nonFiveGCount,nonFiveGDur,exception_flag,last_acc_rst,linkQuality,portal_succ_times,portal_fail_times,roam_succ_times,roam_fail_times",
+                                 n_jobs=8, capacity=100)
+        sr.make_sample(gb_cols=["ts"], equality_cols=["regionLevelEight", "ssid"], feature_cols=["downSpeed"],
+                       label_cols=["latency"], split_char=',')
 
-    #     # print("predictions", predictions)
-    #     self.assertTrue(1 == 1)
+        ft = sr.get_ft()
+        # for key in ft:
+        #     print(key, ft[key])
+        # print("predictions", predictions)
+        self.assertEqual(81526479, sr.size())
 
 
 if __name__ == "__main__":
-    # TestStratifiedReservoir().test_tpcds_1job()
+    TestStratifiedReservoir().test_tpcds_1job()
     # TestStratifiedReservoir().test_tpcds_2job()
     # TestStratifiedReservoir().test_toy_no_header_2()
-    TestStratifiedReservoir().test_toy_with_header_1job()
-    TestStratifiedReservoir().test_toy_with_header_2job()
+    # TestStratifiedReservoir().test_toy_with_header_1job()
+    # TestStratifiedReservoir().test_toy_with_header_2job()
     # TestStratifiedReservoir().test_hw()
