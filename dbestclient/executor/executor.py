@@ -344,9 +344,10 @@ class SqlExecutor:
                                 # print("xs_data", xs_data)
                                 # print("ys_data", ys_data)
                                 print("n_total_point", n_total_point)
+                                print("n_total_point['']", n_total_point[''])
 
                                 # print("type", type(gbs_data))
-                                exit()
+                                # exit()
 
                                 qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
                                        runtime_config=self.runtime_config)

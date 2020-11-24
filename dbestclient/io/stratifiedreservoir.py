@@ -75,6 +75,8 @@ class StratifiedReservoir:
         self.label_cols = label_cols
 
         gb_cols_idx = [headers.index(item) for item in gb_cols]
+        if equality_cols is not None:
+            equality_cols_idx = [headers.index(item) for item in equality_cols]
         categorical_cols = gb_cols+equality_cols if equality_cols is not None else gb_cols
         categorical_cols_idx = [headers.index(item)
                                 for item in categorical_cols]
@@ -89,42 +91,93 @@ class StratifiedReservoir:
 
         if self.n_jobs == 1:
             cnt = 0
-            with open(self.file_name, 'r') as f:
-                for line in f:
-                    if self.b_skip_first_row:  # self.file_header is None:
-                        # self.file_header = file_header
-                        self.b_skip_first_row = False
-                        continue
-                    cnt += 1
-                    if cnt % 1000000 == 0:
-                        print(f'processed {cnt/1000000:5.0f} million records.')
-                    splits = line.split(split_char)
-                    splits[len(splits)-1] = splits[len(splits) -
-                                                   1].replace("\n", '')
-                    categoricals = [splits[i] for i in categorical_cols_idx]
-                    if feature_cols is not None:
-                        features = [splits[i] for i in feature_cols_idx]
-                    labels = [splits[i] for i in label_cols_idx]
-                    key = list2key(categoricals)
-                    if key in self.sample:
-                        self.ft_table[key] += 1
-                        if len(self.sample[key]) < self.capacity:
-                            self.sample[key].append(
-                                categoricals+features+labels if feature_cols is not None else categoricals+labels)
-                        else:
-                            if not b_fast:  # naive simple algorithm
-                                j = randint(0, cnt)
-                                if j < self.capacity:
-                                    self.sample[key][j] = categoricals + features + \
-                                        labels if feature_cols is not None else categoricals+labels
-                            else:  # fast algorithm
-                                # need to provide an extra ft to store the frequency.
-                                pass
+            # the structure of the ft is a 2-depth dict.
+            if equality_cols is not None:
+                with open(self.file_name, 'r') as f:
+                    for line in f:
+                        if self.b_skip_first_row:  # self.file_header is None:
+                            # self.file_header = file_header
+                            self.b_skip_first_row = False
+                            continue
+                        cnt += 1
+                        if cnt % 1000000 == 0:
+                            print(
+                                f'processed {cnt/1000000:5.0f} million records.')
+                        splits = line.split(split_char)
+                        splits[len(splits)-1] = splits[len(splits) -
+                                                       1].replace("\n", '')
+                        gbs = [splits[i] for i in gb_cols_idx]
+                        equals = [splits[i] for i in equality_cols_idx]
+                        # categoricals = [splits[i]
+                        #                 for i in categorical_cols_idx]
+                        if feature_cols is not None:
+                            features = [splits[i] for i in feature_cols_idx]
+                        labels = [splits[i] for i in label_cols_idx]
+                        key_gb = list2key(gbs)
+                        key_equal = list2key(equals)
+                        if key_equal in self.sample:
+                            if key_gb in self.ft_table[key_equal]:
+                                self.ft_table[key_equal][key_gb] += 1
+                            else:
+                                self.ft_table[key_equal][key_gb] = 1
+                            if len(self.sample[key_equal]) < self.capacity:
+                                self.sample[key_equal].append(
+                                    gbs+equals+features+labels if feature_cols is not None else gbs+equals+labels)
+                            else:
+                                if not b_fast:  # naive simple algorithm
+                                    j = randint(0, cnt)
+                                    if j < self.capacity:
+                                        self.sample[key_equal][j] = gbs+equals + features + \
+                                            labels if feature_cols is not None else gbs+equals+labels
+                                else:  # fast algorithm
+                                    # need to provide an extra ft to store the frequency.
+                                    pass
 
-                    else:
-                        self.ft_table[key] = 1
-                        self.sample[key] = [
-                            categoricals+features+labels] if feature_cols is not None else [categoricals+labels]
+                        else:
+                            self.ft_table[key_equal] = {}
+                            self.ft_table[key_equal][key_gb] = 1
+                            self.sample[key_equal] = [
+                                gbs+equals+features+labels] if feature_cols is not None else [gbs+equals+labels]
+            else:  # no equality condition, thus the structure of the ft is just 1-depth dictionary
+                with open(self.file_name, 'r') as f:
+                    for line in f:
+                        if self.b_skip_first_row:  # self.file_header is None:
+                            # self.file_header = file_header
+                            self.b_skip_first_row = False
+                            continue
+                        cnt += 1
+                        if cnt % 1000000 == 0:
+                            print(
+                                f'processed {cnt/1000000:5.0f} million records.')
+                        splits = line.split(split_char)
+                        splits[len(splits)-1] = splits[len(splits) -
+                                                       1].replace("\n", '')
+                        gbs = [splits[i] for i in gb_cols_idx]
+                        # categoricals = [splits[i]
+                        #                 for i in categorical_cols_idx]
+                        if feature_cols is not None:
+                            features = [splits[i] for i in feature_cols_idx]
+                        labels = [splits[i] for i in label_cols_idx]
+                        key_gb = list2key(gbs)
+                        if key_gb in self.sample:
+                            self.ft_table[key_gb] += 1
+                            if len(self.sample[key_gb]) < self.capacity:
+                                self.sample[key_gb].append(
+                                    gbs+features+labels if feature_cols is not None else gbs+labels)
+                            else:
+                                if not b_fast:  # naive simple algorithm
+                                    j = randint(0, cnt)
+                                    if j < self.capacity:
+                                        self.sample[key_gb][j] = gbs + features + \
+                                            labels if feature_cols is not None else gbs+labels
+                                else:  # fast algorithm
+                                    # need to provide an extra ft to store the frequency.
+                                    pass
+
+                        else:
+                            self.ft_table[key_gb] = 1
+                            self.sample[key_gb] = [
+                                gbs+features+labels] if feature_cols is not None else [gbs+labels]
 
             if self.file_header is None:
                 self.file_header = file_header_from_file

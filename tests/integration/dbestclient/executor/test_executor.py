@@ -260,7 +260,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute(
             "drop table test_ss40g_no_continuous_1_column_1_model")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_1_column_1_model(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")
+            "create table test_ss40g_no_continuous_1_column_1_model(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_1k.csv' GROUP BY ss_store_sk method uniform size 1000")
         results = sqlExecutor.execute(
             "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model where ss_coupon_amt=''  group by ss_store_sk")
         sqlExecutor.execute(
@@ -283,7 +283,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute(
             "drop table test_ss40g_no_continuous_1_column_1_model_stratified")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method stratified size 600")
+            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_1k.csv' GROUP BY ss_store_sk method stratified size 1000")
         results = sqlExecutor.execute(
             "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model_stratified where ss_coupon_amt=''  group by ss_store_sk")
         sqlExecutor.execute(
