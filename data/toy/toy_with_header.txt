@@ -1,0 +1,4 @@
+range1,range2,cate1,cate2,gb1,gb2,label
+1.0,2.0,london,male,store_id1,cust_id1,salary1
+1.1,2.1,london,male,store_id1,cust_id1,salary2
+1.1,2.1,paris,male,store_id1,cust_id2,salary3

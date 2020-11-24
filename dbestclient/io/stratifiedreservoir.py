@@ -36,15 +36,23 @@ class StratifiedReservoir:
         self.feature_cols = None
         self.label_cols = None
 
+        # self.b_skip_first_row = None
+        if n_jobs == 1 and file_header is not None:
+            self.b_skip_first_row = False
+        else:
+            self.b_skip_first_row = True
+
     def make_sample(self, gb_cols: list, equality_cols: list, feature_cols: list, label_cols: list, split_char=',', b_shuffle=False, b_fast=False, b_return_sample=False):
         print("Start making a sample as requested...")
         t1 = datetime.now()
         # pre-process the file header
         if self.file_header is None:
             with open(self.file_name, 'r') as f:
-                self.file_header = f.readline()
-        headers = self.file_header.split(split_char)
-
+                file_header_from_file = f.readline().replace("\n", '')
+                headers = file_header_from_file.split(split_char)
+        else:
+            headers = self.file_header.split(split_char)
+        # print("headers", headers, "-"*20)
         self.gb_cols = gb_cols
         self.equality_cols = equality_cols
         self.feature_cols = feature_cols
@@ -62,19 +70,20 @@ class StratifiedReservoir:
         else:
             self.relevant_header_idx = categorical_cols_idx+label_cols_idx
 
-        # print(gb_cols_idx)
-        # print(extra_cols_idx)
-        # print(self.relevant_header_idx)
-
-        # self.relevant_header = groupby_cols + extra_cols
         if self.n_jobs == 1:
             cnt = 0
             with open(self.file_name, 'r') as f:
                 for line in f:
+                    if self.b_skip_first_row:  # self.file_header is None:
+                        # self.file_header = file_header
+                        self.b_skip_first_row = False
+                        continue
                     cnt += 1
                     if cnt % 1000000 == 0:
                         print(f"processed {cnt} records.")
                     splits = line.split(split_char)
+                    splits[len(splits)-1] = splits[len(splits) -
+                                                   1].replace("\n", '')
                     categoricals = [splits[i] for i in categorical_cols_idx]
                     if feature_cols is not None:
                         features = [splits[i] for i in feature_cols_idx]
@@ -99,6 +108,9 @@ class StratifiedReservoir:
                         self.ft_table[key] = 1
                         self.sample[key] = [
                             categoricals+features+labels] if feature_cols is not None else [categoricals+labels]
+
+            if self.file_header is None:
+                self.file_header = file_header_from_file
             if b_return_sample:
                 return self.sample, self.ft_table
 
@@ -124,9 +136,17 @@ class StratifiedReservoir:
             results = []
             fts = []
             instances = []
-            for file in files:
-                i = pool.apply_async(
-                    StratifiedReservoir(file, file_header=self.file_header, n_jobs=1, capacity=self.capacity).make_sample, (gb_cols, equality_cols, feature_cols, label_cols, split_char, False, b_fast, True))
+            for idx, file in enumerate(files):
+                # if idx == 0 and self.file_header is None:
+                #     i = pool.apply_async(
+                #         StratifiedReservoir(file, file_header=file_header_from_file, n_jobs=1, capacity=self.capacity).make_sample, (gb_cols, equality_cols, feature_cols, label_cols, split_char, False, b_fast, True))
+                if idx == 0:
+                    i = pool.apply_async(
+                        StratifiedReservoir(file, file_header=self.file_header, n_jobs=1, capacity=self.capacity).make_sample, (gb_cols, equality_cols, feature_cols, label_cols, split_char, False, b_fast, True))
+                else:
+                    fh = self.file_header if self.file_header is not None else file_header_from_file
+                    i = pool.apply_async(
+                        StratifiedReservoir(file, file_header=fh, n_jobs=1, capacity=self.capacity).make_sample, (gb_cols, equality_cols, feature_cols, label_cols, split_char, False, b_fast, True))
                 instances.append(i)
 
             for i in instances:
@@ -183,7 +203,6 @@ class StratifiedReservoir:
             else:
                 self.data_labels[key] = [row[idx] for idx in range(len(categorical_cols_idx),
                                                                    len(categorical_cols_idx) + len(label_cols_idx)) for row in self.sample[key]]
-        self.sample = None
 
         # cntt = 0
         # for key in self.ft_table:
@@ -191,14 +210,16 @@ class StratifiedReservoir:
         #     cntt += self.ft_table[key]
         # print("cntt", cntt)
 
-        # for key in self.ft:
+        # for key in self.ft_table:
         #     # print(key, self.ft[key])
         #     print(key, self.sample[key])
-        #     print(key, data_categoricals[key])
-        #     print(key, data_features[key])
-        #     print(key, data_labels[key])
-        #     exit()
+        #     print(key, self.data_categoricals[key])
+        #     if self.data_features:
+        #         print(key, self.data_features[key])
+        #     print(key, self.data_labels[key])
+        #     # exit()
 
+        # self.sample = None
         print(
             f"Finish making the sample, time cost is {(datetime.now()-t1).total_seconds():.4f} seconds.")
         return self.data_categoricals, self.data_features, self.data_labels
@@ -208,6 +229,12 @@ class StratifiedReservoir:
 
     def get_ft(self):
         return self.ft_table
+
+    def size(self):
+        cnt = 0
+        for key in self.ft_table:
+            cnt += self.ft_table[key]
+        return cnt
 
     def erase(self):
         self.data_categoricals = None
