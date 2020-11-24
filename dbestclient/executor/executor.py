@@ -69,28 +69,6 @@ class SqlExecutor:
                     self.runtime_config)] = model
                 n_model += 1
 
-            # # load group by models
-            # if os.path.isdir(self.config.get_config()['warehousedir'] + "/" + file_name):
-            #     n_models_in_groupby = 0
-            #     if n_model == 0:
-            #         print("start loading pre-existing models.")
-
-            #     for model_name in os.listdir(self.config.get_config()['warehousedir'] + "/" + file_name):
-            #         if model_name.endswith(self.runtime_config["model_suffix"]):
-            #             with open(self.config.get_config()['warehousedir'] + "/" + file_name + "/" + model_name, 'rb') as f:
-            #                 model = dill.load(f)
-            #                 n_models_in_groupby += 1
-
-            #             if n_models_in_groupby == 1:
-            #                 groupby_model_wrapper = GroupByModelWrapper(model.mdl, model.tbl, model.x, model.y,
-            #                                                             model.groupby_attribute,
-            #                                                             x_min_value=model.x_min_value,
-            #                                                             x_max_value=model.x_max_value)
-            #             groupby_model_wrapper.add_simple_model(model)
-
-            #         self.model_catalog.model_catalog[file_name] = groupby_model_wrapper.models
-            #         n_model += 1
-
         if n_model > 0:
             print("Loaded " + str(n_model) + " models.", end=" ")
             if self.runtime_config["b_show_latency"]:
