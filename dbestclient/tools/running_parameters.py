@@ -61,8 +61,8 @@ class DbestConfig:
         self.config = {
             # system-level configuration.
             # 'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-            # 'warehousedir': 'dbestwarehouse',
-            'warehousedir': '/home/runner/work/DBEstClient/DBEstClient/',
+            'warehousedir': 'dbestwarehouse',
+            # 'warehousedir': '/home/runner/work/DBEstClient/DBEstClient/',
             "reg_type": "mdn",
             "density_type": "mdn",  # qreg
             'backend_server': 'None',
@@ -89,9 +89,9 @@ class DbestConfig:
             "n_mdn_layer_node_reg": 10,
             "n_mdn_layer_node_density": 10,
             "n_embedding_dim": 20,
-            "encoder": "binary",  # onehot, embedding
+            "encoder": "embedding",  # onehot, embedding, binary
             "batch_size": 1000,
-            "one_model": False,
+            "one_model": True,
         }
 
     def set_parameters(self, config: dict):

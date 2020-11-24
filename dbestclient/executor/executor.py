@@ -92,7 +92,6 @@ class SqlExecutor:
                 print("Local mode is on, as no slaves are provided.")
 
     def execute(self, sql):
-        # b_use_gg=False, n_per_gg=10, result2file=None,n_mdn_layer_node = 10, encoding = "onehot",n_jobs = 4, b_grid_search = True,device = "cpu", n_division = 20
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
@@ -166,6 +165,7 @@ class SqlExecutor:
                 print("Start creating model " + mdl)
                 time1 = datetime.now()
 
+                # if method.lower() == "uniform":
                 if self.save_sample:
                     sampler.make_sample(
                         original_data_file, ratio, method, split_char=self.config.get_config()[
@@ -248,59 +248,63 @@ class SqlExecutor:
                             self.config.get_config()['warehousedir'] + "/" + groupby_model_wrapper.dir)
                         self.model_catalog.model_catalog[groupby_model_wrapper.dir] = groupby_model_wrapper.models
                     else:  # "mdn"
+                        if method.lower() == "uniform":
+                            xys = sampler.getyx(
+                                yheader, xheader_continous, groupby=groupby_attribute)
 
-                        xys = sampler.getyx(
-                            yheader, xheader_continous, groupby=groupby_attribute)
-                        # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
-                        # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
+                            # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
+                            # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
 
-                        # n_total_point = get_group_count_from_table(
-                        #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
-                        #     headers=self.table_header)
-                        if isinstance(ratio, str):
-                            frequency_file = self.config.get_config()[
-                                'warehousedir'] + "/" + ratio
-                            # "/num_of_points.csv"
-                            if os.path.exists(frequency_file):
-                                n_total_point = get_group_count_from_summary_file(
-                                    frequency_file, sep=',')
-                                n_total_point_sample, xys = sampler.get_groupby_frequency_data()
-                                n_total_point["if_contain_x_categorical"] = n_total_point_sample["if_contain_x_categorical"]
-                            else:
-                                raise FileNotFoundError(
-                                    "scaling factor should come from the " +
-                                    ratio + " in the warehouse folder, as"
-                                    " stated in the SQL. However, the file is not found.")
-                        else:
-                            n_total_point, xys = sampler.get_groupby_frequency_data()
-                            # print(n_total_point)
-                            # for cases when the data file is treated as a sample, we need to scale up the frequency for each group.
-                            if ratio > 1:
-                                file_size = sampler.n_total_point
-                                ratio = float(ratio)/file_size
-                            # if 0 < ratio < 1:
-                            scaled_n_total_point = {}
-                            if "if_contain_x_categorical" in n_total_point:
-                                scaled_n_total_point["if_contain_x_categorical"] = n_total_point.pop(
-                                    "if_contain_x_categorical")
-                            if "categorical_distinct_values" in n_total_point:
-                                scaled_n_total_point["categorical_distinct_values"] = n_total_point.pop(
-                                    "categorical_distinct_values")
-                            if "x_categorical_columns" in n_total_point:
-                                scaled_n_total_point["x_categorical_columns"] = n_total_point.pop(
-                                    "x_categorical_columns")
-                            for key in n_total_point:
-                                # print("key", key, n_total_point[key])
-
-                                if not isinstance(n_total_point[key], dict):
-                                    scaled_n_total_point[key] = n_total_point[key]/ratio
+                            # n_total_point = get_group_count_from_table(
+                            #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
+                            #     headers=self.table_header)
+                            if isinstance(ratio, str):
+                                frequency_file = self.config.get_config()[
+                                    'warehousedir'] + "/" + ratio
+                                # "/num_of_points.csv"
+                                if os.path.exists(frequency_file):
+                                    n_total_point = get_group_count_from_summary_file(
+                                        frequency_file, sep=',')
+                                    n_total_point_sample, xys = sampler.get_groupby_frequency_data()
+                                    n_total_point["if_contain_x_categorical"] = n_total_point_sample["if_contain_x_categorical"]
                                 else:
-                                    scaled_n_total_point[key] = {}
-                                    for sub_key in n_total_point[key]:
-                                        scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
-                            n_total_point = scaled_n_total_point
-                            # print("scaled_n_total_point", scaled_n_total_point)
+                                    raise FileNotFoundError(
+                                        "scaling factor should come from the " +
+                                        ratio + " in the warehouse folder, as"
+                                        " stated in the SQL. However, the file is not found.")
+                            else:
+                                n_total_point, xys = sampler.get_groupby_frequency_data()
+                                # print(n_total_point)
+                                # for cases when the data file is treated as a sample, we need to scale up the frequency for each group.
+                                if ratio > 1:
+                                    file_size = sampler.n_total_point
+                                    ratio = float(ratio)/file_size
+                                # if 0 < ratio < 1:
+                                scaled_n_total_point = {}
+                                if "if_contain_x_categorical" in n_total_point:
+                                    scaled_n_total_point["if_contain_x_categorical"] = n_total_point.pop(
+                                        "if_contain_x_categorical")
+                                if "categorical_distinct_values" in n_total_point:
+                                    scaled_n_total_point["categorical_distinct_values"] = n_total_point.pop(
+                                        "categorical_distinct_values")
+                                if "x_categorical_columns" in n_total_point:
+                                    scaled_n_total_point["x_categorical_columns"] = n_total_point.pop(
+                                        "x_categorical_columns")
+                                for key in n_total_point:
+                                    # print("key", key, n_total_point[key])
 
+                                    if not isinstance(n_total_point[key], dict):
+                                        scaled_n_total_point[key] = n_total_point[key]/ratio
+                                    else:
+                                        scaled_n_total_point[key] = {}
+                                        for sub_key in n_total_point[key]:
+                                            scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
+                                n_total_point = scaled_n_total_point
+                                # print("scaled_n_total_point", scaled_n_total_point)
+                        elif method.lower() == "stratified":
+                            pass
+                        else:
+                            raise TypeError("unexpected method")
                         # no continuous x attributes, which means there is not range predicate on continuous attribute
                         if not xheader_continous:
                             # use one model to support all categorical attribute
@@ -310,28 +314,34 @@ class SqlExecutor:
                                 usecols = {
                                     "y": yheader, "x_continous": xheader_continous,
                                     "x_categorical": xheader_categorical, "gb": groupby_attribute}
-                                useCols = UseCols(usecols)
+                                if method.lower() == "uniform":
+                                    useCols = UseCols(usecols)
 
-                                # get the training data from samples.
-                                gbs, xs, ys = useCols.get_gb_x_y_cols_for_one_model()
-                                gbs_data, xs_data, ys_data = sampler.sample.get_columns_from_original_sample(
-                                    gbs, xs, ys)
-                                n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
-                                    groupby_attribute, xheader_categorical)
-                                # print("n_total_point-----------before",
-                                #       n_total_point)
-                                # print("ratio is ", ratio)
+                                    # get the training data from samples.
+                                    gbs, xs, ys = useCols.get_gb_x_y_cols_for_one_model()
+                                    gbs_data, xs_data, ys_data = sampler.sample.get_columns_from_original_sample(
+                                        gbs, xs, ys)
+                                    n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
+                                        groupby_attribute, xheader_categorical)
+                                    # print("n_total_point-----------before",
+                                    #       n_total_point)
+                                    # print("ratio is ", ratio)
 
-                                scaled_n_total_point = {}
-                                for key in n_total_point:
-                                    scaled_n_total_point[key] = {}
-                                    for sub_key in n_total_point[key]:
-                                        scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
-                                n_total_point = scaled_n_total_point
-                                # print("n_total_point-----------after",
-                                #       n_total_point)
+                                    scaled_n_total_point = {}
+                                    for key in n_total_point:
+                                        scaled_n_total_point[key] = {}
+                                        for sub_key in n_total_point[key]:
+                                            scaled_n_total_point[key][sub_key] = n_total_point[key][sub_key]/ratio
+                                    n_total_point = scaled_n_total_point
+                                    # print("n_total_point-----------after",
+                                    #       n_total_point)
 
-                                # raise
+                                elif method.lower() == "stratified":
+                                    gbs_data, xs_data, ys_data = sampler.sample.get_categorical_features_label()
+
+                                print("gbs_data", gbs_data)
+                                print("type", type(gbs_data))
+                                exit()
 
                                 qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
                                        runtime_config=self.runtime_config)

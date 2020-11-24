@@ -100,6 +100,25 @@ class TestTpcDs(unittest.TestCase):
         # sqlExecutor.execute("drop table test_ss40g_categorical_one_model")
         self.assertTrue(predictions)
 
+    def test_categorical_one_model_stratified(self):
+        sqlExecutor = SqlExecutor()
+        sqlExecutor.execute("set b_grid_search='False'")
+        sqlExecutor.execute("set csv_split_char='|'")
+        sqlExecutor.execute("set one_model='true'")
+        sqlExecutor.execute("set table_header=" +
+                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+                            "ss_net_paid_inc_tax|ss_net_profit|none'"
+                            )
+        sqlExecutor.execute(
+            "create table test_ss40g_categorical_one_model(ss_sales_price real, ss_sold_date_sk real,  ss_coupon_amt categorical, ) from 'data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method stratified size 600")  # ss_ext_discount_amt categorical
+        predictions = sqlExecutor.execute(
+            "select count(ss_sales_price)  from test_ss40g_categorical_one_model where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='0.00'   group by ss_store_sk")  # and ss_ext_discount_amt='0.00'
+        # sqlExecutor.execute("drop table test_ss40g_categorical_one_model")
+        self.assertTrue(predictions)
+
     def test_gogs_no_categorical(self):
         sqlExecutor = SqlExecutor()
         sqlExecutor.execute("set b_grid_search='False'")
@@ -225,7 +244,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute("drop table test_ss40g_no_continuous_2_columns")
         self.assertFalse(results.empty)
 
-    def test_no_continuous_categorical_1_one_model(self):
+    def test_no_continuous_categorical_one_model_uniform(self):
         sqlExecutor = SqlExecutor()
         sqlExecutor.execute("set b_grid_search='False'")
         sqlExecutor.execute("set csv_split_char='|'")
@@ -248,18 +267,39 @@ class TestTpcDs(unittest.TestCase):
             "drop table test_ss40g_no_continuous_1_column_1_model")
         self.assertFalse(results.empty)
 
-
-
+    def test_no_continuous_categorical_one_model_stratified(self):
+        sqlExecutor = SqlExecutor()
+        sqlExecutor.execute("set b_grid_search='False'")
+        sqlExecutor.execute("set csv_split_char='|'")
+        sqlExecutor.execute("set encoder='embedding'")
+        sqlExecutor.execute("set one_model='true'")
+        sqlExecutor.execute("set table_header=" +
+                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+                            "ss_net_paid_inc_tax|ss_net_profit|none'"
+                            )
+        sqlExecutor.execute(
+            "drop table test_ss40g_no_continuous_1_column_1_model_stratified")
+        sqlExecutor.execute(
+            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method stratified size 600")
+        results = sqlExecutor.execute(
+            "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model_stratified where ss_coupon_amt=''  group by ss_store_sk")
+        sqlExecutor.execute(
+            "drop table test_ss40g_no_continuous_1_column_1_model_stratified")
+        self.assertFalse(results.empty)
 
 
 if __name__ == "__main__":
     # unittest.main()
     # TestTpcDs().test_groupbys()
     # TestTpcDs().test_categorical_one_model()
-    TestHw().test_cpu()
+    # TestTpcDs().test_categorical_one_model_stratified()
     # TestTpcDs().test_embedding()
     # TestTpcDs().test_gogs_categorical()
     # TestTpcDs().test_no_continuous1()
     # TestTpcDs().test_no_continuous_categorical_1()
     # TestTpcDs().test_no_continuous_categorical_2()
-    # TestTpcDs().test_no_continuous_categorical_1_one_model()
+    # TestTpcDs().test_no_continuous_categorical_one_model_uniform()
+    TestTpcDs().test_no_continuous_categorical_one_model_stratified()

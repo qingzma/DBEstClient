@@ -11,6 +11,7 @@ import os
 from datetime import datetime
 from random import randint, shuffle
 import dill
+import numpy as np
 
 
 class StratifiedReservoir:
@@ -42,8 +43,12 @@ class StratifiedReservoir:
         else:
             self.b_skip_first_row = True
 
-    def make_sample_for_sql_condition(self):
-        pass
+    def make_sample_for_sql_condition(self, usecols, split_char=',', b_shuffle=False, b_fast=False, b_return_sample=False):
+        gb_cols = usecols["gb"]
+        equality_cols = usecols["x_categorical"]
+        feature_cols = usecols["x_continous"]
+        label_cols = usecols["y"]
+        return self.make_sample(gb_cols, equality_cols, feature_cols, [label_cols[0]], split_char, b_shuffle, b_fast, b_return_sample)
 
     def make_sample(self, gb_cols: list, equality_cols: list, feature_cols: list, label_cols: list, split_char=',', b_shuffle=False, b_fast=False, b_return_sample=False):
         print("Start making a sample as requested...")
@@ -53,9 +58,17 @@ class StratifiedReservoir:
             with open(self.file_name, 'r') as f:
                 file_header_from_file = f.readline().replace("\n", '')
                 headers = file_header_from_file.split(split_char)
+        elif isinstance(self.file_header, list):
+            headers = self.file_header
         else:
+            print("self.file_header", self.file_header)
             headers = self.file_header.split(split_char)
-        # print("headers", headers, "-"*20)
+        print("headers", headers, "-"*200)
+        print("gb_cols",  gb_cols)
+        print("equality_cols",  equality_cols)
+        print("feature_cols",  feature_cols)
+        print("label_cols", label_cols)
+
         self.gb_cols = gb_cols
         self.equality_cols = equality_cols
         self.feature_cols = feature_cols
@@ -228,7 +241,7 @@ class StratifiedReservoir:
         return self.data_categoricals, self.data_features, self.data_labels
 
     def get_categorical_features_label(self):
-        return self.data_categoricals, self.data_features, self.data_labels
+        return np.array(self.data_categoricals), self.data_features, self.data_labels
 
     def get_ft(self):
         return self.ft_table

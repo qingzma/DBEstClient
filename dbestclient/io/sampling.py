@@ -6,6 +6,7 @@
 import pandas as pd
 
 from dbestclient.io.reservoir import ReservoirSampling
+from dbestclient.io.stratifiedreservoir import StratifiedReservoir
 
 
 class DBEstSampling:
@@ -18,8 +19,10 @@ class DBEstSampling:
         self.usecols = usecols
         self.original_table_size = None
         self.scaling_factor = None
+        self.method = None
 
     def make_sample(self, file, ratio,  method='uniform', split_char=',', file2save=None, num_total_records=None):
+        self.method = method.lower()
         if method == 'uniform':
             # # if  ratio is provided, then make samples using the ratio (or size)
             # if ratio is not None:
@@ -59,14 +62,34 @@ class DBEstSampling:
             # delete the headers after models are trained, to save sapce.
             self.headers = None
             return
+        elif method.lower() == "stratified":
+            ratio = int(ratio)
+            if ratio < 10:
+                print("The maximum number of tuples per group is too small")
+                return
+
+            self.sample = StratifiedReservoir(
+                file, file_header=self.headers, n_jobs=1, capacity=ratio)
+            self.sample.make_sample_for_sql_condition(
+                usecols=self.usecols, split_char=split_char)
         else:
             print("other sampling methods are not implemented, abort.")
 
     def getyx(self, y, x, dropna=True, b_return_mean=False, groupby=None):
-        return self.sample.getyx(y, x, dropna=dropna, b_return_mean=b_return_mean, groupby=groupby)
+        if self.method == "uniform":
+            return self.sample.getyx(y, x, dropna=dropna, b_return_mean=b_return_mean, groupby=groupby)
+        elif self.method == "stratified":
+            return self.sample.get_categorical_features_label()
+        else:
+            raise TypeError("Unexpected method for sampling.")
 
     def get_groupby_frequency_data(self):
-        return self.sample.get_groupby_frequency_and_data()
+        if self.method == "uniform":
+            return self.sample.get_groupby_frequency_and_data()
+        elif self.method == "stratified":
+            return self.sample.get_ft()
+        else:
+            raise TypeError("Unexpected method for sampling.")
 
 
 # if __name__ == '__main__':
