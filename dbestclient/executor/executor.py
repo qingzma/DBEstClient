@@ -18,7 +18,7 @@ from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (
     MdnQueryEngine, MdnQueryEngineGoGs, MdnQueryEngineNoRange,
     MdnQueryEngineNoRangeCategorical, MdnQueryEngineNoRangeCategoricalOneModel,
-    MdnQueryEngineXCategorical, MdnQueryEngineXCategoricalOneModel)
+    MdnQueryEngineXCategorical, MdnQueryEngineXCategoricalOneModel, MdnQueryEngineRangeNoCategorical)
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import (GroupByModelTrainer, KdeModelTrainer,
                                          SimpleModelTrainer)
@@ -387,6 +387,8 @@ class SqlExecutor:
                                     if not self.config.get_config()["b_use_gg"]:
                                         n_total_point.pop(
                                             "if_contain_x_categorical")
+                                        # print(" xys['data']", xys["data"])
+                                        # exit()
                                         # xys.pop("if_contain_x_categorical")
                                         kdeModelWrapper = KdeModelTrainer(
                                             mdl, tbl, xheader_continous[0], yheader,
@@ -439,6 +441,14 @@ class SqlExecutor:
                                         #       n_total_point)
                                         # print("ratio is ", ratio)
 
+                                        # print("gbs_data", gbs_data)
+                                        # print("xs_data", xs_data)
+                                        # print("ys_data", ys_data)
+                                        print("n_total_point", n_total_point)
+                                        print(
+                                            "n_total_point['']", n_total_point.keys())
+                                        exit()
+
                                         scaled_n_total_point = {}
                                         for key in n_total_point:
                                             scaled_n_total_point[key] = {}
@@ -473,13 +483,70 @@ class SqlExecutor:
                                         qe, self.runtime_config)
                             elif method.lower() == "stratified":
                                 if xheader_categorical:
-                                    print("contain equality")
-                                    print("xheader_categorical",
-                                          xheader_categorical)
+
+                                    # print("contain equality")
+                                    # print("xheader_categorical",
+                                    #       xheader_categorical)
+                                    gbs_data, xs_data, ys_data = sampler.sample.get_categorical_features_label()
+                                    n_total_point = sampler.sample.get_ft()
+                                    usecols = {
+                                        "y": yheader, "x_continous": xheader_continous,
+                                        "x_categorical": xheader_categorical, "gb": groupby_attribute}
+                                    xs_data = xs_data.reshape(1, -1)[0]
+                                    # print("gbs_data", gbs_data)
+                                    # print("xs_data", xs_data)
+                                    # print("ys_data", ys_data)
+                                    # print("n_total_point", n_total_point)
+                                    # print(
+                                    #     "n_total_point['']", n_total_point.keys())
+
+                                    # print("type", type(gbs_data))
+                                    # exit()
+                                    qe = MdnQueryEngineXCategoricalOneModel(
+                                        self.config.copy())
+                                    qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
+                                           runtime_config=self.runtime_config)
+                                    qe.serialize2warehouse(
+                                        self.config.get_config()['warehousedir'], self.runtime_config)
+                                    self.model_catalog.add_model_wrapper(
+                                        qe, self.runtime_config)
                                 else:  # contain range, but not equality
-                                    print("does not contain equality")
-                                    print("xheader_categorical",
-                                          xheader_categorical)
+                                    # print("does not contain equality")
+                                    # print("xheader_categorical",
+                                    #       xheader_categorical)
+                                    gbs_data, xs_data, ys_data = sampler.sample.get_categorical_features_label()
+                                    n_total_point = sampler.sample.get_ft()
+                                    usecols = {
+                                        "y": yheader, "x_continous": xheader_continous,
+                                        "x_categorical": xheader_categorical, "gb": groupby_attribute}
+                                    xs_data = xs_data.reshape(1, -1)[0]
+
+                                    # print(" xys['data']", xys["data"])
+                                    # exit()
+
+                                    # kdeModelWrapper = KdeModelTrainer(
+                                    #     mdl, tbl, xheader_continous[0], yheader,
+                                    #     groupby_attribute=groupby_attribute,
+                                    #     groupby_values=list(
+                                    #         n_total_point.keys()),
+                                    #     n_total_point=n_total_point,
+                                    #     x_min_value=-np.inf, x_max_value=np.inf,
+                                    #     config=self.config.copy()).fit_from_df(
+                                    #     xys["data"], self.runtime_config, network_size=None)
+
+                                    # qe_mdn = MdnQueryEngine(
+                                    #     kdeModelWrapper, config=self.config.copy())
+
+                                    # print("n_total_point", n_total_point)
+                                    qe = MdnQueryEngineRangeNoCategorical(
+                                        self.config.copy())
+                                    qe.fit(mdl, tbl, gbs_data, xs_data, ys_data, n_total_point, usecols=usecols,
+                                           runtime_config=self.runtime_config)
+                                    qe.serialize2warehouse(
+                                        self.config.get_config()['warehousedir'], self.runtime_config)
+                                    self.model_catalog.add_model_wrapper(
+                                        qe, self.runtime_config)
+
                             else:
                                 raise TypeError("unexpected sampling method.")
                 time2 = datetime.now()
@@ -545,7 +612,8 @@ class SqlExecutor:
                                                              self.runtime_config["model_suffix"]]
                     predictions = model.predicts(func, None, None, where_conditions,
                                                  self.runtime_config, groups=None, filter_dbest=None)
-                    print("tempory print")
+
+                if self.runtime_config['b_print_to_screen']:
                     print(predictions.to_csv(sep='\t', index=False))
 
                 if self.runtime_config['b_show_latency']:

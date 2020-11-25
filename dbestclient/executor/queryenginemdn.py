@@ -158,6 +158,138 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
                 return
 
 
+class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
+    def __init__(self,  config):
+        super().__init__()
+        self.n_total_point = None
+        self.config = config
+        self.runtime_config = None
+        self.groupby_values = None
+        self.usecols = None
+        self.reg = None
+        self.kde = None
+
+    def fit(self, mdl_name: str, origin_table_name: str, gbs_data, xs_data, ys_data, total_points: dict, usecols: dict, runtime_config: dict):
+        if runtime_config['v']:
+            print("fit MdnQueryEngineRangeNoCategorical: "+mdl_name+"...")
+        self.mdl_name = mdl_name
+        self.n_total_point = total_points
+        self.runtime_config = runtime_config
+        self.groupby_values = list(total_points.keys())
+        self.usecols = usecols
+        self.density_column = usecols["x_continous"][0]
+        print("self.density_column", self.density_column)
+        # self.reg = None
+
+        # self.x_categorical_columns = usecols["x_categorical"]
+        # self.group_by_columns = usecols['gb']
+
+        # gbs = data[usecols['gb']].values
+        # ys = data[usecols['y'][0]].values.reshape(1, -1)[0]
+
+        # # configuration-related parameters.
+        # device = runtime_config["device"]
+        # encoding = self.config.get_config()["encoder"]
+        # b_grid_search = self.config.get_config()["b_grid_search"]
+
+        if self.config.config['b_use_gg']:
+            raise ValueError("Method not implemented.")
+        else:
+            config = self.config.copy()
+            if runtime_config['v']:
+                print("training regression...")
+            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+                gbs_data, xs_data, ys_data, runtime_config)
+
+            if runtime_config['v']:
+                print("training density...")
+            self.kde = KdeMdn(config, b_store_training_data=False).fit(
+                gbs_data, xs_data, runtime_config)
+        return self
+
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
+        b_print_to_screen = runtime_config["b_print_to_screen"]
+        result2file = runtime_config["result2file"]
+        if "slaves" in runtime_config:
+            if runtime_config["slaves"].size() == 0:
+                n_jobs = runtime_config["n_jobs"]
+            else:
+                n_jobs = runtime_config["slaves"].size()
+        else:
+            n_jobs = runtime_config["n_jobs"]
+
+        if func.lower() not in ("count", "sum", "avg", "var"):
+            raise ValueError("function not supported: "+func)
+        if groups is None:  # provide predictions for all groups.
+            groups = self.groupby_values
+
+        if self.config.get_config()["accept_filter"]:
+            print("not implemented yet")
+            return
+
+        if func.lower() not in ("count", "sum", "avg", "var"):
+            raise ValueError("function not supported: "+func)
+        if groups is None:  # provide predictions for all groups.
+            groups = self.groupby_values
+
+        if self.config.get_config()["accept_filter"]:
+            print("not implemented yet")
+            return
+
+        if func.lower() in ["count", "sum", "avg"]:
+            if n_jobs == 1:
+                # groups_name = list(self.n_total_point.keys())
+                # # groups_value = list(self.n_total_point.values())
+                # if func.lower() == "count":
+                #     result = self.n_total_point
+                # elif func.lower() == "sum":
+                #     result = self.reg.predict(
+                #         groups_name, None, runtime_config)
+                #     result = {g: res*self.n_total_point[g] for res,
+                #               g in zip(result, groups_name)}
+                # elif func.lower() == "avg":
+                #     result = self.reg.predict(
+                #         groups_name, None, runtime_config)
+                #     result = {key: val for key, val in zip(
+                #         groups_name, result)}
+
+                if len(groups[0].split(",")) == 1:  # 1d group by
+                    scaling_factor = np.array([self.n_total_point[key]
+                                               for key in groups])
+                else:
+                    scaling_factor = np.array([self.n_total_point[key]
+                                               for key in groups])
+                # print("self.n_total_point", self.n_total_point)
+                # print("groups", groups)
+                pre_density, pre_reg, step = prepare_reg_density_data(
+                    self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
+                # print("pre_density, pre_reg", pre_density,)
+                # print(pre_reg)
+                # exit()
+
+                if func.lower() == "count":
+                    preds = approx_count(pre_density, step)
+                    preds = np.multiply(preds, scaling_factor)
+                elif func.lower() == "sum":
+                    preds = approx_sum(pre_density, pre_reg, step)
+                    preds = np.multiply(preds, scaling_factor)
+                elif func.lower() == "avg":  # avg
+                    preds = approx_avg(pre_density, pre_reg, step)
+                else:
+                    raise TypeError("wrong aggregate!")
+                results = zip(groups, preds)
+
+                # print("results", preds)
+                result = pd.DataFrame(results, columns=[self.usecols['gb'] +  # self.usecols[""] +
+                                                        [self.usecols['y'][0]]])
+                # print("result", result)
+                return result
+
+            else:
+                print("parallel is not implemented yet.")
+                return
+
+
 class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
     def __init__(self, config):
         super().__init__()
@@ -545,10 +677,12 @@ class MdnQueryEngine(GenericQueryEngine):
                     scaling_factor = np.array([self.n_total_point[key]
                                                for key in groups])
                 # print("self.n_total_point", self.n_total_point)
+                print("groups", groups)
                 pre_density, pre_reg, step = prepare_reg_density_data(
                     self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
-                # print("pre_density, pre_reg",pre_density,)
+                # print("pre_density, pre_reg", pre_density,)
                 # print(pre_reg)
+                # exit()
 
                 if func.lower() == "count":
                     preds = approx_count(pre_density, step)
@@ -560,7 +694,12 @@ class MdnQueryEngine(GenericQueryEngine):
                     preds = approx_avg(pre_density, pre_reg, step)
                 else:
                     raise TypeError("wrong aggregate!")
-                results = dict(zip(groups, preds))
+                # results = dict(zip(groups, preds))
+                results = zip(groups, preds)
+                # columns=[self.usecols['gb'] +[self.usecols['y'][0]]]
+                result = pd.DataFrame(results)
+                # print("result", result)
+                return result
 
             else:
                 runtime_config_process = shrink_runtime_config(

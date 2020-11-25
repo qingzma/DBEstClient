@@ -61,13 +61,13 @@ class StratifiedReservoir:
         elif isinstance(self.file_header, list):
             headers = self.file_header
         else:
-            print("self.file_header", self.file_header)
+            # print("self.file_header", self.file_header)
             headers = self.file_header.split(split_char)
-        print("headers", headers, "-"*200)
-        print("gb_cols",  gb_cols)
-        print("equality_cols",  equality_cols)
-        print("feature_cols",  feature_cols)
-        print("label_cols", label_cols)
+        # print("headers", headers, "-"*200)
+        # print("gb_cols",  gb_cols)
+        # print("equality_cols",  equality_cols)
+        # print("feature_cols",  feature_cols)
+        # print("label_cols", label_cols)
 
         self.gb_cols = gb_cols
         self.equality_cols = equality_cols
@@ -91,8 +91,9 @@ class StratifiedReservoir:
 
         if self.n_jobs == 1:
             cnt = 0
+            # print("equality_cols", equality_cols)
             # the structure of the ft is a 2-depth dict.
-            if equality_cols is not None:
+            if equality_cols:  # is not None:
                 with open(self.file_name, 'r') as f:
                     for line in f:
                         if self.b_skip_first_row:  # self.file_header is None:
