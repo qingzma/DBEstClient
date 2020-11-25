@@ -73,8 +73,6 @@ class WordEmbedding:
         
         
         print("finish training embedding")
-        print("number of keys :"+str(len(self.embedding.keys())))
-        print("££££££££££££££££££££££££££££££££££££££££££££££££££££££")
         return Group
         
 
@@ -98,16 +96,12 @@ class WordEmbedding:
         results = []
 
         for key in keys:
-            #print("predict key")
-            #print(key)
-            #print(type(key))
-            #print(len(key))
-            if len(key)>=2:
-                ttt=list(self.embedding[key[0]+"_"+str(0)])
+            if len(key[0])>=2:
+                ttt=list(self.embedding[key[0]])
 
 			
                 for i in range(1,len(key)):
-                    ttt1=list(self.embedding[key[i]+"_"+str(i)])
+                    ttt1=list(self.embedding[key[i]])
 
                     ttt=ttt+ttt1
 
@@ -133,35 +127,28 @@ def dataframe2sentences(df:pd.DataFrame, gbs:list):
     headers = df.columns#.to_list()
     sentences = []
     no_gbs = list(set(headers)-set(gbs))
-    #print("gbs  "+str(gbs))
-    #print("no_gbs  ",no_gbs)
+    #print(gbs)
     for row in df.itertuples():
 
         CCC=0
         for gb in gbs:
-            #print("length of key "+str(len(str(getattr(row, gb)).split(","))))
-            #print(" key "+str(str(getattr(row, gb)).split(",")))
             while (CCC<len(str(getattr(row, gb)).split(","))):
                 front_words = []
 
-                front_words.append(gb+ ",@,"+ str(getattr(row, gb)).split(",")[CCC]+"_"+str(CCC))
+                front_words.append(gb+ ",@,"+ str(getattr(row, gb)).split(",")[CCC])
                 CCC=CCC+1
 
                 for no_gb in no_gbs:
                     each_sentence = list(front_words)
                     each_sentence.append(no_gb + ",@,"+str(getattr(row, no_gb)))
                     sentences.append(each_sentence)
-                #print(each_sentence)
-        #print("sentences [0]")
-        #print(sentences[0])
-    #print("len of sentences")
-    #print(len(sentences))
+            
     return sentences
 
 def columns2sentences(gbs_data, xs_data, ys_data=None):
 
     NumberOFAtrributes=len(gbs_data[0])
-    #print("Number of atrributes", NumberOFAtrributes)
+
     new_gbs_data=[]
     #print((gbs_data))
     for k in range(0, len(gbs_data)):
@@ -170,13 +157,9 @@ def columns2sentences(gbs_data, xs_data, ys_data=None):
             temp=temp+gbs_data[k][i]+","
 
         new_gbs_data.append(temp[:-1])
-    
+
     gbs_data=new_gbs_data
-    #print("gbs_data")
-    #print(gbs_data[0])
-    #print(len(gbs_data))
-    
-    
+    #print((gbs_data))
     if ys_data is None:
         df = pd.DataFrame({"gb":gbs_data, "x":xs_data})
     else:
@@ -184,7 +167,7 @@ def columns2sentences(gbs_data, xs_data, ys_data=None):
         df = pd.DataFrame({"gb":gbs_data, "x":xs_data,"y":ys_data})
 
     #print(df.gb)
-    
+
     return dataframe2sentences(df, ["gb"])
 
 
