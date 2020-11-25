@@ -444,10 +444,10 @@ class SqlExecutor:
                                         # print("gbs_data", gbs_data)
                                         # print("xs_data", xs_data)
                                         # print("ys_data", ys_data)
-                                        print("n_total_point", n_total_point)
-                                        print(
-                                            "n_total_point['']", n_total_point.keys())
-                                        exit()
+                                        # print("n_total_point", n_total_point)
+                                        # print(
+                                        #     "n_total_point['']", n_total_point.keys())
+                                        # exit()
 
                                         scaled_n_total_point = {}
                                         for key in n_total_point:

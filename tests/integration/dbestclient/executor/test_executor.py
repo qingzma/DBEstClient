@@ -64,7 +64,7 @@ class TestTpcDs(unittest.TestCase):
             "select avg(ss_sales_price)  from test_ss40g_groupbys_range_no_categorical_gb2 where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk,ss_coupon_amt")
         sqlExecutor.execute(
             "drop table test_ss40g_groupbys_range_no_categorical_gb2")
-        self.assertTrue(predictions)
+        self.assertFalse(predictions.empty)
 
     def test_groupbys_range_no_categorical_gb1(self):
         sqlExecutor = SqlExecutor()
@@ -103,30 +103,30 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute(
             "drop table test_ss40g_groupbys_range_no_categorical")
         sqlExecutor.execute(
-            "create table test_ss40g_groupbys_range_no_categorical(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_1k.csv' GROUP BY ss_store_sk method stratified size 1000")
+            "create table test_ss40g_groupbys_range_no_categorical(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk method stratified size 100")
         predictions = sqlExecutor.execute(
             "select avg(ss_sales_price)  from test_ss40g_groupbys_range_no_categorical where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk")  # ss_coupon_amt
         sqlExecutor.execute(
             "drop table test_ss40g_groupbys_range_no_categorical")
         self.assertFalse(predictions.empty)
 
-    def test_categorical(self):
-        sqlExecutor = SqlExecutor()
-        sqlExecutor.execute("set b_grid_search='False'")
-        sqlExecutor.execute("set csv_split_char='|'")
-        sqlExecutor.execute("set table_header=" +
-                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
-                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
-                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
-                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
-                            "ss_net_paid_inc_tax|ss_net_profit|none'"
-                            )
-        sqlExecutor.execute(
-            "create table test_ss40g_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from 'data/tpcds/40G/ss_1k.csv' GROUP BY ss_store_sk method uniform size 1000")
-        predictions = sqlExecutor.execute(
-            "select avg(ss_sales_price)  from test_ss40g_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk")
-        sqlExecutor.execute("drop table test_ss40g_categorical")
-        self.assertTrue(predictions)
+    # def test_categorical(self):
+    #     sqlExecutor = SqlExecutor()
+    #     sqlExecutor.execute("set b_grid_search='False'")
+    #     sqlExecutor.execute("set csv_split_char='|'")
+    #     sqlExecutor.execute("set table_header=" +
+    #                         "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+    #                         "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+    #                         "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+    #                         "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+    #                         "ss_net_paid_inc_tax|ss_net_profit|none'"
+    #                         )
+    #     sqlExecutor.execute(
+    #         "create table test_ss40g_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from 'data/tpcds/40G/ss_1k.csv' GROUP BY ss_store_sk method uniform size 1000")
+    #     predictions = sqlExecutor.execute(
+    #         "select avg(ss_sales_price)  from test_ss40g_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt=''  group by ss_store_sk")
+    #     sqlExecutor.execute("drop table test_ss40g_categorical")
+    #     self.assertTrue(predictions)
 
     def test_categorical_one_model(self):
         sqlExecutor = SqlExecutor()
@@ -142,12 +142,14 @@ class TestTpcDs(unittest.TestCase):
                             "ss_net_paid_inc_tax|ss_net_profit|none'"
                             )
         sqlExecutor.execute(
+            "drop table test_ss40g_categorical_one_model")
+        sqlExecutor.execute(
             "create table test_ss40g_categorical_one_model(ss_sales_price real, ss_sold_date_sk real,  ss_coupon_amt categorical, ) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk method uniform size 100")  # ss_ext_discount_amt categorical
         predictions = sqlExecutor.execute(
             "select count(ss_sales_price)  from test_ss40g_categorical_one_model where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='0.00'   group by ss_store_sk")  # and ss_ext_discount_amt='0.00'
         sqlExecutor.execute(
             "drop table test_ss40g_categorical_one_model")
-        self.assertTrue(predictions)
+        self.assertFalse(predictions.empty)
 
     def test_categorical_one_model_stratified(self):
         sqlExecutor = SqlExecutor()
@@ -170,48 +172,48 @@ class TestTpcDs(unittest.TestCase):
             "select count(ss_sales_price)  from test_ss40g_categorical_one_model_stratified where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='18.56'   group by ss_store_sk")  # 18.56
         sqlExecutor.execute(
             "drop table test_ss40g_categorical_one_model_stratified")
-        self.assertTrue(predictions)
+        self.assertFalse(predictions.empty)
 
-    def test_gogs_no_categorical(self):
-        sqlExecutor = SqlExecutor()
-        sqlExecutor.execute("set b_grid_search='False'")
-        sqlExecutor.execute("set b_use_gg='True'")
-        sqlExecutor.execute("set n_per_gg=10")
-        sqlExecutor.execute("set csv_split_char='|'")
-        sqlExecutor.execute("set table_header=" +
-                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
-                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
-                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
-                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
-                            "ss_net_paid_inc_tax|ss_net_profit|none'"
-                            )
-        sqlExecutor.execute(
-            "create table test_ss40g_gogs_no_categorical(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 600")
-        predictions = sqlExecutor.execute(
-            "select avg(ss_sales_price)  from test_ss40g_gogs_no_categorical where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk")
-        sqlExecutor.execute("drop table test_ss40g_gogs_no_categorical")
-        self.assertTrue(predictions)
+    # def test_gogs_no_categorical(self):
+    #     sqlExecutor = SqlExecutor()
+    #     sqlExecutor.execute("set b_grid_search='False'")
+    #     sqlExecutor.execute("set b_use_gg='True'")
+    #     sqlExecutor.execute("set n_per_gg=10")
+    #     sqlExecutor.execute("set csv_split_char='|'")
+    #     sqlExecutor.execute("set table_header=" +
+    #                         "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+    #                         "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+    #                         "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+    #                         "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+    #                         "ss_net_paid_inc_tax|ss_net_profit|none'"
+    #                         )
+    #     sqlExecutor.execute(
+    #         "create table test_ss40g_gogs_no_categorical(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk method uniform size 100")
+    #     predictions = sqlExecutor.execute(
+    #         "select avg(ss_sales_price)  from test_ss40g_gogs_no_categorical where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk")
+    #     sqlExecutor.execute("drop table test_ss40g_gogs_no_categorical")
+    #     self.assertFalse(predictions.empty)
 
-    def test_gogs_categorical(self):
-        sqlExecutor = SqlExecutor()
-        sqlExecutor.execute("set b_grid_search='False'")
-        sqlExecutor.execute("set b_use_gg='True'")
-        sqlExecutor.execute("set n_per_gg=10")
-        sqlExecutor.execute("set csv_split_char='|'")
-        sqlExecutor.execute("set table_header=" +
-                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
-                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
-                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
-                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
-                            "ss_net_paid_inc_tax|ss_net_profit|none'"
-                            )
-        sqlExecutor.execute("drop table test_ss40g_gogs_categorical")
-        sqlExecutor.execute(
-            "create table test_ss40g_gogs_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from 'data/tpcds/40G/ss_600k.csv' GROUP BY ss_store_sk method uniform size 400")
-        predictions = sqlExecutor.execute(
-            "select avg(ss_sales_price)  from test_ss40g_gogs_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='' group by ss_store_sk")
-        sqlExecutor.execute("drop table test_ss40g_gogs_categorical")
-        self.assertTrue(predictions)
+    # def test_gogs_categorical(self):
+    #     sqlExecutor = SqlExecutor()
+    #     sqlExecutor.execute("set b_grid_search='False'")
+    #     sqlExecutor.execute("set b_use_gg='True'")
+    #     sqlExecutor.execute("set n_per_gg=10")
+    #     sqlExecutor.execute("set csv_split_char='|'")
+    #     sqlExecutor.execute("set table_header=" +
+    #                         "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+    #                         "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+    #                         "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+    #                         "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+    #                         "ss_net_paid_inc_tax|ss_net_profit|none'"
+    #                         )
+    #     sqlExecutor.execute("drop table test_ss40g_gogs_categorical")
+    #     sqlExecutor.execute(
+    #         "create table test_ss40g_gogs_categorical(ss_sales_price real, ss_sold_date_sk real, ss_coupon_amt categorical) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk method uniform size 100")
+    #     predictions = sqlExecutor.execute(
+    #         "select avg(ss_sales_price)  from test_ss40g_gogs_categorical where   2451119  <=ss_sold_date_sk<= 2451483 and ss_coupon_amt='' group by ss_store_sk")
+    #     sqlExecutor.execute("drop table test_ss40g_gogs_categorical")
+    #     self.assertFalse(predictions.empty)
 
     def test_drop_clause(self):
         sqlExecutor = SqlExecutor()
@@ -235,27 +237,27 @@ class TestTpcDs(unittest.TestCase):
         predictions = sqlExecutor.execute(
             "select avg(ss_sales_price)  from test_ss40g_embedding where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk")
         sqlExecutor.execute("drop table test_ss40g_embedding")
-        self.assertTrue(predictions)
+        self.assertFalse(predictions.empty)
 
-    def test_no_continuous(self):
-        sqlExecutor = SqlExecutor()
-        sqlExecutor.execute("set b_grid_search='False'")
-        sqlExecutor.execute("set csv_split_char='|'")
-        sqlExecutor.execute("set encoder='binary'")
-        sqlExecutor.execute("set table_header=" +
-                            "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
-                            "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
-                            "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
-                            "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
-                            "ss_net_paid_inc_tax|ss_net_profit|none'"
-                            )
-        sqlExecutor.execute("drop table test_ss40g_no_continuous")
-        sqlExecutor.execute(
-            "create table test_ss40g_no_continuous(ss_sales_price real) from 'data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 6000")  # , ss_coupon_amt real
-        sqlExecutor.execute(
-            "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous  group by ss_store_sk")
-        sqlExecutor.execute("drop table test_ss40g_no_continuous1")
-        self.assertTrue(True)
+    # def test_no_continuous(self):
+    #     sqlExecutor = SqlExecutor()
+    #     sqlExecutor.execute("set b_grid_search='False'")
+    #     sqlExecutor.execute("set csv_split_char='|'")
+    #     sqlExecutor.execute("set encoder='binary'")
+    #     sqlExecutor.execute("set table_header=" +
+    #                         "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+    #                         "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+    #                         "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+    #                         "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+    #                         "ss_net_paid_inc_tax|ss_net_profit|none'"
+    #                         )
+    #     sqlExecutor.execute("drop table test_ss40g_no_continuous")
+    #     sqlExecutor.execute(
+    #         "create table test_ss40g_no_continuous(ss_sales_price real) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method uniform size 100")  # , ss_coupon_amt real
+    #     sqlExecutor.execute(
+    #         "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous  group by ss_store_sk")
+    #     sqlExecutor.execute("drop table test_ss40g_no_continuous1")
+    #     self.assertTrue(True)
 
     def test_no_continuous_categorical_1(self):
         sqlExecutor = SqlExecutor()
@@ -271,9 +273,9 @@ class TestTpcDs(unittest.TestCase):
                             )
         sqlExecutor.execute("drop table test_ss40g_no_continuous_1_column")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_1_column(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")
+            "create table test_ss40g_no_continuous_1_column(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method uniform size 100")
         results = sqlExecutor.execute(
-            "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous_1_column where ss_coupon_amt=''  group by ss_store_sk")
+            "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous_1_column where ss_coupon_amt='143.91'  group by ss_store_sk")
         sqlExecutor.execute("drop table test_ss40g_no_continuous_1_column")
         self.assertFalse(results.empty)
 
@@ -291,9 +293,9 @@ class TestTpcDs(unittest.TestCase):
                             )
         sqlExecutor.execute("drop table test_ss40g_no_continuous_2_columns")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_2_columns(ss_sales_price real, ss_coupon_amt categorical,ss_customer_sk categorical) from 'data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 600")
+            "create table test_ss40g_no_continuous_2_columns(ss_sales_price real, ss_coupon_amt categorical,ss_customer_sk categorical) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method uniform size 100")
         results = sqlExecutor.execute(
-            "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous_2_columns where ss_coupon_amt=''  and ss_customer_sk='' group by ss_store_sk")
+            "select ss_store_sk, avg(ss_sales_price)  from test_ss40g_no_continuous_2_columns where ss_coupon_amt='103.67'  and ss_customer_sk='415915' group by ss_store_sk")
         sqlExecutor.execute("drop table test_ss40g_no_continuous_2_columns")
         self.assertFalse(results.empty)
 
@@ -313,9 +315,9 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute(
             "drop table test_ss40g_no_continuous_1_column_1_model")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_1_column_1_model(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_1k.csv' GROUP BY ss_store_sk method uniform size 1000")
+            "create table test_ss40g_no_continuous_1_column_1_model(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method uniform size 100")
         results = sqlExecutor.execute(
-            "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model where ss_coupon_amt=''  group by ss_store_sk")
+            "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model where ss_coupon_amt='103.67'  group by ss_store_sk")
         sqlExecutor.execute(
             "drop table test_ss40g_no_continuous_1_column_1_model")
         self.assertFalse(results.empty)
@@ -336,18 +338,18 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute(
             "drop table test_ss40g_no_continuous_1_column_1_model_stratified")
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_1k.csv' GROUP BY ss_store_sk method stratified size 1000")
+            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method stratified size 100")
         results = sqlExecutor.execute(
-            "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model_stratified where ss_coupon_amt=''  group by ss_store_sk")
+            "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model_stratified where ss_coupon_amt='103.67'  group by ss_store_sk")
         sqlExecutor.execute(
             "drop table test_ss40g_no_continuous_1_column_1_model_stratified")
         self.assertFalse(results.empty)
 
 
 if __name__ == "__main__":
-    # unittest.main()
+    unittest.main()
     # TestTpcDs().test_groupbys_range_no_categorical_gb1()
-    TestTpcDs().test_groupbys_range_no_categorical_stratified()
+    # TestTpcDs().test_groupbys_range_no_categorical_stratified()
     # TestTpcDs().test_categorical_one_model()
     # TestTpcDs().test_categorical_one_model_stratified()
     # TestTpcDs().test_embedding()

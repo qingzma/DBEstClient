@@ -280,10 +280,10 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
                 results = zip(groups, preds)
 
                 # print("results", preds)
-                result = pd.DataFrame(results, columns=[self.usecols['gb'] +  # self.usecols[""] +
+                results = pd.DataFrame(results, columns=[self.usecols['gb'] +  # self.usecols[""] +
                                                         [self.usecols['y'][0]]])
                 # print("result", result)
-                return result
+                return results
 
             else:
                 print("parallel is not implemented yet.")
@@ -1327,7 +1327,10 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
             else:  # avg
                 preds = approx_avg(pre_density, pre_reg, step)
             # print("groups-------------", groups)
-            results = dict(zip(groups_no_categorical, preds))
+            # results = dict(zip(groups_no_categorical, preds))
+            results = zip(groups, preds)
+            results = pd.DataFrame(results)
+            return results
 
         else:
             runtime_config_process = shrink_runtime_config(
