@@ -113,11 +113,11 @@ class WordEmbedding:
                 #print(len(ttt))
             else:
  
-                ttt=list(self.embedding[key[0]])
+                ttt=list(self.embedding[key[0]+"_"+str(0)])
 
-                for i in range(1,len(key)):
-                    ttt1=list(self.embedding[key[i]])
-                    ttt=ttt+ttt1
+                #for i in range(1,len(key)):
+                #    ttt1=list(self.embedding[key[i]])
+                #    ttt=ttt+ttt1
 
                 results.append(ttt)
 
