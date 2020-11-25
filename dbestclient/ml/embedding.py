@@ -96,12 +96,16 @@ class WordEmbedding:
         results = []
 
         for key in keys:
-            if len(key[0])>=2:
-                ttt=list(self.embedding[key[0]])
+            #print("predict key")
+            #print(key)
+            #print(type(key))
+            #print(len(key))
+            if len(key)>=2:
+                ttt=list(self.embedding[key[0]+"_"+str(0)])
 
 			
                 for i in range(1,len(key)):
-                    ttt1=list(self.embedding[key[i]])
+                    ttt1=list(self.embedding[key[i]+"_"+str(i)])
 
                     ttt=ttt+ttt1
 
@@ -135,7 +139,7 @@ def dataframe2sentences(df:pd.DataFrame, gbs:list):
             while (CCC<len(str(getattr(row, gb)).split(","))):
                 front_words = []
 
-                front_words.append(gb+ ",@,"+ str(getattr(row, gb)).split(",")[CCC])
+                front_words.append(gb+ ",@,"+ str(getattr(row, gb)).split(",")[CCC]+"_"+str(CCC))
                 CCC=CCC+1
 
                 for no_gb in no_gbs:
