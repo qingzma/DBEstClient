@@ -174,11 +174,12 @@ if __name__ == "__main__":
         "ss_list_price", "ss_sales_price", "ss_ext_discount_amt", "ss_ext_sales_price",
         "ss_ext_wholesale_cost", "ss_ext_list_price", "ss_ext_tax", "ss_coupon_amt", "ss_net_paid",
         "ss_net_paid_inc_tax", "ss_net_profit", "none"]
-    file = "/Users/scott/Documents/workspace/data/tpcds/10g/ss_10g_20.csv"
+    file = "data/tpcds/10g/ss_10g_100.csv"
     df = pd.read_csv(file, sep="|", names=header, usecols=[
                      'ss_sales_price', 'ss_sold_date_sk', 'ss_store_sk'])
     # print(df)
     sentenses = dataframe2sentences(df, gbs=["ss_store_sk"])
+    print("sentenses", sentenses)
     word_embedding = WordEmbedding()
     word_embedding.fit(sentenses, gbs=["ss_store_sk"])
     # print(word_embedding.predict('92'))

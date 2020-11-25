@@ -280,8 +280,8 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
                 results = zip(groups, preds)
 
                 # print("results", preds)
-                results = pd.DataFrame(results, columns=[self.usecols['gb'] +  # self.usecols[""] +
-                                                        [self.usecols['y'][0]]])
+                results = pd.DataFrame(results)#, columns=[self.usecols['gb'] +  # self.usecols[""] +
+                                                        #[self.usecols['y'][0]]])
                 # print("result", result)
                 return results
 
@@ -677,7 +677,7 @@ class MdnQueryEngine(GenericQueryEngine):
                     scaling_factor = np.array([self.n_total_point[key]
                                                for key in groups])
                 # print("self.n_total_point", self.n_total_point)
-                print("groups", groups)
+                # print("groups", groups)
                 pre_density, pre_reg, step = prepare_reg_density_data(
                     self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
                 # print("pre_density, pre_reg", pre_density,)
