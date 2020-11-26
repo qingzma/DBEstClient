@@ -384,7 +384,8 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
             # print("xs", xs)
             # print("ys", ys)
             # print("gbs", gbs)
-            if not xs:
+            # if not xs:
+            if  xs.size==0:
                 xs = None
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
                 gbs, xs, ys, runtime_config,usecols=usecols)

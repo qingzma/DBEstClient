@@ -26,9 +26,6 @@ class TestStratifiedReservoir(unittest.TestCase):
             split_char="|",
         )
         cate, fea, lbl = sr.get_categorical_features_label()
-        # print(cate)
-        # print(fea)
-        # print(lbl)
 
         self.assertEqual(sr.size(), 1000)
 

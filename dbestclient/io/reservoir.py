@@ -36,17 +36,35 @@ class ReservoirSampling:
         self.usecols = None
         self.origin_sample = None
 
-    def build_reservoir(self, file, R, threshold=None, verbose=False, split_char=",", save2file=None, n_total_point=None, usecols=None):
+    def build_reservoir(
+        self,
+        file,
+        R,
+        threshold=None,
+        verbose=False,
+        split_char=",",
+        save2file=None,
+        n_total_point=None,
+        usecols=None,
+    ):
         self.usecols = usecols
-        self.n_total_point = n_total_point['total'] if n_total_point is not None else sum(
-            1 for _ in open(file)) - 1
+        f = open(file, "r")
+        self.n_total_point = (
+            n_total_point["total"]
+            if n_total_point is not None
+            else sum(1 for _ in f) - 1
+        )
+        f.close()
 
         print("Reading data file...")
-        with open(file, 'r') as data:
+        with open(file, "r") as data:
             if verbose:
+
                 def p(s, *args):
                     print(s.format(*args), file=stderr)
+
             else:
+
                 def p(*_):
                     pass
 
@@ -64,8 +82,7 @@ class ReservoirSampling:
             if self.header is None:
                 # skip the first header row
                 first_row = next(iterator)
-                self.header = first_row.replace(
-                    "\n", '').lower().split(split_char)
+                self.header = first_row.replace("\n", "").lower().split(split_char)
             try:
                 j = 0
                 # iterator = iter(data)
@@ -73,16 +90,22 @@ class ReservoirSampling:
                     j += 1
                     item = next(iterator)
                     if len(res) < R:
-                        item = item.replace("\n", '').split(split_char)
-                        p('> Adding element nb {0}: {1!r}', len(res), item)
+                        item = item.replace("\n", "").split(split_char)
+                        p("> Adding element nb {0}: {1!r}", len(res), item)
                         res.append(item)
 
                     elif j < threshold:
                         k = int(random() * j)
                         if k < R:
-                            p('> [p={0}/{1:>9}] Swap element nb {2:>5}: {3!r} replaces {4!r}',
-                              R, j, k, item, res[k])
-                            item = item.replace("\n", '').split(split_char)
+                            p(
+                                "> [p={0}/{1:>9}] Swap element nb {2:>5}: {3!r} replaces {4!r}",
+                                R,
+                                j,
+                                k,
+                                item,
+                                res[k],
+                            )
+                            item = item.replace("\n", "").split(split_char)
                             res[k] = item
                     else:
                         gap = int(log(random()) / log(1 - R / j))
@@ -90,14 +113,18 @@ class ReservoirSampling:
                         for _ in range(gap):
                             item = next(iterator)
                         k = int(random() * R)
-                        p('> After skipping {0:>9} lines, swap element nb {1:>5}: {2!r} replaces {3!r}',
-                          gap, k, item, res[k])
-                        item = next(iterator).replace(
-                            "\n", '').split(split_char)
+                        p(
+                            "> After skipping {0:>9} lines, swap element nb {1:>5}: {2!r} replaces {3!r}",
+                            gap,
+                            k,
+                            item,
+                            res[k],
+                        )
+                        item = next(iterator).replace("\n", "").split(split_char)
                         res[k] = item
 
             except KeyboardInterrupt:
-                print('\n! User interrupted the process, stopping now\n', file=stderr)
+                print("\n! User interrupted the process, stopping now\n", file=stderr)
             except StopIteration:
                 pass
 
@@ -107,18 +134,20 @@ class ReservoirSampling:
                 # print("self.origin_sample", self.origin_sample)
                 # print("use_columns,", usecols)
                 columns_as_continous, columns_as_categorical, _ = UseCols(
-                    usecols).get_continous_and_categorical_cols()
+                    usecols
+                ).get_continous_and_categorical_cols()
 
                 for col in columns_as_categorical:
-                    self.origin_sample[col] = self.origin_sample[col].astype(
-                        str)
+                    self.origin_sample[col] = self.origin_sample[col].astype(str)
 
                 for col in columns_as_continous:
                     self.origin_sample[col] = self.origin_sample[col].apply(
-                        pd.to_numeric, errors='coerce')
+                        pd.to_numeric, errors="coerce"
+                    )
 
-                self.origin_sample = self.origin_sample[columns_as_continous+columns_as_categorical].dropna(
-                    subset=columns_as_continous)
+                self.origin_sample = self.origin_sample[
+                    columns_as_continous + columns_as_categorical
+                ].dropna(subset=columns_as_continous)
                 # print("self.origin_sample",)
                 # print(self.origin_sample)
                 # raise Exception
@@ -132,24 +161,24 @@ class ReservoirSampling:
                 #     raise Exception
 
                 # process the usecols from dic to list
-                columns_continous = [usecols['y'][0]]
+                columns_continous = [usecols["y"][0]]
 
-                if usecols['x_continous']:
-                    columns_continous = columns_continous + \
-                        usecols['x_continous']
+                if usecols["x_continous"]:
+                    columns_continous = columns_continous + usecols["x_continous"]
 
                 columns_categorial = []
                 if usecols["x_categorical"]:
                     # columns = columns + usecols['x_categorical']
-                    columns_categorial = columns_categorial + \
-                        usecols['x_categorical']
+                    columns_categorial = columns_categorial + usecols["x_categorical"]
                 if usecols["gb"]:
                     for col in usecols["gb"]:
                         if col not in columns_continous + columns_categorial:
                             columns_categorial.append(col)
                         else:
                             print(
-                                "SQL meets the condition where Group By attributes and X attributes have common attributes: " + col)
+                                "SQL meets the condition where Group By attributes and X attributes have common attributes: "
+                                + col
+                            )
 
                             # columns = columns + usecols['gb']
                     # gb_cols = ["gb_"+i for i in usecols['gb']]
@@ -172,14 +201,17 @@ class ReservoirSampling:
                 # print(usecols['x_continous'])
                 if usecols["gb"] is not None:
                     columns_to_float = [
-                        item for item in usecols['x_continous'] if item not in usecols["gb"]]
+                        item
+                        for item in usecols["x_continous"]
+                        if item not in usecols["gb"]
+                    ]
                 else:
-                    columns_to_float = [
-                        item for item in usecols['x_continous']]
+                    columns_to_float = [item for item in usecols["x_continous"]]
                 # print("columns_to_float", columns_to_float)
                 for col in columns_to_float:
                     self.sampledf[col] = self.sampledf[col].apply(
-                        pd.to_numeric, errors='coerce')
+                        pd.to_numeric, errors="coerce"
+                    )
                 # self.sampledf[columns_continous] = self.sampledf[columns_continous].apply(
                 #     pd.to_numeric, errors='coerce')
                 # self.sampledf.dropna()
@@ -201,19 +233,22 @@ class ReservoirSampling:
                 # if col in both X and Group BY, convert it to float
                 if usecols["gb"] is not None:
                     columns_common = [
-                        item for item in usecols['x_continous'] if item in usecols["gb"]]
+                        item for item in usecols["x_continous"] if item in usecols["gb"]
+                    ]
 
                     for col in columns_common:
                         self.sampledf[col] = self.sampledf[col].apply(
-                            pd.to_numeric, errors='coerce')
+                            pd.to_numeric, errors="coerce"
+                        )
 
-                if usecols['y'][1] == "categorical":
-                    self.sampledf[usecols['y'][0]
-                                  ] = self.sampledf[usecols['y'][0]].astype(str)
+                if usecols["y"][1] == "categorical":
+                    self.sampledf[usecols["y"][0]] = self.sampledf[
+                        usecols["y"][0]
+                    ].astype(str)
                 else:
-                    self.sampledf[usecols['y'][0]
-                                  ] = self.sampledf[usecols['y'][0]].apply(
-                        pd.to_numeric, errors='coerce')
+                    self.sampledf[usecols["y"][0]] = self.sampledf[
+                        usecols["y"][0]
+                    ].apply(pd.to_numeric, errors="coerce")
                 # print("usecols", usecols)
                 self.sampledf = self.sampledf.dropna(subset=usecols_list)
                 # print("self.sampledf", self.sampledf)
@@ -302,9 +337,11 @@ class ReservoirSampling:
                 #       self.usecols["gb"])
                 columns_to_use = [self.usecols["y"][0]]
                 columns_to_float = [
-                    item for item in self.usecols['x_continous'] if item not in self.usecols["gb"]]
-                columns_to_use = columns_to_use + \
-                    columns_to_float + self.usecols["gb"]
+                    item
+                    for item in self.usecols["x_continous"]
+                    if item not in self.usecols["gb"]
+                ]
+                columns_to_use = columns_to_use + columns_to_float + self.usecols["gb"]
                 gb_data = values[columns_to_use]
                 # gb_data = values[[self.usecols["y"]] +
                 #                  self.usecols["x_continous"] +
@@ -316,8 +353,12 @@ class ReservoirSampling:
                 # check if DISTINCT is involved in the SQL
                 # DISTINCT is not involved
                 if not self.usecols["y"][2]:
-                    gb_by_group_by_atrributes = values.groupby(
-                        self.usecols["gb"]).size().to_frame(name='count').reset_index()
+                    gb_by_group_by_atrributes = (
+                        values.groupby(self.usecols["gb"])
+                        .size()
+                        .to_frame(name="count")
+                        .reset_index()
+                    )
                     # print(gb_by_group_by_atrributes)
                     # for row in gb_by_group_by_atrributes.itertuples():
                     #     print(row)
@@ -343,8 +384,9 @@ class ReservoirSampling:
                     # print("gb,", gb)
                     # print("values")
                     # print(values)
-                    gb_by_group_by_atrributes = values.groupby(
-                        self.usecols["gb"])[columns_to_use].nunique()  #
+                    gb_by_group_by_atrributes = values.groupby(self.usecols["gb"])[
+                        columns_to_use
+                    ].nunique()  #
 
                     # print(gb_by_group_by_atrributes)
                     frequency = {}
@@ -374,8 +416,12 @@ class ReservoirSampling:
                 total_frequency["if_contain_x_categorical"] = False
                 data["if_contain_x_categorical"] = False
                 # groupbys = self.usecols["gb"]
-                gb = self.sampledf.groupby(self.usecols["gb"]).size().to_frame(
-                    name='count').reset_index()
+                gb = (
+                    self.sampledf.groupby(self.usecols["gb"])
+                    .size()
+                    .to_frame(name="count")
+                    .reset_index()
+                )
                 # frequency = {}
                 for row in gb.itertuples():
                     # print(row)
@@ -388,8 +434,9 @@ class ReservoirSampling:
             else:
                 total_frequency["if_contain_x_categorical"] = False
                 data["if_contain_x_categorical"] = False
-                gb = self.sampledf.groupby(
-                    self.usecols["gb"])[columns_to_use].nunique()  #
+                gb = self.sampledf.groupby(self.usecols["gb"])[
+                    columns_to_use
+                ].nunique()  #
 
                 # print(gb_by_group_by_atrributes)
                 # frequency = {}
@@ -429,14 +476,18 @@ class ReservoirSampling:
             except ValueError:
                 pass
         total_frequency["categorical_distinct_values"] = categorical_distinct_values
-        if not total_frequency['if_contain_x_categorical']:
+        if not total_frequency["if_contain_x_categorical"]:
             total_frequency.pop("categorical_distinct_values")
             total_frequency.pop("x_categorical_columns")
         # print("total_frequency,", total_frequency)
         return total_frequency, data
 
     def get_columns_from_original_sample(self, gb, x, y):
-        return self.origin_sample[gb].values, self.origin_sample[x].values.reshape(1, -1)[0], self.origin_sample[y].values.reshape(1, -1)[0]
+        return (
+            self.origin_sample[gb].values,
+            self.origin_sample[x].values.reshape(1, -1)[0],
+            self.origin_sample[y].values.reshape(1, -1)[0],
+        )
 
     def get_frequency_of_categorical_columns_for_gbs(self, gbs, categoricals):
         frequencies = {}
@@ -451,8 +502,7 @@ class ReservoirSampling:
                 key = grp
             # print("key", key)
             # print(values)
-            gb_in_gb = values.groupby(
-                gbs).size().to_frame(name='count').reset_index()
+            gb_in_gb = values.groupby(gbs).size().to_frame(name="count").reset_index()
             # print(gb_in_gb)
 
             frequency = {}
@@ -476,32 +526,32 @@ class ReservoirSampling:
 #     xy = sampler.getyx('pm25', 'PRES')
 #     ft = sampler.get_frequency('pm25', 'PRES')
 #     print(ft)
-    # print(xy)
-    #
-    # print(xy.values)
+# print(xy)
+#
+# print(xy.values)
 
-    #
-    # import pandas as pd
-    # data = pd.DataFrame(sample)
-    # print(data)
-    #
-    # data = pd.read_csv(file).iterrows()
-    # sample = build_reservoir(data, 3, verbose=True)
-    # print(sample)
+#
+# import pandas as pd
+# data = pd.DataFrame(sample)
+# print(data)
+#
+# data = pd.read_csv(file).iterrows()
+# sample = build_reservoir(data, 3, verbose=True)
+# print(sample)
 
-    # import argparse
-    # parser = argparse.ArgumentParser()
-    #
-    # parser.add_argument('size', help="Reservoir size", type=int)
-    # parser.add_argument('-t', '--threshold',
-    #                     help=('threshold to start using gaps, default '
-    #                           ' is 4 times the reservoir size'),
-    #                     type=int)
-    # parser.add_argument('-v', '--verbose', action='store_true')
-    # args = parser.parse_args()
-    #
-    # for row in build_reservoir(stdin,
-    #                            R=args.size,
-    #                            threshold=args.threshold,
-    #                            verbose=args.verbose):
-    #     print(row, end="")
+# import argparse
+# parser = argparse.ArgumentParser()
+#
+# parser.add_argument('size', help="Reservoir size", type=int)
+# parser.add_argument('-t', '--threshold',
+#                     help=('threshold to start using gaps, default '
+#                           ' is 4 times the reservoir size'),
+#                     type=int)
+# parser.add_argument('-v', '--verbose', action='store_true')
+# args = parser.parse_args()
+#
+# for row in build_reservoir(stdin,
+#                            R=args.size,
+#                            threshold=args.threshold,
+#                            verbose=args.verbose):
+#     print(row, end="")

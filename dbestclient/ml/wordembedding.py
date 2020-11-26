@@ -128,7 +128,7 @@ class SkipGram:
             for head in self.header_categorical:
                 # print("head", head)
                 if word.startswith(head):
-                    self.embeddings[word] = model[word]
+                    self.embeddings[word] = model.wv[word]
         # print(self.embeddings.keys())
         print("finish training embedding.")
         return self
