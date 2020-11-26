@@ -196,15 +196,15 @@ to run all tests.
 ## Documentation
 
 ## TODO 
-- ~~SQL size cluase to include num_count.csv~~
+- ~~SQL size clause to include num_count.csv~~
 - ~~drop model~~
-- embedding.
-- one mdn model instead of many.
+- ~~embedding.~~
+- ~~one mdn model instead of many.~~
 - ~~fix GoGs implementation.~~
 - query check
 - distinct and not distinct using one model only.
 - ~~show models~~
 - 3, 4, 5 hidden layers.
 - ~~embdding is buggy, if two columns share the same value, then there is only one entry in the embeeding?~~
-- fix tests for SkipGram and TestStratifiedReservoir
+- ~~fix tests for SkipGram and TestStratifiedReservoir~~
 - huawei queries.
