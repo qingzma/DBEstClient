@@ -14,24 +14,18 @@ import dill
 import numpy as np
 import torch
 from dbestclient.catalog.catalog import DBEstModelCatalog
-from dbestclient.executor.queryengine import QueryEngine
 from dbestclient.executor.queryenginemdn import (
     MdnQueryEngine,
     MdnQueryEngineGoGs,
     MdnQueryEngineNoRange,
     MdnQueryEngineNoRangeCategorical,
     MdnQueryEngineNoRangeCategoricalOneModel,
+    MdnQueryEngineRangeNoCategorical,
     MdnQueryEngineXCategorical,
     MdnQueryEngineXCategoricalOneModel,
-    MdnQueryEngineRangeNoCategorical,
 )
 from dbestclient.io.sampling import DBEstSampling
-from dbestclient.ml.modeltrainer import (
-    GroupByModelTrainer,
-    KdeModelTrainer,
-    SimpleModelTrainer,
-)
-from dbestclient.ml.modelwraper import GroupByModelWrapper, get_pickle_file_name
+from dbestclient.ml.modeltrainer import GroupByModelTrainer, KdeModelTrainer
 from dbestclient.parser.parser import DBEstParser
 from dbestclient.tools.dftools import (
     get_group_count_from_df,
@@ -58,7 +52,7 @@ class SqlExecutor:
         self.init_model_catalog()
 
         self.save_sample = False
-        # self.table_header = None
+
         self.n_total_records = None
         self.use_kde = True
 
@@ -66,7 +60,6 @@ class SqlExecutor:
         # search the warehouse, and add all available models.
         n_model = 0
         t1 = datetime.now()
-        # print("current directory is ",os.getcwd())
         for file_name in os.listdir(self.config.get_config()["warehousedir"]):
             # load simple models
             if file_name.endswith(self.runtime_config["model_suffix"]):
@@ -180,7 +173,6 @@ class SqlExecutor:
                         },
                     )
 
-                # print(self.config)
                 if os.path.exists(
                     os.path.join(
                         self.config.get_config()["warehousedir"],
@@ -192,13 +184,7 @@ class SqlExecutor:
                         " another model name to train it.".format(mdl)
                     )
                     return
-                # if self.parser.if_contain_groupby():
-                #     groupby_attribute = self.parser.get_groupby_value()
-                #     if os.path.exists(self.config['warehousedir'] + "/" + mdl + "_groupby_" + groupby_attribute):
-                #         print(
-                #             "Model {0} exists in the warehouse, please use"
-                #             " another model name to train it.".format(mdl))
-                #         return
+
                 print("Start creating model " + mdl)
                 time1 = datetime.now()
 
@@ -224,32 +210,7 @@ class SqlExecutor:
                         num_total_records=self.n_total_records,
                     )
 
-                # set the n_total_point and scaling factor for each model.
-                # self.config.set_parameter(
-                #     "n_total_point", sampler.n_total_point)
-                # self.config.set_parameter(
-                #     "scaling_factor", sampler.scaling_factor)
-                # print("scaling_factor is ", sampler.scaling_factor)
-
                 if not self.parser.if_contain_groupby():  # if group by is not involved
-
-                    # n_total_point = sampler.n_total_point
-                    # xys = sampler.getyx(yheader, xheader_continous)
-
-                    # simple_model_wrapper = SimpleModelTrainer(mdl, tbl, xheader_continous, yheader,
-                    #                                           n_total_point, ratio, config=self.config.copy()).fit_from_df(
-                    #     xys, self.runtime_config)
-
-                    # reg = simple_model_wrapper.reg
-                    # density = simple_model_wrapper.density
-                    # n_sample_point = int(simple_model_wrapper.n_sample_point)
-                    # n_total_point = int(simple_model_wrapper.n_total_point)
-                    # x_min_value = float(simple_model_wrapper.x_min_value)
-                    # x_max_value = float(simple_model_wrapper.x_max_value)
-                    # query_engine = QueryEngine(mdl, reg, density, n_sample_point,
-                    #                            n_total_point, x_min_value, x_max_value, xheader_continous[
-                    #                                0],
-                    #                            self.config)
                     sampler.sample.sampledf["dummy_gb"] = "dummy"
                     sampler.sample.usecols = {
                         "y": yheader,
@@ -319,19 +280,12 @@ class SqlExecutor:
                                 yheader, xheader_continous, groupby=groupby_attribute
                             )
 
-                            # xys[groupby_attribute] = pd.to_numeric(xys[groupby_attribute], errors='coerce')
-                            # xys=xys.dropna(subset=[yheader, xheader,groupby_attribute])
-
-                            # n_total_point = get_group_count_from_table(
-                            #     original_data_file, groupby_attribute, sep=',',#self.config['csv_split_char'],
-                            #     headers=self.table_header)
                             if isinstance(ratio, str):
                                 frequency_file = (
                                     self.config.get_config()["warehousedir"]
                                     + "/"
                                     + ratio
                                 )
-                                # "/num_of_points.csv"
                                 if os.path.exists(frequency_file):
                                     n_total_point = get_group_count_from_summary_file(
                                         frequency_file, sep=","
@@ -355,7 +309,7 @@ class SqlExecutor:
                                     n_total_point,
                                     xys,
                                 ) = sampler.get_groupby_frequency_data()
-                                # print(n_total_point)
+
                                 # for cases when the data file is treated as a sample, we need to scale up the frequency for each group.
                                 if ratio > 1:
                                     file_size = sampler.n_total_point
@@ -425,9 +379,6 @@ class SqlExecutor:
                                     n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
                                         groupby_attribute, xheader_categorical
                                     )
-                                    # print("n_total_point-----------before",
-                                    #       n_total_point)
-                                    # print("ratio is ", ratio)
 
                                     scaled_n_total_point = {}
                                     for key in n_total_point:
@@ -437,8 +388,6 @@ class SqlExecutor:
                                                 n_total_point[key][sub_key] / ratio
                                             )
                                     n_total_point = scaled_n_total_point
-                                    # print("n_total_point-----------after",
-                                    #       n_total_point)
 
                                 elif method.lower() == "stratified":
                                     (
@@ -447,15 +396,6 @@ class SqlExecutor:
                                         ys_data,
                                     ) = sampler.sample.get_categorical_features_label()
                                     n_total_point = sampler.sample.get_ft()
-
-                                # print("gbs_data", gbs_data)
-                                # print("xs_data", xs_data)
-                                # print("ys_data", ys_data)
-                                # print("n_total_point", n_total_point)
-                                # print("n_total_point['']", n_total_point[''])
-
-                                # print("type", type(gbs_data))
-                                # exit()
 
                                 qe.fit(
                                     mdl,
@@ -475,9 +415,6 @@ class SqlExecutor:
                                     qe, self.runtime_config
                                 )
                             else:  # train seperate models for each categorical attribute
-                                # print(xheader_continous,
-                                #       xheader_categorical, "---------->")
-
                                 usecols = {
                                     "y": yheader,
                                     "x_continous": xheader_continous,
@@ -501,7 +438,6 @@ class SqlExecutor:
                                         self.runtime_config,
                                     )
                                 else:  # For WHERE clause with categorical equality
-                                    # print(xys)
                                     qe_mdn = MdnQueryEngineNoRangeCategorical(
                                         config=self.config.copy()
                                     )
@@ -517,7 +453,6 @@ class SqlExecutor:
                                     self.config.get_config()["warehousedir"],
                                     self.runtime_config,
                                 )
-                                # kdeModelWrapper.serialize2warehouse()
                                 self.model_catalog.add_model_wrapper(
                                     qe_mdn, self.runtime_config
                                 )
@@ -526,9 +461,6 @@ class SqlExecutor:
                                 if not n_total_point["if_contain_x_categorical"]:
                                     if not self.config.get_config()["b_use_gg"]:
                                         n_total_point.pop("if_contain_x_categorical")
-                                        # print(" xys['data']", xys["data"])
-                                        # exit()
-                                        # xys.pop("if_contain_x_categorical")
                                         kdeModelWrapper = KdeModelTrainer(
                                             mdl,
                                             tbl,
@@ -553,13 +485,11 @@ class SqlExecutor:
                                             self.config.get_config()["warehousedir"],
                                             self.runtime_config,
                                         )
-                                        # kdeModelWrapper.serialize2warehouse()
                                         self.model_catalog.add_model_wrapper(
                                             qe_mdn, self.runtime_config
                                         )
 
                                     else:
-                                        # print("n_total_point ", n_total_point)
                                         queryEngineBundle = MdnQueryEngineGoGs(
                                             config=self.config.copy()
                                         ).fit(
@@ -571,7 +501,7 @@ class SqlExecutor:
                                             xheader_continous[0],
                                             yheader,
                                             self.runtime_config,
-                                        )  # n_per_group=n_per_gg,n_mdn_layer_node = n_mdn_layer_node,encoding = encoding,b_grid_search = b_grid_search
+                                        )
 
                                         self.model_catalog.add_model_wrapper(
                                             queryEngineBundle, self.runtime_config
@@ -611,17 +541,6 @@ class SqlExecutor:
                                         n_total_point = sampler.sample.get_frequency_of_categorical_columns_for_gbs(
                                             groupby_attribute, xheader_categorical
                                         )
-                                        # print("n_total_point-----------before",
-                                        #       n_total_point)
-                                        # print("ratio is ", ratio)
-
-                                        # print("gbs_data", gbs_data)
-                                        # print("xs_data", xs_data)
-                                        # print("ys_data", ys_data)
-                                        # print("n_total_point", n_total_point)
-                                        # print(
-                                        #     "n_total_point['']", n_total_point.keys())
-                                        # exit()
 
                                         scaled_n_total_point = {}
                                         for key in n_total_point:
@@ -631,10 +550,6 @@ class SqlExecutor:
                                                     n_total_point[key][sub_key] / ratio
                                                 )
                                         n_total_point = scaled_n_total_point
-                                        # print("n_total_point-----------after",
-                                        #       n_total_point)
-
-                                        # raise
 
                                         qe.fit(
                                             mdl,
@@ -647,7 +562,6 @@ class SqlExecutor:
                                             runtime_config=self.runtime_config,
                                         )
                                     else:
-                                        # print(xys)
                                         qe = MdnQueryEngineXCategorical(
                                             self.config.copy()
                                         )
@@ -663,7 +577,7 @@ class SqlExecutor:
                                                 "gb": groupby_attribute,
                                             },
                                             runtime_config=self.runtime_config,
-                                        )  # device=device, encoding=encoding, b_grid_search=b_grid_search
+                                        )
                                         qe.serialize2warehouse(
                                             self.config.get_config()["warehousedir"],
                                             self.runtime_config,
@@ -671,9 +585,7 @@ class SqlExecutor:
                                         self.model_catalog.add_model_wrapper(
                                             qe, self.runtime_config
                                         )
-                                        # else:
-                                        #     raise ValueError(
-                                        #         "GoG support for categorical attributes is not supported.")
+
                                     qe.serialize2warehouse(
                                         self.config.get_config()["warehousedir"],
                                         self.runtime_config,
@@ -683,10 +595,6 @@ class SqlExecutor:
                                     )
                             elif method.lower() == "stratified":
                                 if xheader_categorical:
-
-                                    # print("contain equality")
-                                    # print("xheader_categorical",
-                                    #       xheader_categorical)
                                     (
                                         gbs_data,
                                         xs_data,
@@ -700,15 +608,7 @@ class SqlExecutor:
                                         "gb": groupby_attribute,
                                     }
                                     xs_data = xs_data.reshape(1, -1)[0]
-                                    # print("gbs_data", gbs_data)
-                                    # print("xs_data", xs_data)
-                                    # print("ys_data", ys_data)
-                                    # print("n_total_point", n_total_point)
-                                    # print(
-                                    #     "n_total_point['']", n_total_point.keys())
 
-                                    # print("type", type(gbs_data))
-                                    # exit()
                                     qe = MdnQueryEngineXCategoricalOneModel(
                                         self.config.copy()
                                     )
@@ -730,9 +630,6 @@ class SqlExecutor:
                                         qe, self.runtime_config
                                     )
                                 else:  # contain range, but not equality
-                                    # print("does not contain equality")
-                                    # print("xheader_categorical",
-                                    #       xheader_categorical)
                                     (
                                         gbs_data,
                                         xs_data,
@@ -747,23 +644,6 @@ class SqlExecutor:
                                     }
                                     xs_data = xs_data.reshape(1, -1)[0]
 
-                                    # print(" xys['data']", xys["data"])
-                                    # exit()
-
-                                    # kdeModelWrapper = KdeModelTrainer(
-                                    #     mdl, tbl, xheader_continous[0], yheader,
-                                    #     groupby_attribute=groupby_attribute,
-                                    #     groupby_values=list(
-                                    #         n_total_point.keys()),
-                                    #     n_total_point=n_total_point,
-                                    #     x_min_value=-np.inf, x_max_value=np.inf,
-                                    #     config=self.config.copy()).fit_from_df(
-                                    #     xys["data"], self.runtime_config, network_size=None)
-
-                                    # qe_mdn = MdnQueryEngine(
-                                    #     kdeModelWrapper, config=self.config.copy())
-
-                                    # print("n_total_point", n_total_point)
                                     qe = MdnQueryEngineRangeNoCategorical(
                                         self.config.copy()
                                     )
