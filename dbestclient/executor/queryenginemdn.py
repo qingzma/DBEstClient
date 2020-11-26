@@ -97,7 +97,7 @@ class MdnQueryEngineNoRange(GenericQueryEngine):
             if runtime_config['v']:
                 print("training regression...")
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
-                gbs, None, ys, runtime_config)
+                gbs, None, ys, runtime_config,usecols=usecols)
         return self
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
@@ -199,7 +199,7 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
             if runtime_config['v']:
                 print("training regression...")
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
-                gbs_data, xs_data, ys_data, runtime_config)
+                gbs_data, xs_data, ys_data, runtime_config,usecols=usecols)
 
             if runtime_config['v']:
                 print("training density...")
@@ -387,7 +387,7 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
             if not xs:
                 xs = None
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
-                gbs, xs, ys, runtime_config)
+                gbs, xs, ys, runtime_config,usecols=usecols)
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
         if "slaves" in runtime_config:
@@ -1242,7 +1242,7 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
             if runtime_config['v']:
                 print("training regression...")
             self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
-                gbs, xs, ys, runtime_config)
+                gbs, xs, ys, runtime_config,usecols=usecols)
             # kdeModelWrapper = KdeModelTrainer(
             #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
             #     groupby_attribute=usecols["gb"],

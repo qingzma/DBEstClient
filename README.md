@@ -205,4 +205,6 @@ to run all tests.
 - distinct and not distinct using one model only.
 - ~~show models~~
 - 3, 4, 5 hidden layers.
-- embdding is buggy, if two columns share the same value, then there is only one entry in the embeeding?
+- ~~embdding is buggy, if two columns share the same value, then there is only one entry in the embeeding?~~
+- fix tests for SkipGram and TestStratifiedReservoir
+- huawei queries.

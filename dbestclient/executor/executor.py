@@ -700,9 +700,9 @@ class SqlExecutor:
                                         "gb": groupby_attribute,
                                     }
                                     xs_data = xs_data.reshape(1, -1)[0]
-                                    print("gbs_data", gbs_data)
-                                    print("xs_data", xs_data)
-                                    print("ys_data", ys_data)
+                                    # print("gbs_data", gbs_data)
+                                    # print("xs_data", xs_data)
+                                    # print("ys_data", ys_data)
                                     # print("n_total_point", n_total_point)
                                     # print(
                                     #     "n_total_point['']", n_total_point.keys())

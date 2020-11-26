@@ -23,11 +23,10 @@ from dbestclient.tools.variables import Slaves
 RUNTIME_CONF = {
     "device": "cpu",
     "n_jobs": 1,
-    'v': True,
-    'b_show_latency': True,
+    "v": True,
+    "b_show_latency": True,
     "b_print_to_screen": True,
     "result2file": None,
-
     # integral related parameters
     "b_use_integral": False,
     "n_division": 20,  # 20
@@ -35,7 +34,6 @@ RUNTIME_CONF = {
     "epsabs": 10.0,
     "epsrel": 0.1,
     "limit": 30,
-
     "model_suffix": ".dill",
     "slaves": Slaves(),
 }
@@ -54,30 +52,27 @@ def shrink_runtime_config(runtime_config):
 
 
 class DbestConfig:
-    """ This is the configuration file for DBEstClient.
-    """
+    """This is the configuration file for DBEstClient."""
 
     def __init__(self):
         self.config = {
             # system-level configuration.
             # 'warehousedir': '/home/u1796377/Programs/dbestwarehouse',
-            'warehousedir': 'dbestwarehouse',
-            # 'warehousedir': '/home/runner/work/DBEstClient/DBEstClient/',
+            "warehousedir": "dbestwarehouse",
+            # "warehousedir": "/home/runner/work/DBEstClient/DBEstClient/",
             "reg_type": "mdn",
             "density_type": "mdn",  # qreg
-            'backend_server': 'None',
+            "backend_server": "None",
             # "n_jobs": 4,
             "b_grid_search": False,
             # "device": "cpu",
             # "b_reg_mean":'True',
             "b_dummy_gb": False,
-
             # file format configuration.
-            'n_total_point': None,
-            'scaling_factor': None,
-            'csv_split_char': ',',
-            'table_header': None,
-
+            "n_total_point": None,
+            "scaling_factor": None,
+            "csv_split_char": ",",
+            "table_header": None,
             "accept_filter": False,
             # MDN related parameters
             "n_epoch": 20,
@@ -95,7 +90,7 @@ class DbestConfig:
         }
 
     def set_parameters(self, config: dict):
-        """ Update the configuration based on a dict.
+        """Update the configuration based on a dict.
 
         Args:
             config (dict): a dictionary with updated values.
@@ -104,7 +99,7 @@ class DbestConfig:
             self.config[key] = config[key]
 
     def set_parameter(self, key: str, value):
-        """ update the configuration.
+        """update the configuration.
 
         Args:
             key (str): the key
@@ -113,7 +108,7 @@ class DbestConfig:
         self.config[key] = value
 
     def get_config(self):
-        """ Return the configuration for DBEstClient.
+        """Return the configuration for DBEstClient.
 
         Returns:
             [dict]: the configuration for DBEstClient.
