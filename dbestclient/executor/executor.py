@@ -140,7 +140,7 @@ class SqlExecutor:
                 ratio = self.parser.get_sampling_ratio()
                 method = self.parser.get_sampling_method()
                 table_header = self.config.get_config()["table_header"]
-                # print("table_header", table_header)
+
                 if table_header is not None:
                     table_header = table_header.split(
                         self.config.get_config()["csv_split_char"]
@@ -697,8 +697,7 @@ class SqlExecutor:
                     where_conditions = (
                         self.parser.get_dml_where_categorical_equal_and_range()
                     )
-                    # print("where_conditions", where_conditions)
-                    # xheader, x_lb, x_ub = self.parser.get_dml_where_categorical_equal_and_range()
+
                     if (
                         mdl + self.runtime_config["model_suffix"]
                         not in self.model_catalog.model_catalog
@@ -710,7 +709,6 @@ class SqlExecutor:
                     ]
                     x_header_density = model.density_column
 
-                    # print("where_conditions", where_conditions)
                     [x_lb, x_ub] = [
                         where_conditions[2][x_header_density][i] for i in [0, 1]
                     ]
@@ -718,8 +716,6 @@ class SqlExecutor:
                     filter_dbest = [
                         filter_dbest[next(iter(filter_dbest))][i] for i in [0, 1]
                     ]
-                    # print("where_conditions",where_conditions)
-                    # print("filter_dbest",filter_dbest)
 
                     predictions = model.predicts(
                         func,
@@ -730,15 +726,13 @@ class SqlExecutor:
                         groups=None,
                         filter_dbest=filter_dbest,
                     )
-                    # predictions = model.predict_one_pass(
-                    #     func, x_lb, x_ub, n_jobs=n_jobs)
+
                 elif func == "var":
                     print("var!!")
                     model = self.model_catalog.model_catalog[
                         mdl + self.runtime_config["model_suffix"]
                     ]
                     x_header_density = model.density_column
-                    # print(x_header_density)
                     predictions = model.predicts(
                         "var", runtime_config=self.runtime_config
                     )
@@ -767,9 +761,9 @@ class SqlExecutor:
                         filter_dbest=None,
                     )
 
-                if self.runtime_config["b_print_to_screen"]:
-                    # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
-                    print(predictions.to_string(index=False))  # max_rows=5
+                # if self.runtime_config["b_print_to_screen"]:
+                # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
+                print(predictions.to_string(index=False))  # max_rows=5
 
                 if self.runtime_config["b_show_latency"]:
                     end_time = datetime.now()

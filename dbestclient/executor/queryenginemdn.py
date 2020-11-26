@@ -1145,17 +1145,22 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
                                                          runtime_config=runtime_config, filter_dbest=filter_dbest)
                         predictions = predictions + Counter(pred)
                         keys_list.append(key)
+            # print("predictions",predictions)
             predictions = dict(predictions)
+            results = zip(predictions.keys(), predictions.values())
+            predictions = pd.DataFrame(results)#, columns=[self.usecols['gb'] +  # self.usecols[""] +
+                                                    #[self.usecols['y'][0]]])
+            # print(resu)
         # print("preditions,", predictions)
         # restore b_print_to_screen
-        runtime_config["b_print_to_screen"] = b_print_to_screen
-        if b_print_to_screen:
-            headers = list(self.group_by_columns)
-            headers.append("value")
-            print(" ".join(headers))
+        # runtime_config["b_print_to_screen"] = b_print_to_screen
+        # if b_print_to_screen:
+        #     headers = list(self.group_by_columns)
+        #     headers.append("value")
+        #     print(" ".join(headers))
 
-            for pred in predictions:
-                print(pred, predictions[pred])
+        #     for pred in predictions:
+        #         print(pred, predictions[pred])
 
             # print(keys_list)
             # print(predictions)
