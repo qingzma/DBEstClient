@@ -43,8 +43,7 @@ class TestSkipGram(unittest.TestCase):
         )
 
         results = sg.predicts(gbs)
-        # print("results")
-        # print(results)
+        self.assertEqual(len(gbs), len(results))
 
     def test_reg_no_cols(self):
         gb = np.array([["london", "male"], ["paris", "female"], ["", ""]])
@@ -84,8 +83,7 @@ class TestSkipGram(unittest.TestCase):
         )
 
         results = sg.predicts(gbs)
-        # print("results")
-        # print(results)
+        self.assertEqual(len(gbs), len(results))
 
     def test_kde(self):
         gb = np.array([["london", "male"], ["paris", "female"], ["", ""]])
@@ -126,7 +124,7 @@ class TestSkipGram(unittest.TestCase):
 
         results = sg.predicts(gbs)
         # print("results")
-        print(results)
+        self.assertEqual(len(gbs), len(results))
 
     def test_kde_no_cols(self):
         gb = np.array([["london", "male"], ["paris", "female"], ["", ""]])
@@ -166,8 +164,7 @@ class TestSkipGram(unittest.TestCase):
         )
 
         results = sg.predicts(gbs)
-        # print("results")
-        # print(results)
+        self.assertEqual(len(gbs), len(results))
 
 
 if __name__ == "__main__":
