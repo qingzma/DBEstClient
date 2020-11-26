@@ -18,11 +18,11 @@ class TestStratifiedReservoir(unittest.TestCase):
             n_jobs=1,
             capacity=5,
         )
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["ss_store_sk"],
             equality_cols=None,
             feature_cols=["ss_sold_date_sk", "ss_ext_wholesale_cost"],
-            label_cols=["ss_sales_price"],
+            label_cols=["ss_sales_price", "real", None],
             split_char="|",
         )
         cate, fea, lbl = sr.get_categorical_features_label()
@@ -36,11 +36,11 @@ class TestStratifiedReservoir(unittest.TestCase):
             n_jobs=2,
             capacity=5,
         )
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["ss_store_sk"],
             equality_cols=None,
             feature_cols=["ss_sold_date_sk", "ss_ext_wholesale_cost"],
-            label_cols=["ss_sales_price"],
+            label_cols=["ss_sales_price", "real", None],
             split_char="|",
         )
 
@@ -53,11 +53,11 @@ class TestStratifiedReservoir(unittest.TestCase):
             n_jobs=1,
             capacity=5,
         )
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["ss_store_sk"],
             equality_cols=["ss_coupon_amt"],
             feature_cols=["ss_sold_date_sk", "ss_ext_wholesale_cost"],
-            label_cols=["ss_sales_price"],
+            label_cols=["ss_sales_price", "real", None],
             split_char="|",
         )
 
@@ -70,11 +70,11 @@ class TestStratifiedReservoir(unittest.TestCase):
             n_jobs=2,
             capacity=5,
         )
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["ss_store_sk"],
             equality_cols=["ss_coupon_amt"],
             feature_cols=["ss_sold_date_sk", "ss_ext_wholesale_cost"],
-            label_cols=["ss_sales_price"],
+            label_cols=["ss_sales_price", "real", None],
             split_char="|",
         )
 
@@ -87,11 +87,11 @@ class TestStratifiedReservoir(unittest.TestCase):
             n_jobs=1,
             capacity=5,
         )
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["gb1", "gb2"],
             equality_cols=["cate1", "cate2"],
             feature_cols=["range1", "range2"],
-            label_cols=["label"],
+            label_cols=["label", "real", None],
             split_char=",",
         )
         cate, features, labels = sr.get_categorical_features_label()
@@ -122,11 +122,11 @@ class TestStratifiedReservoir(unittest.TestCase):
             n_jobs=1,
             capacity=5,
         )
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["gb1", "gb2"],
             equality_cols=["cate1", "cate2"],
             feature_cols=["range1", "range2"],
-            label_cols=["label"],
+            label_cols=["label", "real", None],
             split_char=",",
         )
         cate, features, labels = sr.get_categorical_features_label()
@@ -152,11 +152,11 @@ class TestStratifiedReservoir(unittest.TestCase):
 
     def test_toy_with_header_1job(self):
         sr = StratifiedReservoir("data/toy/toy_with_header.txt", n_jobs=1, capacity=5)
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["gb1", "gb2"],
             equality_cols=["cate1", "cate2"],
             feature_cols=["range1", "range2"],
-            label_cols=["label"],
+            label_cols=["label", "real", None],
             split_char=",",
         )
         cate, features, labels = sr.get_categorical_features_label()
@@ -182,11 +182,11 @@ class TestStratifiedReservoir(unittest.TestCase):
 
     def test_toy_with_header_2job(self):
         sr = StratifiedReservoir("data/toy/toy_with_header.txt", n_jobs=2, capacity=5)
-        sr.make_sample(
+        sr.make_sample_no_distinct(
             gb_cols=["gb1", "gb2"],
             equality_cols=["cate1", "cate2"],
             feature_cols=["range1", "range2"],
-            label_cols=["label"],
+            label_cols=["label", "real", None],
             split_char=",",
         )
         cate, features, labels = sr.get_categorical_features_label()

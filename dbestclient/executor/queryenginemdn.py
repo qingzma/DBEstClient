@@ -1166,7 +1166,7 @@ class MdnQueryEngineXCategorical(GenericQueryEngine):
             # print(predictions)
 
             # print("need to get predictions from multiple models.")
-
+        runtime_config["b_print_to_screen"] = b_print_to_screen
         return predictions
 
     def serialize2warehouse(self, warehouse, runtime_config):
@@ -1411,3 +1411,25 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
                 for key in results:
                     f.write(str(key) + "," + str(results[key]) + "\n")
         return results
+
+
+class QueryEngineFrequencyTable(GenericQueryEngine):
+    def __init__(self,  config):
+        super().__init__()
+        self.config= config
+        self.runtime_config = None
+        self.ft=None
+        self.usecols=None
+        self.n_total_point = None
+
+    def fit(self, mdl_name: str, origin_table_name: str, gbs_data,xs_data,ys_data, total_points: dict, usecols: dict, runtime_config: dict):
+        self.mdl_name=mdl_name
+        self.n_total_point=total_points
+        self.usecols=usecols
+        self.runtime_config = runtime_config
+        if gbs_data is not None or xs_data is not None or ys_data is not None:
+            raise ValueError("data should be None for FT.")
+        
+    
+    def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):
+        pass

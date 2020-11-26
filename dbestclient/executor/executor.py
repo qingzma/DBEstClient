@@ -13,6 +13,8 @@ from multiprocessing import set_start_method as set_start_method_cpu
 import dill
 import numpy as np
 import torch
+from torch.multiprocessing import set_start_method as set_start_method_torch
+
 from dbestclient.catalog.catalog import DBEstModelCatalog
 from dbestclient.executor.queryenginemdn import (
     MdnQueryEngine,
@@ -23,10 +25,15 @@ from dbestclient.executor.queryenginemdn import (
     MdnQueryEngineRangeNoCategorical,
     MdnQueryEngineXCategorical,
     MdnQueryEngineXCategoricalOneModel,
+    QueryEngineFrequencyTable,
 )
 from dbestclient.io.sampling import DBEstSampling
 from dbestclient.ml.modeltrainer import GroupByModelTrainer, KdeModelTrainer
-from dbestclient.parser.parser import DBEstParser
+from dbestclient.parser.parser import (
+    DBEstParser,
+    parse_usecols_check_shared_attributes_exist,
+    parse_y_check_need_ft_only,
+)
 from dbestclient.tools.dftools import (
     get_group_count_from_df,
     get_group_count_from_summary_file,
@@ -34,7 +41,6 @@ from dbestclient.tools.dftools import (
 )
 from dbestclient.tools.running_parameters import RUNTIME_CONF, DbestConfig
 from dbestclient.tools.variables import Slave, UseCols
-from torch.multiprocessing import set_start_method as set_start_method_torch
 
 
 class SqlExecutor:
@@ -162,6 +168,11 @@ class SqlExecutor:
                     )
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
+
+                    print("yheader", yheader)
+                    print("xheader_continous", xheader_continous)
+                    print("xheader_categorical", xheader_categorical)
+                    print("groupby_attribute", xheader_categorical)
 
                     sampler = DBEstSampling(
                         headers=table_header,
@@ -347,6 +358,7 @@ class SqlExecutor:
                             pass
                         else:
                             raise TypeError("unexpected method")
+
                         # no continuous x attributes, which means there is not range predicate on continuous attribute
                         if not xheader_continous:
                             # use one model to support all categorical attribute
@@ -389,24 +401,61 @@ class SqlExecutor:
                                             )
                                     n_total_point = scaled_n_total_point
 
-                                elif method.lower() == "stratified":
-                                    (
+                                    qe.fit(
+                                        mdl,
+                                        tbl,
                                         gbs_data,
                                         xs_data,
                                         ys_data,
-                                    ) = sampler.sample.get_categorical_features_label()
-                                    n_total_point = sampler.sample.get_ft()
+                                        n_total_point,
+                                        usecols=usecols,
+                                        runtime_config=self.runtime_config,
+                                    )
 
-                                qe.fit(
-                                    mdl,
-                                    tbl,
-                                    gbs_data,
-                                    xs_data,
-                                    ys_data,
-                                    n_total_point,
-                                    usecols=usecols,
-                                    runtime_config=self.runtime_config,
-                                )
+                                elif method.lower() == "stratified":
+                                    # check if this query could be served by frequency table only.
+
+                                    b_ft_only = parse_y_check_need_ft_only(usecols)
+                                    print("b_ft_only", b_ft_only)
+                                    if b_ft_only:
+                                        print("to implement")
+                                        n_total_point = sampler.sample.get_ft()
+                                        print("ft", n_total_point)
+                                        qe = QueryEngineFrequencyTable(
+                                            self.config.copy()
+                                        )
+                                        qe.fit(
+                                            mdl,
+                                            tbl,
+                                            None,
+                                            None,
+                                            None,
+                                            n_total_point,
+                                            usecols=usecols,
+                                            runtime_config=self.runtime_config,
+                                        )
+                                        # exit()
+
+                                    else:
+                                        (
+                                            gbs_data,
+                                            xs_data,
+                                            ys_data,
+                                        ) = (
+                                            sampler.sample.get_categorical_features_label()
+                                        )
+                                        n_total_point = sampler.sample.get_ft()
+
+                                        qe.fit(
+                                            mdl,
+                                            tbl,
+                                            gbs_data,
+                                            xs_data,
+                                            ys_data,
+                                            n_total_point,
+                                            usecols=usecols,
+                                            runtime_config=self.runtime_config,
+                                        )
                                 qe.serialize2warehouse(
                                     self.config.get_config()["warehousedir"],
                                     self.runtime_config,
@@ -761,9 +810,9 @@ class SqlExecutor:
                         filter_dbest=None,
                     )
 
-                # if self.runtime_config["b_print_to_screen"]:
-                # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
-                print(predictions.to_string(index=False))  # max_rows=5
+                if self.runtime_config["b_print_to_screen"]:
+                    # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
+                    print(predictions.to_string(index=False))  # max_rows=5
 
                 if self.runtime_config["b_show_latency"]:
                     end_time = datetime.now()
