@@ -165,6 +165,7 @@ class SqlExecutor:
                             "x_categorical": xheader_categorical,
                             "gb": None,
                         },
+                        n_jobs=self.runtime_config["n_jobs"],
                     )
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
@@ -182,6 +183,7 @@ class SqlExecutor:
                             "x_categorical": xheader_categorical,
                             "gb": groupby_attribute,
                         },
+                        n_jobs=self.runtime_config["n_jobs"],
                     )
 
                 if os.path.exists(
