@@ -409,8 +409,16 @@ class StratifiedReservoir:
         if not equality_cols:
             keys_in_ft = list(self.ft_table.keys())
             # print("self.ft_table", keys_in_ft)
+
             data_categoricals = s[:, : len(categorical_cols_idx)]
-            data_remove_null = set(data_categoricals.reshape(1, -1)[0])
+            if len(data_categoricals[0]) == 1:
+                data_remove_null = set(data_categoricals.reshape(1, -1)[0])
+            else:
+                data_remove_null = set([",".join(i) for i in data_categoricals])
+
+            # print("data_categoricals", data_categoricals)
+
+            # print("data_remove_null", data_remove_null)
             for k in keys_in_ft:
                 if k not in data_remove_null:
                     Warning(
@@ -446,7 +454,7 @@ class StratifiedReservoir:
         # print(self.data_features)
         # print(self.data_labels)
         self.data_features = self.data_features.astype(float)
-        print("label_cols", label_cols)
+        # print("label_cols", label_cols)
         if label_cols[1] == "real":
             self.data_labels = self.data_labels.astype(float).reshape(1, -1)[0]
 

@@ -27,7 +27,7 @@ class TestStratifiedReservoir(unittest.TestCase):
         )
         cate, fea, lbl = sr.get_categorical_features_label()
 
-        self.assertEqual(sr.size(), 1000)
+        self.assertEqual(sr.size(), 948)
 
     def test_tpcds_2job_no_equality(self):
         sr = StratifiedReservoir(
@@ -44,7 +44,7 @@ class TestStratifiedReservoir(unittest.TestCase):
             split_char="|",
         )
 
-        self.assertEqual(sr.size(), 1000)
+        self.assertEqual(sr.size(), 948)
 
     def test_tpcds_1job(self):
         sr = StratifiedReservoir(

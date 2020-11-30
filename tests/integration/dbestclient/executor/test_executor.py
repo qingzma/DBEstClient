@@ -440,7 +440,7 @@ if __name__ == "__main__":
     # TestTpcDs().test_groupbys_range_no_categorical_gb1()
     # TestTpcDs().test_groupbys_range_no_categorical_gb2()
     TestTpcDs().test_groupbys_range_no_categorical_gb1_stratified()
-    # TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified()
+    TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified()
     # TestTpcDs().test_categorical_one_model()
     # TestTpcDs().test_categorical_one_model_stratified()
     # TestTpcDs().test_embedding()

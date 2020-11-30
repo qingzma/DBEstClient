@@ -176,9 +176,10 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
         self.n_total_point = total_points
         self.runtime_config = runtime_config
         self.groupby_values = list(total_points.keys())
+        # print("total_points",total_points)
         self.usecols = usecols
         self.density_column = usecols["x_continous"][0]
-        print("self.density_column", self.density_column)
+        # print("self.density_column", self.density_column)
         # self.reg = None
 
         # self.x_categorical_columns = usecols["x_categorical"]
@@ -218,18 +219,18 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
         else:
             n_jobs = runtime_config["n_jobs"]
 
+        # if func.lower() not in ("count", "sum", "avg", "var"):
+        #     raise ValueError("function not supported: "+func)
+        # if not groups: #is None:  # provide predictions for all groups.
+        #     groups = self.groupby_values
+
+        # if self.config.get_config()["accept_filter"]:
+        #     print("not implemented yet")
+        #     return
+
         if func.lower() not in ("count", "sum", "avg", "var"):
             raise ValueError("function not supported: "+func)
-        if groups is None:  # provide predictions for all groups.
-            groups = self.groupby_values
-
-        if self.config.get_config()["accept_filter"]:
-            print("not implemented yet")
-            return
-
-        if func.lower() not in ("count", "sum", "avg", "var"):
-            raise ValueError("function not supported: "+func)
-        if groups is None:  # provide predictions for all groups.
+        if not groups: #is None:  # provide predictions for all groups.
             groups = self.groupby_values
 
         if self.config.get_config()["accept_filter"]:
@@ -238,20 +239,7 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
 
         if func.lower() in ["count", "sum", "avg"]:
             if n_jobs == 1:
-                # groups_name = list(self.n_total_point.keys())
-                # # groups_value = list(self.n_total_point.values())
-                # if func.lower() == "count":
-                #     result = self.n_total_point
-                # elif func.lower() == "sum":
-                #     result = self.reg.predict(
-                #         groups_name, None, runtime_config)
-                #     result = {g: res*self.n_total_point[g] for res,
-                #               g in zip(result, groups_name)}
-                # elif func.lower() == "avg":
-                #     result = self.reg.predict(
-                #         groups_name, None, runtime_config)
-                #     result = {key: val for key, val in zip(
-                #         groups_name, result)}
+                # print("groups",groups)
 
                 if len(groups[0].split(",")) == 1:  # 1d group by
                     scaling_factor = np.array([self.n_total_point[key]
