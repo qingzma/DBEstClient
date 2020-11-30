@@ -8,10 +8,12 @@
 import os
 import subprocess
 from datetime import datetime
+from os.path import split
 from random import randint, shuffle
 
 import dill
 import numpy as np
+
 from dbestclient.parser.parser import (
     parse_usecols_check_shared_attributes_exist,
     parse_y_check_need_ft_only,
@@ -400,6 +402,25 @@ class StratifiedReservoir:
         s_continuous_cols = s[:, cols_idx]
         # print("s_continuous_cols", s_continuous_cols)
         s = s[~np.any(s_continuous_cols == "", axis=1)]
+
+        # fix bug: if a whole group is removed due to null values, then this group should be removed from frequency table.
+        # currently only check the NULL group.split
+        # the structure of the ft is a 1-depth dict.
+        if not equality_cols:
+            keys_in_ft = list(self.ft_table.keys())
+            # print("self.ft_table", keys_in_ft)
+            data_categoricals = s[:, : len(categorical_cols_idx)]
+            data_remove_null = set(data_categoricals.reshape(1, -1)[0])
+            for k in keys_in_ft:
+                if k not in data_remove_null:
+                    Warning(
+                        k
+                        + " group is removed from the frequency table, so this group will not be reported in the query result."
+                    )
+                    del self.ft_table[k]
+
+            # print("S", s)
+            # exit()
 
         self.data_categoricals = s[:, : len(categorical_cols_idx)]
         if feature_cols is not None:

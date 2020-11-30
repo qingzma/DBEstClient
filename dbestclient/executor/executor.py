@@ -169,10 +169,10 @@ class SqlExecutor:
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
 
-                    print("yheader", yheader)
-                    print("xheader_continous", xheader_continous)
-                    print("xheader_categorical", xheader_categorical)
-                    print("groupby_attribute", xheader_categorical)
+                    # print("yheader", yheader)
+                    # print("xheader_continous", xheader_continous)
+                    # print("xheader_categorical", xheader_categorical)
+                    # print("groupby_attribute", xheader_categorical)
 
                     sampler = DBEstSampling(
                         headers=table_header,
@@ -416,11 +416,11 @@ class SqlExecutor:
                                     # check if this query could be served by frequency table only.
 
                                     b_ft_only = parse_y_check_need_ft_only(usecols)
-                                    print("b_ft_only", b_ft_only)
+                                    # print("b_ft_only", b_ft_only)
                                     if b_ft_only:
-                                        print("to implement")
+                                        # print("to implement")
                                         n_total_point = sampler.sample.get_ft()
-                                        print("ft", n_total_point)
+                                        # print("ft", n_total_point)
                                         qe = QueryEngineFrequencyTable(
                                             self.config.copy()
                                         )
@@ -445,6 +445,12 @@ class SqlExecutor:
                                             sampler.sample.get_categorical_features_label()
                                         )
                                         n_total_point = sampler.sample.get_ft()
+
+                                        print("gbs_data", gbs_data)
+                                        if "ss_store_sk" in gbs_data:
+                                            print("exitst!!!!!!!!!!")
+                                        else:
+                                            print("no!!!!!!!!!!!!!!!!")
 
                                         qe.fit(
                                             mdl,
@@ -661,6 +667,13 @@ class SqlExecutor:
                                     qe = MdnQueryEngineXCategoricalOneModel(
                                         self.config.copy()
                                     )
+
+                                    print("gbs_data", gbs_data)
+                                    if "ss_store_sk" in gbs_data:
+                                        print("exitst!!!!!!!!!!")
+                                    else:
+                                        print("no!!!!!!!!!!!!!!!!")
+
                                     qe.fit(
                                         mdl,
                                         tbl,
@@ -692,6 +705,15 @@ class SqlExecutor:
                                         "gb": groupby_attribute,
                                     }
                                     xs_data = xs_data.reshape(1, -1)[0]
+
+                                    # print("gbs_data", gbs_data)
+                                    # if "ss_store_sk" in gbs_data:
+                                    #     print("exitst!!!!!!!!!!")
+                                    # else:
+                                    #     print("no!!!!!!!!!!!!!!!!")
+
+                                    # print("n_total_point", n_total_point)
+                                    # print("n_total_point['104']", n_total_point["104"])
 
                                     qe = MdnQueryEngineRangeNoCategorical(
                                         self.config.copy()

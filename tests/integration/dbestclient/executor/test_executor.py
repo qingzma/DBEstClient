@@ -97,7 +97,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute("set b_grid_search='False'")
         sqlExecutor.execute("set csv_split_char='|'")
         sqlExecutor.execute("set n_epoch=2")
-        sqlExecutor.execute("set encoder='binary'")
+        sqlExecutor.execute("set encoder='embedding'")
         sqlExecutor.execute(
             "set table_header="
             + "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|"
@@ -121,7 +121,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor.execute("set b_grid_search='False'")
         sqlExecutor.execute("set csv_split_char='|'")
         sqlExecutor.execute("set n_epoch=2")
-        sqlExecutor.execute("set encoder='binary'")
+        sqlExecutor.execute("set encoder='embedding'")
         sqlExecutor.execute(
             "set table_header="
             + "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|"
@@ -439,7 +439,7 @@ if __name__ == "__main__":
     # unittest.main()
     # TestTpcDs().test_groupbys_range_no_categorical_gb1()
     # TestTpcDs().test_groupbys_range_no_categorical_gb2()
-    # TestTpcDs().test_groupbys_range_no_categorical_gb1_stratified()
+    TestTpcDs().test_groupbys_range_no_categorical_gb1_stratified()
     # TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified()
     # TestTpcDs().test_categorical_one_model()
     # TestTpcDs().test_categorical_one_model_stratified()
@@ -450,4 +450,4 @@ if __name__ == "__main__":
     # TestTpcDs().test_no_continuous_categorical_2()
     # TestTpcDs().test_no_continuous_categorical_one_model_uniform()
     # TestTpcDs().test_no_continuous_categorical1_one_model_stratified()
-    TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
+    # TestTpcDs().test_no_continuous_categorical2_one_model_stratified()

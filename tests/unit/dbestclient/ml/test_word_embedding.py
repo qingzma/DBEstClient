@@ -50,12 +50,12 @@ class TestSkipGram(unittest.TestCase):
         # equals = np.array([["flat", "50mile"], ["apartment", "60mile"], ["", ""]])
         ranges = np.array([20, 30, 40])
         labels = np.array([15000.032, 16000.80, 18000])
-        usecols = {
-            "y": ["salary"],
-            "x_continous": ["age"],
-            "x_categorical": [],  # ["accomodation", "distance"],
-            "gb": ["city", "gender"],
-        }
+        # usecols = {
+        #     "y": ["salary"],
+        #     "x_continous": ["age"],
+        #     "x_categorical": [],  # ["accomodation", "distance"],
+        #     "gb": ["city", "gender"],
+        # }
         sg = SkipGram().fit(gb, ranges, labels, usecols=None, workers=1)
         gbs = np.array(
             [

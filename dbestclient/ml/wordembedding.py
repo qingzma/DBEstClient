@@ -138,6 +138,7 @@ class SkipGram:
         # print(headers)
         sentences = np.core.defchararray.add(headers, keys)  # .tolist()
         # print(sentences)
+        # print("self.embeddings", self.embeddings.keys())
 
         predictions = None
         for words in sentences:
