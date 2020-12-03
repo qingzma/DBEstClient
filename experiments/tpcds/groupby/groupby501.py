@@ -495,7 +495,7 @@ def build_501_groups2_stratified(sqlExecutor):
     )
 
     sqlExecutor.execute("set n_mdn_layer_node=20")
-    sqlExecutor.execute("set n_jobs=8")
+    sqlExecutor.execute("set n_jobs=16")
     sqlExecutor.execute("set n_hidden_layer=1")
     sqlExecutor.execute("set n_epoch=20")
     sqlExecutor.execute("set n_gaussians_reg=3")
@@ -503,7 +503,7 @@ def build_501_groups2_stratified(sqlExecutor):
     sqlExecutor.execute("drop table ss1t_groups2_stratified")
 
     sqlExecutor.execute(
-        "create table ss1t_groups2_stratified(ss_sales_price real, ss_sold_date_sk real) from '/data/data/data/tpc/tpc-ds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 1000"  #   data/tpcds/10g/ss_10g_100.csv  /data/data/data/tpc/tpc-ds/1t/store_sales.dat
+        "create table ss1t_groups2_stratified_20m(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 400"  #   data/tpcds/10g/ss_10g_100.csv  /data/data/data/tpc/tpc-ds/1t/store_sales.dat
     )  # num_of_points57.csv
 
     sqlExecutor.execute("set n_jobs=1")
