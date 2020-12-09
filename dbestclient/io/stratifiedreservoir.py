@@ -57,8 +57,13 @@ class StratifiedReservoir:
         # check is sample already exist
         if os.path.isfile(self.file_name+ ".sample"):
             print("sample exists, use it directly.")
-            self = dill.load(self.file_name+ ".sample")
-            return self.data_categoricals, self.data_features, self.data_labels
+            with open(self.file_name+ ".sample", "rb") as f:
+                model = dill.load(f)
+            self.data_categoricals = model.data_categoricals
+            self.data_features = model.data_features
+            self.data_labels=model.data_labels
+            self.ft_table = model.ft_table
+            return #model #self.data_categoricals, self.data_features, self.data_labels
 
         self.usecols = usecols
 
@@ -489,7 +494,6 @@ class StratifiedReservoir:
             f"Finish making the sample, time cost is {(datetime.now()-t1).total_seconds():.4f} seconds."
         )
         self.serialize2file(self.file_name+ ".sample")
-
         return self.data_categoricals, self.data_features, self.data_labels
 
     def make_sample_no_distinct_ft_only(
@@ -841,5 +845,5 @@ class StratifiedReservoir:
 #         pass
 
 
-# def list2key(lst: list) -> str:
-#     return ",".join(lst)
+def list2key(lst: list) -> str:
+    return ",".join(lst)
