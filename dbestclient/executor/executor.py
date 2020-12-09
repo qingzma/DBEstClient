@@ -9,6 +9,7 @@ import os.path
 import warnings
 from datetime import datetime
 from multiprocessing import set_start_method as set_start_method_cpu
+import csv
 
 import dill
 import numpy as np
@@ -817,6 +818,13 @@ class SqlExecutor:
                 if self.runtime_config["b_print_to_screen"]:
                     # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
                     print(predictions.to_string(index=False))  # max_rows=5
+
+                if self.runtime_config["result2file"]:
+                    predictions.to_csv(self.runtime_config["result2file"],header=False, sep=',', index=False, quoting=csv.QUOTE_NONE, quotechar="",  escapechar=" ")
+                    # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
+                    # with open(self.runtime_config["result2file"],'w') as f:
+                    #     out = 
+                    #     f.write(predictions.to_string(index=False))  # max_rows=5
 
                 if self.runtime_config["b_show_latency"]:
                     end_time = datetime.now()

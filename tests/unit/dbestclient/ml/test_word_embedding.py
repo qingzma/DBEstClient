@@ -168,5 +168,5 @@ class TestSkipGram(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
-    # TestSkipGram().test_kde_no_cols()
+    # unittest.main()
+    TestSkipGram().test_reg()

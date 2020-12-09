@@ -69,9 +69,16 @@ def compare_dicts(true: dict, pred: dict) -> dict:
         dict: relative error
     """
     res = []
+    cnt=0
     for key in true:
+        if key not in pred:
+            pred[key] = 0
+            cnt+=1
         res.append(abs(((true[key]-pred[key])/true[key])))
         # print(key)
+    
+    if cnt!=0:
+        print(str(cnt) +" missing groups.")
     # print(res)
     # plt.hist(res,bins=50)
     # plt.show()
@@ -141,15 +148,15 @@ def plt501_workload(agg_func="avg", suffix="_ss1t_gg4.txt", b_plot=True, b_merge
     for i in range(1, 11):
         prefix = agg_func+str(i)
         # print(prefix)
-        mdn = read_results("experiments/results/mdn/1t/" +
+        mdn = read_results("experiments/results/mdn/10g/" +
                            prefix+suffix, split_char=",")
         truth = read_results(
-            "experiments/results/groundtruth/1t/"+prefix+".result")
+            "experiments/results/groundtruth/10g/"+prefix+".result")
         mdn_error = compare_dicts(truth, mdn)
         mdn_errors.append(mdn_error)
         if b_two_methods:
             kde = read_results(
-                "experiments/results/deepdb/10g/"+prefix+".txt", split_char=",")
+                "experiments/results/stratified/10g/"+prefix+".txt", split_char=",")
             kde_error = compare_dicts(truth, kde)
             kde_errors.append(kde_error)
 
@@ -255,9 +262,9 @@ def autolabel(rects, ax):
 if __name__ == "__main__":
     # plt_501_bar_chart_error()
     # plt_501_bar_chart_error(suffix="_ss1t_gg4.txt")
-    plt501_workload(agg_func="count", suffix=".txt", b_plot=True,
-                    b_merge_result_for_group=False, b_two_methods=False)
-    plt501_workload(agg_func="sum", suffix=".txt", b_plot=True,
-                    b_merge_result_for_group=False, b_two_methods=False)
-    plt501_workload(agg_func="avg", suffix=".txt", b_plot=True,
-                    b_merge_result_for_group=False, b_two_methods=False)
+    plt501_workload(agg_func="count", suffix=".txt", b_plot=False,
+                    b_merge_result_for_group=False, b_two_methods=True)
+    plt501_workload(agg_func="sum", suffix=".txt", b_plot=False,
+                    b_merge_result_for_group=False, b_two_methods=True)
+    plt501_workload(agg_func="avg", suffix=".txt", b_plot=False,
+                    b_merge_result_for_group=False, b_two_methods=True)
