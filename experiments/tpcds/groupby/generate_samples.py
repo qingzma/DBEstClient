@@ -42,8 +42,11 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_density=12")            
         self.sql_executor.execute("set n_embedding_dim=20") 
 
+        self.sql_executor.execute("set sampling_only='True'")
+
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 60' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 60' ")  # num_of_points57.csv  /d/ata/tpcds/1t/store_sales.dat
+        self.sql_executor.execute("set sampling_only='False'")
 
     def build_model5_2m(self, mdl_name: str = "ss_gb2_5_2", encoder='embedding'):
         self.mdl_name = mdl_name
@@ -83,8 +86,11 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_density=8")            
         self.sql_executor.execute("set n_embedding_dim=10") 
 
+        self.sql_executor.execute("set sampling_only='True'")
+
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 114' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 114' ")  # num_of_points57.csv
+        self.sql_executor.execute("set sampling_only='False'")
     
     def build_model_10m(self, mdl_name: str = "ss_gb2_5_2", encoder='embedding'):
         self.mdl_name = mdl_name
@@ -124,8 +130,11 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_density=8")            
         self.sql_executor.execute("set n_embedding_dim=10") 
 
+        self.sql_executor.execute("set sampling_only='True'")
+
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 220' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 220' ")  # num_of_points57.csv
+        self.sql_executor.execute("set sampling_only='False'")
 
     
     def build_model_20m(self, mdl_name: str = "ss_gb2_5_2", encoder='embedding'):
@@ -166,8 +175,11 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_density=8")            
         self.sql_executor.execute("set n_embedding_dim=10") 
 
+        self.sql_executor.execute("set sampling_only='True'")
+
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 430' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 430' ")  # num_of_points57.csv  /d/ata/tpcds/1t/store_sales.dat
+        self.sql_executor.execute("set sampling_only='False'")
 
         
     
@@ -209,8 +221,11 @@ class Query1:
         self.sql_executor.execute("set n_gaussians_density=8")            
         self.sql_executor.execute("set n_embedding_dim=10") 
 
+        self.sql_executor.execute("set sampling_only='True'")
+
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 640' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 640' ")  # num_of_points57.csv
+        self.sql_executor.execute("set sampling_only='False'")
     
     def query_workload(self, mdl_name, result2file: str = '/home/u1796377/Documents/workspace/DBEstClient/experiments/results/mdn/10g/', n_jobs=1):
         self.sql_executor.execute(
@@ -338,21 +353,21 @@ class Query1:
 if  __name__ == "__main__":
     q1= Query1()
     q1.build_model2_5m("ss_gb2_2_5")
-    q1.mdl_name="ss_gb2_2_5"
-    q1.query_workload("ss_gb2_2_5",result2file="experiments/results/stratified/1t2cols/2_5g/")
+    # q1.mdl_name="ss_gb2_2_5"
+    # q1.query_workload("ss_gb2_2_5",result2file="experiments/results/stratified/1t2cols/2_5g/")
 
     q1.build_model5_2m("ss_gb2_5_2")
-    q1.mdl_name="ss_gb2_5_2"
-    q1.query_workload("ss_gb2_5_2",result2file="experiments/results/stratified/1t2cols/5g/")
+    # q1.mdl_name="ss_gb2_5_2"
+    # q1.query_workload("ss_gb2_5_2",result2file="experiments/results/stratified/1t2cols/5g/")
 
     q1.build_model_10m("ss_gb2_10")
-    q1.mdl_name="ss_gb2_10"
-    q1.query_workload("ss_gb2_10",result2file="experiments/results/stratified/1t2cols/10g/")
+    # q1.mdl_name="ss_gb2_10"
+    # q1.query_workload("ss_gb2_10",result2file="experiments/results/stratified/1t2cols/10g/")
 
     q1.build_model_20m("ss_gb2_20")
-    q1.mdl_name="ss_gb2_20"
-    q1.query_workload("ss_gb2_20",result2file="experiments/results/stratified/1t2cols/20g/")
+    # q1.mdl_name="ss_gb2_20"
+    # q1.query_workload("ss_gb2_20",result2file="experiments/results/stratified/1t2cols/20g/")
 
-    # q1.build_model_30m("ss_gb2_30")
-    # q1.mdl_name="ss_gb2_30"
-    # q1.query_workload("ss_gb2_30",result2file="experiments/results/stratified/1t2cols/30g/")
+    q1.build_model_30m("ss_gb2_30")
+    # q1.mdl_name="ss_gb2_2_5"
+    # q1.query_workload("ss_gb2_2_5",result2file="results/stratified/1t2cols/2_5g/")

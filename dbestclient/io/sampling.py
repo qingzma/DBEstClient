@@ -10,7 +10,7 @@ from dbestclient.io.stratifiedreservoir import StratifiedReservoir
 
 
 class DBEstSampling:
-    def __init__(self, headers, usecols, n_jobs=1):
+    def __init__(self, headers, usecols, n_jobs=1, mdl_name="mdl",warehouse="dbestwarehouse"):
         self.n_sample_point = None
         self.n_total_point = None
         self.sample = None
@@ -21,6 +21,8 @@ class DBEstSampling:
         self.scaling_factor = None
         self.method = None
         self.n_jobs = n_jobs
+        self.mdl_name = mdl_name
+        self.warehouse=warehouse
 
     def make_sample(
         self,
@@ -98,7 +100,7 @@ class DBEstSampling:
                 return
 
             self.sample = StratifiedReservoir(
-                file, file_header=self.headers, n_jobs=self.n_jobs, capacity=ratio
+                file, file_header=self.headers, n_jobs=self.n_jobs, capacity=ratio,mdl_name=self.mdl_name,warehouse=self.warehouse
             )
             self.sample.make_sample_for_sql_condition(
                 usecols=self.usecols, split_char=split_char

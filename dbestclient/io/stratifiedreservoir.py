@@ -21,12 +21,15 @@ from dbestclient.parser.parser import (
 )
 
 
+
+
 class StratifiedReservoir:
     """Create a stratified reservoir sampling."""
 
-    def __init__(self, file_name, file_header=None, n_jobs=1, capacity: int = 1000):
+    def __init__(self, file_name, file_header=None, n_jobs=1, capacity: int = 1000,mdl_name="mdl",warehouse="dbestwarehouse"):
         self.header = None
         self.file_name = file_name
+        self.mdl_name = mdl_name
         self.file_header = file_header
         self.relevant_header_idx = []
         self.ft_table = {}
@@ -36,11 +39,14 @@ class StratifiedReservoir:
         self.sample = {}
         self.n_jobs = n_jobs
         self.capacity = capacity
+        self.warehouse=warehouse
         # self.gb_cols = None
         # self.equality_cols = None
         # self.feature_cols = None
         # self.label_cols = None
         self.usecols = None
+
+        self.save_sample=True
 
         if n_jobs == 1 and file_header is not None:
             self.b_skip_first_row = False
@@ -55,9 +61,9 @@ class StratifiedReservoir:
         b_return_sample=False,
     ):
         # check is sample already exist
-        if os.path.isfile(self.file_name+ ".sample"):
-            print("sample exists, use it directly.")
-            with open(self.file_name+ ".sample", "rb") as f:
+        if os.path.isfile(self.warehouse +"/"+self.mdl_name+ ".sample"):
+            print("sample exists in warehouse, use it directly.")
+            with open(self.warehouse +"/"+ self.mdl_name+ ".sample", "rb") as f:
                 model = dill.load(f)
             self.data_categoricals = model.data_categoricals
             self.data_features = model.data_features
@@ -493,7 +499,9 @@ class StratifiedReservoir:
         print(
             f"Finish making the sample, time cost is {(datetime.now()-t1).total_seconds():.4f} seconds."
         )
-        self.serialize2file(self.file_name+ ".sample")
+        if self.save_sample:
+            print("writing samples to warehouse....")
+            self.serialize2file(self.warehouse +"/"+self.mdl_name+ ".sample")
         return self.data_categoricals, self.data_features, self.data_labels
 
     def make_sample_no_distinct_ft_only(

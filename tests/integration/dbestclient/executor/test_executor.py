@@ -143,6 +143,40 @@ class TestTpcDs(unittest.TestCase):
             "drop table test_ss40g_groupbys_range_no_categorical_gb2_stratified"
         )
         self.assertFalse(predictions.empty)
+    
+    def test_groupbys_range_no_categorical_gb2_stratified_sample_only(self):
+        sqlExecutor = SqlExecutor()
+        sqlExecutor.execute("set b_grid_search='False'")
+        sqlExecutor.execute("set csv_split_char='|'")
+        sqlExecutor.execute("set n_epoch=2")
+        sqlExecutor.execute("set encoder='embedding'")
+        sqlExecutor.execute(
+            "set table_header="
+            + "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|"
+            + "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|"
+            + "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|"
+            + "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|"
+            + "ss_net_paid_inc_tax|ss_net_profit|none'"
+        )
+        sqlExecutor.execute(
+            "drop table test_ss40g_groupbys_range_no_categorical_gb2_stratified"
+        )
+
+        sqlExecutor.execute("set sampling_only='True'")
+
+        sqlExecutor.execute(
+            "create table test_ss40g_groupbys_range_no_categorical_gb2_stratified(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_coupon_amt method stratified size 100"
+        )
+
+        sqlExecutor.execute("set sampling_only='False'")
+
+        # predictions = sqlExecutor.execute(
+        #     "select avg(ss_sales_price)  from test_ss40g_groupbys_range_no_categorical_gb2_stratified where   2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk,ss_coupon_amt"
+        # )  # ss_coupon_amt
+        sqlExecutor.execute(
+            "drop table test_ss40g_groupbys_range_no_categorical_gb2_stratified"
+        )
+        # self.assertFalse(predictions.empty)
 
     # def test_categorical(self):
     #     sqlExecutor = SqlExecutor()
@@ -441,6 +475,7 @@ if __name__ == "__main__":
     # TestTpcDs().test_groupbys_range_no_categorical_gb2()
     # TestTpcDs().test_groupbys_range_no_categorical_gb1_stratified()
     TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified()
+    # TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified_sample_only()
     # TestTpcDs().test_categorical_one_model()
     # TestTpcDs().test_categorical_one_model_stratified()
     # TestTpcDs().test_embedding()
