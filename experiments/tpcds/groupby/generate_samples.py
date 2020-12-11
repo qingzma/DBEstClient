@@ -45,7 +45,7 @@ class Query1:
         self.sql_executor.execute("set sampling_only='True'")
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 60' ")  # num_of_points57.csv  /d/ata/tpcds/1t/store_sales.dat
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 60' ")  # num_of_points57.csv  /d/ata/tpcds/1t/store_sales.dat
         self.sql_executor.execute("set sampling_only='False'")
 
     def build_model5_2m(self, mdl_name: str = "ss_gb2_5_2", encoder='embedding'):
@@ -89,7 +89,7 @@ class Query1:
         self.sql_executor.execute("set sampling_only='True'")
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 114' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 114' ")  # num_of_points57.csv
         self.sql_executor.execute("set sampling_only='False'")
     
     def build_model_10m(self, mdl_name: str = "ss_gb2_5_2", encoder='embedding'):
@@ -133,7 +133,7 @@ class Query1:
         self.sql_executor.execute("set sampling_only='True'")
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 220' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 220' ")  # num_of_points57.csv
         self.sql_executor.execute("set sampling_only='False'")
 
     
@@ -178,7 +178,7 @@ class Query1:
         self.sql_executor.execute("set sampling_only='True'")
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 430' ")  # num_of_points57.csv  /d/ata/tpcds/1t/store_sales.dat
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 430' ")  # num_of_points57.csv  /data/tpcds/1t/store_sales.dat
         self.sql_executor.execute("set sampling_only='False'")
 
         
@@ -224,7 +224,7 @@ class Query1:
         self.sql_executor.execute("set sampling_only='True'")
 
         self.sql_executor.execute(
-            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from 'data/tpcds/40G/ss_100.csv' GROUP BY ss_store_sk,ss_quantity method stratified size 640' ")  # num_of_points57.csv
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 640' ")  # num_of_points57.csv
         self.sql_executor.execute("set sampling_only='False'")
     
     def query_workload(self, mdl_name, result2file: str = '/home/u1796377/Documents/workspace/DBEstClient/experiments/results/mdn/10g/', n_jobs=1):
