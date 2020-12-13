@@ -26,11 +26,11 @@ class SkipGram:
         range_data,
         label_data=None,
         usecols=None,
-        dim=20,
+        dim=10,
         window=1,
-        min_count=0,
-        negative=30,
-        iters=30,
+        min_count=1,
+        negative=20,
+        iters=20,
         workers=-1,
         NG=1,
         b_reg=True,
@@ -103,13 +103,15 @@ class SkipGram:
         headers = np.repeat(header, len(categoricals), axis=0)
         # print("*" * 70)
         # print(headers, "-" * 20, ">" * 20)
+        NG=len(self.header_categorical)
+        self.dim = dim * len(self.header_categorical)
         sentences = np.core.defchararray.add(headers, categoricals).tolist()
         # print(sentences)
 
         workers = multiprocessing.cpu_count() if workers == -1 else 1
         model = Word2Vec(
             sentences,
-            size=int(dim / NG),
+            size=int(self.dim / NG),
             window=window,
             min_count=min_count,
             negative=negative,
@@ -119,7 +121,7 @@ class SkipGram:
 
         # word_vectors = model.wv  # Matix of model
         vocab = model.wv.vocab  # Vocabulary
-        self.dim = dim * len(self.header_categorical)
+        #self.dim = dim * len(self.header_categorical)
         # print("dim is", self.dim)
         # print(model["citylondon"])
 
