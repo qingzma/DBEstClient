@@ -495,7 +495,7 @@ def build_501_groups2_stratified(sqlExecutor):
     )
 
     sqlExecutor.execute("set n_mdn_layer_node=20")
-    sqlExecutor.execute("set n_jobs=8")
+    sqlExecutor.execute("set n_jobs=5")
     sqlExecutor.execute("set n_hidden_layer=1")
     sqlExecutor.execute("set n_epoch=20")
     sqlExecutor.execute("set n_gaussians_reg=3")
