@@ -482,7 +482,7 @@ def build_501_groups2_stratified(sqlExecutor):
     # sqlExecutor.execute("set device='cpu'")
     # sqlExecutor.execute("set encoder='binary'")
     # sqlExecutor.execute("set b_grid_search='false'")
-    sqlExecutor.execute("set b_print_to_screen='True'")
+    sqlExecutor.execute("set b_print_to_screen='False'")
     sqlExecutor.execute("set csv_split_char='|'")
     # sqlExecutor.execute("set batch_size=1000")
     sqlExecutor.execute(
@@ -495,21 +495,25 @@ def build_501_groups2_stratified(sqlExecutor):
     )
 
     sqlExecutor.execute("set n_mdn_layer_node=20")
+<<<<<<< HEAD
     sqlExecutor.execute("set n_jobs=5")
+=======
+    sqlExecutor.execute("set n_jobs=1")
+>>>>>>> 6c24f261a8adbd967cd2b4f161720d709172e826
     sqlExecutor.execute("set n_hidden_layer=1")
     sqlExecutor.execute("set n_epoch=20")
     sqlExecutor.execute("set n_gaussians_reg=3")
     sqlExecutor.execute("set n_gaussians_density=20")
-    sqlExecutor.execute("drop table ss1t_groups2_stratified")
+    sqlExecutor.execute("drop table ss1t_groups2_stratified_20m_1")
 
     sqlExecutor.execute(
-        "create table ss1t_groups2_stratified(ss_sales_price real, ss_sold_date_sk real) from '/data/data/data/tpc/tpc-ds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 1000"  #   data/tpcds/10g/ss_10g_100.csv  /data/data/data/tpc/tpc-ds/1t/store_sales.dat
-    )  # num_of_points57.csv
+        "create table ss1t_groups2_stratified_20m_1(ss_sales_price real, ss_sold_date_sk real) from '/data/tpcds/1t/store_sales.dat' GROUP BY ss_store_sk,ss_quantity method stratified size 420"  #   data/tpcds/10g/ss_10g_100.csv  /data/data/data/tpc/tpc-ds/1t/store_sales.dat
+    )  # num_of_points57.csv  /data/tpcds/1t/store_sales.dat
 
     sqlExecutor.execute("set n_jobs=1")
     # sqlExecutor.execute("set result2file='/home/u1796377/Desktop/hah.txt'")
     sqlExecutor.execute(
-        "select avg(ss_sales_price)  from ss1t_groups2_stratified where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk,ss_quantity"
+        "select avg(ss_sales_price)  from ss1t_groups2_stratified_20m_1 where   2451119  <=ss_sold_date_sk<= 2451483    group by ss_store_sk,ss_quantity"
     )
 
     # query_workload(sqlExecutor, "ss1t_groups2", 1)

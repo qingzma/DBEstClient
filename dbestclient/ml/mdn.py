@@ -34,7 +34,7 @@ from dbestclient.ml.embedding import WordEmbedding, columns2sentences
 from dbestclient.ml.integral import approx_count, prepare_reg_density_data
 from dbestclient.ml.wordembedding import SkipGram
 
-USE_SKIP_GRAM = True
+USE_SKIP_GRAM = False
 
 # https://www.katnoria.com/mdn/
 # https://github.com/sagelywizard/pytorch-mdn
@@ -363,7 +363,7 @@ class RegMdnGroupBy:
 
                 if USE_SKIP_GRAM:
                     self.enc = SkipGram().fit(
-                        z_group, x_points, y_points, usecols=usecols
+                        z_group, x_points, y_points, usecols=usecols,dim=self.config.config["n_embedding_dim"],NG=len(z_group[0]),
                     )
                 else:
                     sentences = columns2sentences(z_group, x_points, y_points)
@@ -387,6 +387,7 @@ class RegMdnGroupBy:
                 # print(z_group)
                 # print(type(z_group))
                 # exit()
+                print("embedding inference...")
                 zs_encoded = self.enc.predicts(z_group)
                 # print("zs_encoded")
                 # print(zs_encoded)
@@ -394,6 +395,7 @@ class RegMdnGroupBy:
                 # exit()
                 # raise TypeError("embedding is not supported yet.")
 
+            print("start normalizing data...")
             if self.b_normalize_data:
                 if x_points is not None:
                     self.meanx = (np.max(x_points) + np.min(x_points)) / 2
@@ -418,18 +420,20 @@ class RegMdnGroupBy:
                 self.x_points = None
                 self.y_points = None
                 self.z_points = None
-
+            
+            print("transform data from MDN training...")
             if encoder in ["onehot", "binary", "embedding"]:
                 if x_points is not None:
                     xs_encoded = x_points[:, np.newaxis]
                     xzs_encoded = np.concatenate(
                         [xs_encoded, zs_encoded], axis=1
-                    ).tolist()
+                    )#.tolist()
                 else:
                     # print(zs_encoded)
-                    xzs_encoded = zs_encoded.tolist()
+                    xzs_encoded = zs_encoded#.tolist()
                     # print(xzs_encoded[:10])
-                tensor_xzs = torch.stack([torch.Tensor(i) for i in xzs_encoded])
+                #tensor_xzs = torch.stack([torch.Tensor(i) for i in xzs_encoded])
+                tensor_xzs = torch.from_numpy(xzs_encoded.astype(np.float32))
                 # print("tensor_xzs", len(tensor_xzs))
                 # print(tensor_xzs)
 
@@ -443,10 +447,13 @@ class RegMdnGroupBy:
             # print("y_points", len(y_points))
             # print(y_points[:10])
             y_points = y_points[:, np.newaxis]
-            tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
+            # tensor_ys = torch.stack([torch.Tensor(i) for i in y_points])
+            tensor_ys = torch.from_numpy(y_points.astype(np.float32))
             # print("tensor_ys", len(tensor_ys))
             # print(tensor_ys)
+            # exit()
             # print(y_points[:5])
+            print("finish transforming data from MDN training...")
 
             # move variables to cuda
             tensor_xzs = tensor_xzs.to(device)
@@ -1364,7 +1371,7 @@ class KdeMdn:
 
                 # from datetime import datetime
                 if USE_SKIP_GRAM:
-                    self.enc = SkipGram().fit(zs, xs, None, usecols=None, b_reg=False)
+                    self.enc = SkipGram().fit(zs, xs, None, usecols=None, b_reg=False,dim=self.config.config["n_embedding_dim"],NG=len(z_group[0]),)
                 else:
                     sentences = columns2sentences(zs, xs, ys_data=None)
                     self.enc = WordEmbedding()

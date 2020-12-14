@@ -324,7 +324,8 @@ class MdnQueryEngineNoRangeCategorical(GenericQueryEngine):
                     #     config=self.config.copy()).fit(data[categorical_attributes], usecols["gb"],
                     #                                    total_points[categorical_attributes], mdl_name, origin_table_name,
                     #                                    usecols["x_continous"][0], usecols["y"],
-                    #                                    runtime_config)
+                    #               bayern
+                    #                      runtime_config)
 
                 self.models[categorical_attributes] = qe_mdn
 

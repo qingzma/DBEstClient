@@ -9,6 +9,7 @@ import os.path
 import warnings
 from datetime import datetime
 from multiprocessing import set_start_method as set_start_method_cpu
+import csv
 
 import dill
 import numpy as np
@@ -166,6 +167,8 @@ class SqlExecutor:
                             "gb": None,
                         },
                         n_jobs=self.runtime_config["n_jobs"],
+                        mdl_name=mdl,
+                        warehouse=self.config.get_config()["warehousedir"]
                     )
                 else:
                     groupby_attribute = self.parser.get_groupby_value()
@@ -184,6 +187,8 @@ class SqlExecutor:
                             "gb": groupby_attribute,
                         },
                         n_jobs=self.runtime_config["n_jobs"],
+                        mdl_name=mdl,
+                        warehouse=self.config.get_config()["warehousedir"]
                     )
 
                 if os.path.exists(
@@ -222,6 +227,10 @@ class SqlExecutor:
                         split_char=self.config.get_config()["csv_split_char"],
                         num_total_records=self.n_total_records,
                     )
+                
+                if self.runtime_config["sampling_only"]:
+                    print("sample is generated and saved, end.")
+                    return
 
                 if not self.parser.if_contain_groupby():  # if group by is not involved
                     sampler.sample.sampledf["dummy_gb"] = "dummy"
@@ -817,6 +826,13 @@ class SqlExecutor:
                 if self.runtime_config["b_print_to_screen"]:
                     # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
                     print(predictions.to_string(index=False))  # max_rows=5
+
+                if self.runtime_config["result2file"]:
+                    predictions.to_csv(self.runtime_config["result2file"],header=False, sep=',', index=False, quoting=csv.QUOTE_NONE, quotechar="",  escapechar=" ")
+                    # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
+                    # with open(self.runtime_config["result2file"],'w') as f:
+                    #     out = 
+                    #     f.write(predictions.to_string(index=False))  # max_rows=5
 
                 if self.runtime_config["b_show_latency"]:
                     end_time = datetime.now()

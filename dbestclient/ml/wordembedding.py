@@ -26,11 +26,12 @@ class SkipGram:
         range_data,
         label_data=None,
         usecols=None,
-        dim=10,
-        window=1,
-        min_count=1,
-        negative=20,
-        iters=20,
+        dim=20,
+        window=3,
+        min_count=0,
+        negative=30,
+        iters=30,
+
         workers=-1,
         NG=1,
         b_reg=True,
@@ -136,6 +137,56 @@ class SkipGram:
         return self
 
     def predicts(self, keys):
+        # print("keys,", type(keys))
+        # print("keys,", keys)
+        headers = np.repeat([self.header_categorical], len(keys), axis=0)
+        # print("headers", headers)
+        sentences = np.core.defchararray.add(headers, keys)  # .tolist()
+        # print("sentences",sentences)
+        # print("self.embeddings", self.embeddings.keys())
+
+        # exit()
+        
+        col0 =  sentences[:,0]
+        predictions = np.array([self.embeddings[i] for i in col0])
+        # print("first columns ", predictions)
+
+        for col_idx in range(1,len(sentences[0])):
+            col = sentences[:,col_idx]
+            prediction_col = np.array([self.embeddings[i] for i in col])
+            predictions = np.concatenate((predictions, prediction_col),axis=1)
+        return predictions
+        # print("predictions are ")
+        # print(predictions)
+
+        # print("column 1")
+        # print("^"*40)
+        # for i in col0:
+        #     print(self.embeddings[i])
+        # print("^"*40)
+
+        # predictions = None
+        # for words in sentences:
+        #     # print(words)
+        #     prediction = np.array([])
+        #     for word in words:
+        #         # print(self.embeddings[word])
+        #         prediction = np.append(prediction, self.embeddings[word])[
+        #             np.newaxis, :
+        #         ]  # .tolist()
+        #         # print("prediction")
+        #         # print(prediction)
+        #     predictions = (
+        #         np.append(predictions, prediction, axis=0)
+        #         if predictions is not None
+        #         else prediction
+        #     )
+        # # exit()
+        # print(predictions)
+        # return predictions
+        # print(keys)
+
+    def predicts_low_efficient(self, keys):
         headers = np.repeat([self.header_categorical], len(keys), axis=0)
         # print(headers)
         sentences = np.core.defchararray.add(headers, keys)  # .tolist()

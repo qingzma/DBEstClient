@@ -12,3 +12,5 @@ dbest.sublime-workspace
 notebook/
 .tox/
 .eggs/
+experiments/results/stratified/
+*.sample

@@ -36,6 +36,7 @@ RUNTIME_CONF = {
     "limit": 30,
     "model_suffix": ".dill",
     "slaves": Slaves(),
+    "sampling_only":False,
 }
 
 

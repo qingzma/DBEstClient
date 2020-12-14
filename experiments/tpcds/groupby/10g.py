@@ -58,8 +58,38 @@ class Query1:
         self.sql_executor.execute(
             "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size num_points/ss_10g.csv' ")  # num_of_points57.csv
         
-        # self.sql_executor.execute(
-        #     "create table "+"ss10g_binary_30"+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/ss_10g_520k.csv' GROUP BY ss_store_sk method uniform size 'num_points/ss_10g.csv' ")  # num_of_points57.csv
+    def build_model_stratified(self, mdl_name: str = "ss_10g_stratified", encoder='embedding'):
+        self.mdl_name = mdl_name
+        self.sql_executor = SqlExecutor()
+
+        self.sql_executor.execute("set v='True'")
+        # self.sql_executor.execute("set device='cpu'")
+        
+        self.sql_executor.execute("set b_grid_search='false'")
+        self.sql_executor.execute("set b_print_to_screen='False'")
+        self.sql_executor.execute("set csv_split_char='|'")
+        self.sql_executor.execute("set batch_size=1000")
+        self.sql_executor.execute("set table_header=" +
+                                  "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|" +
+                                  "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|" +
+                                  "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|" +
+                                  "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|" +
+                                  "ss_net_paid_inc_tax|ss_net_profit|none'"
+                                  )
+        # sql_executor.execute("set table_header=" +
+        #                     "'ss_sold_date_sk|ss_store_sk|ss_sales_price'")
+
+        self.sql_executor.execute("set encoder='"+ encoder +"'")
+        self.sql_executor.execute("set n_mdn_layer_node_reg=50")          # 50
+        self.sql_executor.execute("set n_mdn_layer_node_density=60")      # 60
+        self.sql_executor.execute("set n_jobs=1")                         # 1
+        self.sql_executor.execute("set n_hidden_layer=2")                 # 2
+        self.sql_executor.execute("set n_epoch=30")                       # 30
+        self.sql_executor.execute("set n_gaussians_reg=4")                # 4
+        self.sql_executor.execute("set n_gaussians_density=20")           # 20
+
+        self.sql_executor.execute(
+            "create table "+mdl_name+"(ss_sales_price real, ss_sold_date_sk real) from '../data/tpcds/10g/store_sales.dat' GROUP BY ss_store_sk method stratified size 10000' ")  # num_of_points57.csv
 
 
     def workload(self, mdl_name, result2file: str = '/home/u1796377/Documents/workspace/DBEstClient/experiments/results/mdn/10g/', n_jobs=1):
@@ -191,7 +221,8 @@ class Query1:
 
 if __name__ == "__main__":
     query1 = Query1()
-    query1.build_model(mdl_name="ss_10g_binary",encoder="binary")
-    query1.build_model(mdl_name="ss_10g_onehot",encoder="onehot")
-    query1.build_model(mdl_name="ss_10g_embedding",encoder="embedding")
-    query1.workload("ss10g_embedding_30",result2file="experiments/results/mdn/10g/")
+    # query1.build_model(mdl_name="ss_10g_binary",encoder="binary")
+    # query1.build_model(mdl_name="ss_10g_onehot",encoder="onehot")
+    query1.build_model_stratified(mdl_name="ss_10g_stratified_embedding_original",encoder="embedding")
+    query1.workload("ss_10g_stratified_embedding_original",result2file="experiments/results/stratified/10g/")
+    # query1.workload("ss10g_embedding_30",result2file="experiments/results/mdn/10g/")
