@@ -34,7 +34,7 @@ from dbestclient.ml.embedding import WordEmbedding, columns2sentences
 from dbestclient.ml.integral import approx_count, prepare_reg_density_data
 from dbestclient.ml.wordembedding import SkipGram
 
-USE_SKIP_GRAM = False
+USE_SKIP_GRAM = True
 
 # https://www.katnoria.com/mdn/
 # https://github.com/sagelywizard/pytorch-mdn
@@ -1371,7 +1371,7 @@ class KdeMdn:
 
                 # from datetime import datetime
                 if USE_SKIP_GRAM:
-                    self.enc = SkipGram().fit(zs, xs, None, usecols=None, b_reg=False,dim=self.config.config["n_embedding_dim"],NG=len(z_group[0]),)
+                    self.enc = SkipGram().fit(zs, xs, None, usecols=None, b_reg=False,dim=self.config.config["n_embedding_dim"],NG=len(zs[0]),)
                 else:
                     sentences = columns2sentences(zs, xs, ys_data=None)
                     self.enc = WordEmbedding()

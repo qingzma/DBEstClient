@@ -458,7 +458,7 @@ class TestTpcDs(unittest.TestCase):
             "drop table test_ss40g_no_continuous_1_column_1_model_stratified"
         )
         sqlExecutor.execute(
-            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical, ss_customer_sk categorical) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method stratified size 100"
+            "create table test_ss40g_no_continuous_1_column_1_model_stratified(ss_sales_price real, ss_coupon_amt categorical, ss_customer_sk categorical) from 'data/tpcds/10g/ss_10g_100.csv' GROUP BY ss_store_sk method uniform size 100"
         )
         results = sqlExecutor.execute(
             "select ss_store_sk, sum(ss_sales_price)  from test_ss40g_no_continuous_1_column_1_model_stratified where ss_coupon_amt='103.67' and ss_customer_sk='415915' group by ss_store_sk"
@@ -474,7 +474,7 @@ if __name__ == "__main__":
     # TestTpcDs().test_groupbys_range_no_categorical_gb1()
     # TestTpcDs().test_groupbys_range_no_categorical_gb2()
     # TestTpcDs().test_groupbys_range_no_categorical_gb1_stratified()
-    TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified()
+    # TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified()
     # TestTpcDs().test_groupbys_range_no_categorical_gb2_stratified_sample_only()
     # TestTpcDs().test_categorical_one_model()
     # TestTpcDs().test_categorical_one_model_stratified()
@@ -485,4 +485,4 @@ if __name__ == "__main__":
     # TestTpcDs().test_no_continuous_categorical_2()
     # TestTpcDs().test_no_continuous_categorical_one_model_uniform()
     # TestTpcDs().test_no_continuous_categorical1_one_model_stratified()
-    # TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
+    TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
