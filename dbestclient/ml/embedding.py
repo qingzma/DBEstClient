@@ -106,6 +106,11 @@ class WordEmbedding:
 
         results = []
 
+        # print("keys are ")
+        # print(self.embedding.keys())
+        # print("size is ", len(self.embedding))
+        # exit()
+
         for key in keys:
             # print("predict key")
             # print(key)

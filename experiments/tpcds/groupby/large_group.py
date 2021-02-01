@@ -1,3 +1,5 @@
+
+# hive -e "select ss_store_sk,ss_quantity, count(*) from store_sales_1t  group by ss_store_sk,ss_quantity;" > ~/large_group_counts.csv
 from dbestclient.executor.executor import SqlExecutor
 class Query1:
     def __init__(self):
@@ -337,22 +339,29 @@ class Query1:
 
 if  __name__ == "__main__":
     q1= Query1()
-    q1.build_model2_5m("ss_gb2_2_5")
-    q1.mdl_name="ss_gb2_2_5"
-    q1.query_workload("ss_gb2_2_5",result2file="experiments/results/stratified/1t2cols/2_5g/")
+    # q1.build_model2_5m("ss_gb2_2_5")
+    # q1.mdl_name="ss_gb2_2_5"
+    # q1.query_workload("ss_gb2_2_5",result2file="experiments/results/stratified/1t2cols/2_5g/")
 
-    q1.build_model5_2m("ss_gb2_5_2")
-    q1.mdl_name="ss_gb2_5_2"
-    q1.query_workload("ss_gb2_5_2",result2file="experiments/results/stratified/1t2cols/5g/")
+    # q1.build_model5_2m("ss_gb2_5_2")
+    # q1.mdl_name="ss_gb2_5_2"
+    # q1.query_workload("ss_gb2_5_2",result2file="experiments/results/stratified/1t2cols/5g/")
 
-    q1.build_model_10m("ss_gb2_10")
-    q1.mdl_name="ss_gb2_10"
-    q1.query_workload("ss_gb2_10",result2file="experiments/results/stratified/1t2cols/10g/")
+    # q1.build_model_10m("ss_gb2_10")
+    # q1.mdl_name="ss_gb2_10"
+    # q1.query_workload("ss_gb2_10",result2file="experiments/results/stratified/1t2cols/10g/")
 
-    q1.build_model_20m("ss_gb2_20")
-    q1.mdl_name="ss_gb2_20"
-    q1.query_workload("ss_gb2_20",result2file="experiments/results/stratified/1t2cols/20g/")
+    # q1.build_model_20m("ss_gb2_20")
+    # q1.mdl_name="ss_gb2_20"
+    # q1.query_workload("ss_gb2_20",result2file="experiments/results/stratified/1t2cols/20g/")
 
     # q1.build_model_30m("ss_gb2_30")
     # q1.mdl_name="ss_gb2_30"
     # q1.query_workload("ss_gb2_30",result2file="experiments/results/stratified/1t2cols/30g/")
+
+
+    q1.build_model_10m("ss_1t_10m_embedding_epoch30_node_3030_gaussian_1530_embedding_30_10m_embedding30_epoch_50_10m")
+    q1.mdl_name="ss_1t_10m_embedding_epoch30_node_3030_gaussian_1530_embedding_30_10m_embedding30_epoch_50_10m"
+    q1.query_workload("ss_1t_10m_embedding_epoch30_node_3030_gaussian_1530_embedding_30_10m_embedding30_epoch_50_10m",result2file="experiments/results/stratified/1t2cols/10g/")
+
+    

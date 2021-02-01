@@ -142,7 +142,7 @@ def plt_tpcds_universal_relative_error():
     # plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=6)
-    plt.savefig("/Users/scott/Pictures/accuracy_universal.pdf")
+    plt.savefig("/home/quincy/Pictures/accuracy_universal.pdf")
     print("figure saved.")
     plt.show()
 
@@ -187,7 +187,7 @@ def plt_tpcds_universal_relative_error_scalability():
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True)
-    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    # plt.savefig("/home/quincy/Pictures/accuracy_universal_scalability.pdf")
     print("figure saved.")
 
     plt.show()
@@ -230,19 +230,20 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_overal
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
-    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    # plt.savefig("/home/quincy/Pictures/accuracy_universal_scalability.pdf")
     print("figure saved.")
 
     plt.show()
 
 def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_count():
     plt.rcParams.update({'font.size': 12})
-    width = 0.25
+    width = 0.2
 
     data = [
         [0.1190,	0.0802,	0.0614,	0.0452,	0.0384],
         [0.0547,	0.0536,	0.0525,	0.0527,	0.0523],
         [0.2723,	0.1961,	0.1424,	0.1038,	0.0870],
+        [0.0519,    0.0517, 0.0512, float('NaN'),float('NaN')]
     ]
 
 
@@ -257,10 +258,12 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_count(
         X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
     p3 = plt.bar(
         X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    p4 = plt.bar(
+        X + 3*width, data[3], color=colors["DBEst_100k"], width=width, alpha=0.4)
     
 
-    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
-               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='upper right')
+    plt.legend((p1[0], p2[0], p3[0],p4[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'DBEst++ with FT',"haha"), loc='upper right')
 
     plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
     ax.set_ylabel("Relative Error of COUNT Queries(%)")
@@ -272,20 +275,21 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_count(
     plt.subplots_adjust(left=0.15)
     plt.subplots_adjust(bottom=0.12)
 
-    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
-    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=10)
+    plt.savefig("/home/quincy/Pictures/large_group_count.pdf")
     print("figure saved.")
 
     plt.show()
 
 def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_sum():
     plt.rcParams.update({'font.size': 12})
-    width = 0.25
+    width = 0.2
 
     data = [
         [0.1267,	0.0802,	0.0625,	0.0460,	0.0402,],
         [0.0564,	0.0537,	0.0530,	0.0533,	0.0527,],
         [0.3576,	0.2527,	0.1791,	0.1259,	0.1029,],
+        [0.0558,    0.0544, 0.0537, float('NaN'),float('NaN')]
     ]
 
 
@@ -300,10 +304,12 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_sum():
         X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
     p3 = plt.bar(
         X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    p4 = plt.bar(
+        X + 3*width, data[3], color=colors["DBEst_100k"], width=width, alpha=0.4)
     
 
-    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
-               ('DBEst++', 'DeepDB', 'VerdictDB', 'BlinkDB_100k',"haha"), loc='upper right')
+    plt.legend((p1[0], p2[0], p3[0],p4[0]),#, p4[0],p5[0]),
+               ('DBEst++', 'DeepDB', 'VerdictDB', 'DBEst++ with FT',"haha"), loc='upper right')
 
     plt.xticks(X + 1 * width, ("2.5m", '5m', '10m','20m','30m'))
     ax.set_ylabel("Relative Error of SUM Queries (%)")
@@ -315,11 +321,14 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_sum():
     plt.subplots_adjust(left=0.15)
     plt.subplots_adjust(bottom=0.12)
 
-    add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
-    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    add_value_labels(ax,b_float=True,b_percent=True,fontsize=10)
+    plt.savefig("/home/quincy/Pictures/large_group_sum.pdf")
     print("figure saved.")
 
     plt.show()
+
+
+
 
 def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_avg():
     plt.rcParams.update({'font.size': 12})
@@ -359,7 +368,7 @@ def plt_tpcds_universal_relative_error_scalability_large_number_of_groups_avg():
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
-    # plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability.pdf")
+    # plt.savefig("/home/quincy/Pictures/accuracy_universal_scalability.pdf")
     print("figure saved.")
 
     plt.show()
@@ -406,7 +415,7 @@ def plt_tpcds_universal_relative_error_scalability_count():
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True)
-    plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability_count.pdf")
+    plt.savefig("/home/quincy/Pictures/accuracy_universal_scalability_count.pdf")
     print("figure saved.")
 
     plt.show()
@@ -452,15 +461,108 @@ def plt_tpcds_universal_relative_error_scalability_sum():
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True)
-    plt.savefig("/Users/scott/Pictures/accuracy_universal_scalability_sum.pdf")
+    plt.savefig("/home/quincy/Pictures/accuracy_universal_scalability_sum.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+def plt_embedding_count():
+    plt.rcParams.update({'font.size': 16})
+    width = 0.2
+    # data = [
+    #     [0.011013,	0.010773,	0.008883],
+    #     [0.015733,	0.013967,	0.013487],
+    #     [0.021001,	0.025905,	0.020196],
+    # ]
+
+    data = [
+        [0.0149,	0.0108,	0.0118],
+        [0.0326,	0.0282,	0.0461],
+        [0.0373,	0.0389, float('NaN')],
+    ]
+
+    X = np.arange(3)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('Word Embedding', 'Binary', 'One-hot', 'BlinkDB_100k',"haha"), loc='center right', prop={'size': 10})
+
+    plt.xticks(X + 1 * width, ("10", '100', '1000'))
+    ax.set_ylabel("Relative Error (%)")
+    ax.set_xlabel("TPC-DS Scaling Factor")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.17)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True)
+    plt.savefig("/home/quincy/Pictures/embedding_count.pdf")
+    print("figure saved.")
+
+    plt.show()
+
+def plt_embedding_sum():
+    plt.rcParams.update({'font.size': 16})
+    width = 0.2
+    # data = [
+    #     [0.011013,	0.010773,	0.008883],
+    #     [0.015733,	0.013967,	0.013487],
+    #     [0.021001,	0.025905,	0.020196],
+    # ]
+
+    data = [
+        [0.0148,	0.0111,	0.0112],
+        [0.0366,	0.0315,	0.0472],
+        [0.0453,	0.029, float('NaN'),],	
+    ]
+
+
+    X = np.arange(3)
+
+    fig, ax = plt.subplots()
+
+    p1 = plt.bar(
+        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    p2 = plt.bar(
+        X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
+    p3 = plt.bar(
+        X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
+    
+
+    plt.legend((p1[0], p2[0], p3[0]),#, p4[0],p5[0]),
+               ('Word Embedding', 'Binary', 'One-hot', 'BlinkDB_100k',"haha"), loc='center right', prop={'size': 10})
+
+    plt.xticks(X + 1 * width, ("10", '100', '1000'))
+    ax.set_ylabel("Relative Error (%)")
+    ax.set_xlabel("TPC-DS Scaling Factor")
+    # ax.set_yscale('log')
+    formatter = FuncFormatter(to_percent)
+    ax.yaxis.set_major_formatter(formatter)
+    plt.subplots_adjust(bottom=0.07)
+    plt.subplots_adjust(left=0.17)
+    plt.subplots_adjust(bottom=0.12)
+
+    add_value_labels(ax,b_float=True,b_percent=True)
+    plt.savefig("/home/quincy/Pictures/embedding_sum.pdf")
     print("figure saved.")
 
     plt.show()
 
 
 def plt_tpcds_universal_response_time_scalability():
-    plt.rcParams.update({'font.size': 20})
-    width = 0.3
+    plt.rcParams.update({'font.size': 14})
+    width = 0.25
     data = [
         [46.51,	145.60,	320.75],
         [67.67,	261.33,	409.33],
@@ -490,17 +592,17 @@ def plt_tpcds_universal_response_time_scalability():
     # ax.yaxis.set_major_formatter(formatter)
     # plt.subplots_adjust(bottom=0.11)
     # plt.subplots_adjust(left=0.12)
-    plt.subplots_adjust(bottom=0.18)
-    plt.subplots_adjust(left=0.2)
+    plt.subplots_adjust(bottom=0.14)
+    plt.subplots_adjust(left=0.14)
 
-    add_value_labels(ax,b_float=True,b_percent=False,fontsize=8)
-    plt.savefig("/Users/scott/Pictures/response_time_universal.pdf")
+    add_value_labels(ax,b_float=True,b_percent=False,fontsize=10)
+    plt.savefig("/home/quincy/Pictures/response_time_universal.pdf")
     print("figure saved.")
 
     plt.show()
 
 def plt_tpcds_universal_space_scalability():
-    plt.rcParams.update({'font.size': 20})
+    plt.rcParams.update({'font.size': 14})
     width = 0.3
     data = [
         [83,	139,	309],
@@ -531,18 +633,18 @@ def plt_tpcds_universal_space_scalability():
     # ax.yaxis.set_major_formatter(formatter)
     # plt.subplots_adjust(bottom=0.11)
     # plt.subplots_adjust(left=0.12)
-    plt.subplots_adjust(bottom=0.18)
-    plt.subplots_adjust(left=0.18)
-    add_value_labels(ax,b_float=False,fontsize=8)
+    plt.subplots_adjust(bottom=0.14)
+    plt.subplots_adjust(left=0.14)
+    add_value_labels(ax,b_float=False,fontsize=9)
 
     
-    plt.savefig("/Users/scott/Pictures/space_universal.pdf")
+    plt.savefig("/home/quincy/Pictures/space_universal.pdf")
     print("figure saved.")
     plt.show()
 
 # ---------------------------------------------------------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>
 def plt_tpcds_compact_relative_error():
-    plt.rcParams.update({'font.size': 16})
+    plt.rcParams.update({'font.size': 12})
     width = 0.3
     # data = [
     #     [0.011825885, 0.011224583,  0.00359967, 0.008883379 ],  # , 0.0335],
@@ -580,13 +682,13 @@ def plt_tpcds_compact_relative_error():
     plt.subplots_adjust(left=0.15)
     # plt.subplots_adjust(bottom=0.12)
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=10)
-    plt.savefig("/Users/scott/Pictures/accuracy_compact.pdf")
+    plt.savefig("/home/quincy/Pictures/accuracy_compact.pdf")
     print("figure saved.")
 
     plt.show()
 
 def plt_tpcds_compact_relative_error_scalability():
-    plt.rcParams.update({'font.size': 16})
+    plt.rcParams.update({'font.size': 12})
     width = 0.3
     data = [
         [0.011013,	0.010773,	0.008883],
@@ -620,7 +722,7 @@ def plt_tpcds_compact_relative_error_scalability():
     plt.subplots_adjust(bottom=0.12)
 
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=10)
-    plt.savefig("/Users/scott/Pictures/accuracy_compact_scalability.pdf")
+    plt.savefig("/home/quincy/Pictures/accuracy_compact_scalability.pdf")
     print("figure saved.")
 
     plt.show()
@@ -661,7 +763,7 @@ def plt_tpcds_compact_response_time_scalability():
     plt.subplots_adjust(left=0.2)
 
     add_value_labels(ax,b_float=True,b_percent=False,fontsize=10)
-    plt.savefig("/Users/scott/Pictures/response_time_compact.pdf")
+    plt.savefig("/home/quincy/Pictures/response_time_compact.pdf")
     print("figure saved.")
 
     plt.show()
@@ -702,7 +804,7 @@ def plt_tpcds_compact_space_scalability():
     plt.subplots_adjust(left=0.15)
 
     add_value_labels(ax,b_float=False,b_percent=False,fontsize=10)
-    plt.savefig("/Users/scott/Pictures/space_compact.pdf")
+    plt.savefig("/home/quincy/Pictures/space_compact.pdf")
     print("figure saved.")
     
 
@@ -796,7 +898,7 @@ def plt_flight_relative_error():
     # plt.subplots_adjust(left=0.23)
 
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=6)
-    plt.savefig("/Users/scott/Pictures/flight_accuracy.pdf")
+    plt.savefig("/home/quincy/Pictures/flight_accuracy.pdf")
     print("figure saved.")
 
     plt.show()
@@ -845,7 +947,7 @@ def plt_flight_relative_error_overall():
     # plt.subplots_adjust(left=0.23)
 
     add_value_labels(ax,b_float=True,b_percent=True,fontsize=8)
-    plt.savefig("/Users/scott/Pictures/flight_accuracy.pdf")
+    plt.savefig("/home/quincy/Pictures/flight_accuracy.pdf")
     print("figure saved.")
 
     plt.show()
@@ -886,7 +988,7 @@ def plt_flight_response_time():
     plt.subplots_adjust(left=0.15)
 
     add_value_labels(ax,b_float=True,b_percent=False,fontsize=12)
-    plt.savefig("/Users/scott/Pictures/flight_response.pdf")
+    plt.savefig("/home/quincy/Pictures/flight_response.pdf")
     print("figure saved.")
 
     plt.show()
@@ -927,7 +1029,7 @@ def plt_flight_space():
     # plt.subplots_adjust(left=0.2)
 
     add_value_labels(ax,b_float=False,b_percent=False,fontsize=12)
-    plt.savefig("/Users/scott/Pictures/flight_space.pdf")
+    plt.savefig("/home/quincy/Pictures/flight_space.pdf")
     print("figure saved.")
     
 
@@ -950,7 +1052,7 @@ def plt_distributed():
     plt.legend()
     plt.subplots_adjust(bottom=0.25)
 
-    plt.savefig("/Users/scott/Pictures/distributed.pdf")
+    plt.savefig("/home/quincy/Pictures/distributed.pdf")
     print("figure saved.")
     plt.show()
 
@@ -963,10 +1065,10 @@ if __name__ == "__main__":
     # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_overall()
     # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_count()  #large_group_count
     # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_sum()
-    plt_tpcds_universal_relative_error_scalability_large_number_of_groups_avg()
+    # plt_tpcds_universal_relative_error_scalability_large_number_of_groups_avg()
 
-    # plt_tpcds_compact_relative_error()
-    # plt_tpcds_compact_relative_error_scalability()
+    plt_tpcds_compact_relative_error()
+    plt_tpcds_compact_relative_error_scalability()
     # plt_tpcds_compact_response_time_scalability()
     # plt_tpcds_compact_space_scalability()
     # plt_3d_chart()
@@ -974,9 +1076,12 @@ if __name__ == "__main__":
     # plt_tpcds_universal_relative_error_scalability_sum()
 
     # plt_flight_relative_error_overall()
-    # plt_flight_relative_error()
+    # plt_flight_relative_error()r
     # plt_flight_response_time()
     # plt_flight_space()
 
 
     # plt_distributed()
+
+    # plt_embedding_count()
+    # plt_embedding_sum()

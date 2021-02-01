@@ -240,6 +240,37 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
         if func.lower() in ["count", "sum", "avg"]:
             if n_jobs == 1:
                 # print("groups",groups)
+                
+                # print("self.n_total_point, size is", len(self.n_total_point))
+                # cnt =0
+                # for key in self.n_total_point:
+                #     cnt+=1
+                #     print(key, self.n_total_point[key])
+                #     if cnt==10:
+                #         break
+                # print("*"*100)
+
+                # new_ft={}
+                # with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
+                #     for line in f:
+                #         splits = line.split(",")
+                #         key="_".join(splits[:-1])
+                #         value = int(splits[-1])
+                #         new_ft[key]=value
+                # self.n_total_point = new_ft
+
+                # print("self.n_total_point, size is", len(self.n_total_point))
+                # cnt =0
+                # for key in self.n_total_point:
+                #     cnt+=1
+                #     print(key, self.n_total_point[key])
+                #     if cnt==10:
+                #         break
+                # print("*"*100)
+
+                # exit()
+
+                # exit()
 
                 if len(groups[0].split(",")) == 1:  # 1d group by
                     scaling_factor = np.array([self.n_total_point[key]
@@ -651,7 +682,45 @@ class MdnQueryEngine(GenericQueryEngine):
         if func.lower() in ["count", "sum", "avg"]:
             if n_jobs == 1:
                 # print(groups)
-                # print(self.n_total_point)
+                # print("self.n_total_point, size is", len(self.n_total_point))
+                # cnt =0
+                # for key in self.n_total_point:
+                #     cnt+=1
+                #     print(key, self.n_total_point[key])
+                #     if cnt==10:
+                #         break
+                # print("*"*100)
+
+                new_ft={}
+                with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
+                    for line in f:
+                        splits = line.split(",")
+                        key=",".join(splits[:-1])
+                        value = int(splits[-1])
+                        new_ft[key]=value
+                self.n_total_point = new_ft
+
+                # print("self.n_total_point, size is", len(self.n_total_point))
+                # cnt =0
+                # for key in self.n_total_point:
+                #     cnt+=1
+                #     print(key, self.n_total_point[key])
+                #     if cnt==10:
+                #         break
+                # print("*"*100)
+
+
+                new_ft={}
+                with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
+                    for line in f:
+                        splits = line.split(",")
+                        key=",".join(splits[:-1])
+                        value = int(splits[-1])
+                        new_ft[key]=value
+                self.n_total_point = new_ft
+
+
+                # exit()
                 # print(groups[0], "*******************")
                 # print(",".join(groups[0]))
                 # for key in groups:
@@ -668,6 +737,7 @@ class MdnQueryEngine(GenericQueryEngine):
                     scaling_factor = np.array([self.n_total_point[key]
                                                for key in groups])
                 # print("self.n_total_point", self.n_total_point)
+                # exit()
                 # print("groups", groups)
                 pre_density, pre_reg, step = prepare_reg_density_data(
                     self.kde, x_lb, x_ub, groups=groups, reg=self.reg, runtime_config=runtime_config)
