@@ -765,11 +765,7 @@ class SqlExecutor:
                         mdl + self.runtime_config["model_suffix"] 
                         not in self.model_catalog.model_catalog
                     ):
-                        print("models are ")
-                        print(list(self.model_catalog.model_catalog.keys()))
-                        print("mising model is ",mdl + self.runtime_config["model_suffix"])
                         print("Model " + mdl + " does not exist.")
-                        exit()
                         return
                     model = self.model_catalog.model_catalog[
                         mdl + self.runtime_config["model_suffix"]

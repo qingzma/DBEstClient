@@ -691,33 +691,33 @@ class MdnQueryEngine(GenericQueryEngine):
                 #         break
                 # print("*"*100)
 
-                new_ft={}
-                with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
-                    for line in f:
-                        splits = line.split(",")
-                        key=",".join(splits[:-1])
-                        value = int(splits[-1])
-                        new_ft[key]=value
-                self.n_total_point = new_ft
+                # new_ft={}
+                # with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
+                #     for line in f:
+                #         splits = line.split(",")
+                #         key=",".join(splits[:-1])
+                #         value = int(splits[-1])
+                #         new_ft[key]=value
+                # self.n_total_point = new_ft
 
-                # print("self.n_total_point, size is", len(self.n_total_point))
-                # cnt =0
-                # for key in self.n_total_point:
-                #     cnt+=1
-                #     print(key, self.n_total_point[key])
-                #     if cnt==10:
-                #         break
-                # print("*"*100)
+                # # print("self.n_total_point, size is", len(self.n_total_point))
+                # # cnt =0
+                # # for key in self.n_total_point:
+                # #     cnt+=1
+                # #     print(key, self.n_total_point[key])
+                # #     if cnt==10:
+                # #         break
+                # # print("*"*100)
 
 
-                new_ft={}
-                with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
-                    for line in f:
-                        splits = line.split(",")
-                        key=",".join(splits[:-1])
-                        value = int(splits[-1])
-                        new_ft[key]=value
-                self.n_total_point = new_ft
+                # new_ft={}
+                # with open("/home/quincy/Documents/workspace/DBEstClient/dbestwarehouse/large_group_counts.csv", "r") as f:
+                #     for line in f:
+                #         splits = line.split(",")
+                #         key=",".join(splits[:-1])
+                #         value = int(splits[-1])
+                #         new_ft[key]=value
+                # self.n_total_point = new_ft
 
 
                 # exit()
