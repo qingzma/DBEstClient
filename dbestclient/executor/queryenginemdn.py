@@ -1344,6 +1344,12 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
         else:
             key = x_categorical_conditions[1][0].replace("'", "")
         # print("key", key)
+        # i=0;
+        # for k in self.n_total_points:
+        #     print(k, self.n_total_points[k])
+        #     i+=1
+        #     if (i>100):
+        #         break
         # print("self.n_total_points", self.n_total_points)
 
         groups_no_categorical = list(self.n_total_points[key].keys())
