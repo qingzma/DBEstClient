@@ -468,6 +468,32 @@ class TestTpcDs(unittest.TestCase):
         )
         self.assertFalse(results.empty)
 
+    def test_plot(self):
+        sqlExecutor = SqlExecutor()
+        sqlExecutor.execute("set b_grid_search='False'")
+        sqlExecutor.execute("set csv_split_char='|'")
+        sqlExecutor.execute("set n_epoch=10")
+        sqlExecutor.execute("set encoder='embedding'")
+        sqlExecutor.execute("set one_model='true'")
+        sqlExecutor.execute("set plot='True'")
+        sqlExecutor.execute(
+            "set table_header="
+            + "'ss_sold_date_sk|ss_sold_time_sk|ss_item_sk|ss_customer_sk|ss_cdemo_sk|ss_hdemo_sk|"
+            + "ss_addr_sk|ss_store_sk|ss_promo_sk|ss_ticket_number|ss_quantity|ss_wholesale_cost|"
+            + "ss_list_price|ss_sales_price|ss_ext_discount_amt|ss_ext_sales_price|"
+            + "ss_ext_wholesale_cost|ss_ext_list_price|ss_ext_tax|ss_coupon_amt|ss_net_paid|"
+            + "ss_net_paid_inc_tax|ss_net_profit|none'"
+        )
+        sqlExecutor.execute("drop table test_plot")
+        sqlExecutor.execute(
+            "create table test_plot(ss_sales_price real, ss_sold_date_sk real) from '/home/quincy/Documents/workspace/data/tpcds/100g/ss_100g_2m.csv' GROUP BY ss_store_sk method uniform size 10000"  #data/tpcds/10g/ss_10g_100.csv
+        )
+        results = sqlExecutor.execute(
+            "select ss_store_sk, sum(ss_sales_price)  from test_plot where 2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk"
+        )
+        sqlExecutor.execute("drop table test_plot")
+        self.assertFalse(results.empty)
+
 
 if __name__ == "__main__":
     # unittest.main()
@@ -485,4 +511,5 @@ if __name__ == "__main__":
     # TestTpcDs().test_no_continuous_categorical_2()
     # TestTpcDs().test_no_continuous_categorical_one_model_uniform()
     # TestTpcDs().test_no_continuous_categorical1_one_model_stratified()
-    TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
+    # TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
+    TestTpcDs().test_plot()

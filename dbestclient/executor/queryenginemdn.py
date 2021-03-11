@@ -408,7 +408,7 @@ class MdnQueryEngineNoRangeCategoricalOneModel(GenericQueryEngine):
             # if not xs:
             if  xs.size==0:
                 xs = None
-            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+            self.reg = RegMdnGroupBy(config).fit(
                 gbs, xs, ys, runtime_config,usecols=usecols)
 
     def predicts(self, func: str, x_lb: float, x_ub: float, x_categorical_conditions, runtime_config, groups: list = None, filter_dbest=None):

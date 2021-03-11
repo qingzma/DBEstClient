@@ -288,15 +288,14 @@ class GenericMdn:
 class RegMdnGroupBy:
     """This class implements the regression using mixture density network for group by queries."""
 
-    def __init__(self, config, b_store_training_data=False, b_normalize_data=True):
-        if b_store_training_data:
-            self.x_points = None  # query range
-            self.y_points = None  # aggregate value
-            self.z_points = None  # group by balue
+    def __init__(self, config, b_normalize_data=True):
+        # if b_store_training_data:
+        self.x_points = None  # query range
+        self.y_points = None  # aggregate value
+        self.z_points = None  # group by balue
         self.sample_x = None  # used in the score() function
         self.sample_g = None
         self.sample_average_y = None
-        self.b_store_training_data = b_store_training_data
         self.meanx = None
         self.widthx = None
         self.meany = None
@@ -308,6 +307,7 @@ class RegMdnGroupBy:
         self.last_sigma = None
         self.config = config
         self.b_normalize_data = b_normalize_data
+        self.b_store_training_data=False
         self.enc = None
 
     def fit(
@@ -345,6 +345,7 @@ class RegMdnGroupBy:
         b_grid_search = self.config.config["b_grid_search"]
         encoder = self.config.config["encoder"]
         device = runtime_config["device"]
+        self.b_store_training_data = runtime_config["plot"]
 
         if not b_grid_search:
             if encoder == "onehot":
@@ -411,7 +412,9 @@ class RegMdnGroupBy:
                     [normalize(i, self.meany, self.widthy) for i in y_points]
                 )
             if self.b_store_training_data:
+                print("xpoints are saved.")
                 if x_points is not None:
+                    print("xpoints are saved.")
                     self.x_points = x_points
                 self.y_points = y_points
                 self.z_points = z_group
@@ -626,8 +629,7 @@ class RegMdnGroupBy:
         return instance
 
     def predict(
-        self, z_group: list, x_points: list, runtime_config, b_plot=False
-    ) -> list:
+        self, z_group: list, x_points: list, runtime_config) -> list:
         """provide predictions for given groups and points.
 
         Args:
@@ -643,6 +645,7 @@ class RegMdnGroupBy:
         """
         # torch.set_num_threads(4)
         # check input data type, and convert to np.array
+        b_plot = runtime_config["plot"]
         if type(z_group) is list:
             z_group = np.array(z_group)
         if type(x_points) is list:
@@ -713,6 +716,7 @@ class RegMdnGroupBy:
                 ]
             return predictions
         else:
+            from mpl_toolkits.mplot3d import Axes3D
             samples = sample(pis, sigmas, mus).data.numpy().reshape(-1)
             if self.b_normalize_data:
                 samples = [
@@ -724,6 +728,7 @@ class RegMdnGroupBy:
 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
+            # print("self.x_points",self.x_points)
             if len(self.x_points) > 2000:
                 idx = np.random.randint(0, len(self.x_points), 2000)
                 if self.b_normalize_data:
@@ -735,24 +740,50 @@ class RegMdnGroupBy:
                         denormalize(i, self.meany, self.widthy)
                         for i in self.y_points[idx]
                     ]
-                ax.scatter(x_samples, self.z_points[idx], y_samples)
+                    zs_plot = self.z_points[idx]
+                    zs_plot[zs_plot == ''] = "0"
+                    zs_plot = zs_plot.astype(np.float)
+                ax.scatter(x_samples, zs_plot, y_samples, label="Data", alpha=0.4)
             else:
-                ax.scatter(self.x_points, self.z_points, self.y_points)
+                self.z_points[self.z_points == ''] = '0'
+                self.z_points = self.z_points.astype(np.float)
+                if self.b_normalize_data:
+                    self.x_points = [
+                        denormalize(i, self.meanx, self.widthx)
+                        for i in self.x_points
+                    ]
+                    self.y_points = [
+                        denormalize(i, self.meany, self.widthy)
+                        for i in self.y_points
+                    ]
+                # print("self.z_points",self.z_points)
+                # print("self.x_points", self.x_points)
+                ax.scatter(self.x_points, self.z_points, self.y_points, label="Data", alpha=0.4)
 
             if self.b_normalize_data:
                 x_points = denormalize(x_points, self.meanx, self.widthx)
             if len(samples) > 2000:
                 idx = np.random.randint(0, len(x_points), 2000)
+                z_group[z_group == ''] = '0'
+                z_group = z_group.astype(np.float)
+                # print("x_points", x_points[idx])
                 ax.scatter(
                     np.array(x_points)[idx],
                     np.array(z_group)[idx],
                     np.array(samples)[idx],
+                    marker='^',
+                    label="Sample from model"
                 )
             else:
-                ax.scatter(x_points, z_group, samples)
-            ax.set_xlabel("query range attribute")
-            ax.set_ylabel("group by attribute")
-            ax.set_zlabel("aggregate attribute")
+                z_group[z_group == ''] = '0'
+                z_group = z_group.astype(np.float)
+                # print("x_points", x_points)
+                ax.scatter(x_points, z_group, samples, marker='^', label="Sample from model")
+            ax.set_xlabel("ss_sold_date_sk", fontsize=14)  # Range predicate
+            ax.set_ylabel("ss_store_sk", fontsize=14)  # Group by attribute
+            ax.set_zlabel("ss_sales_price", fontsize=14)  # Aggregate attribute
+            # ax.set_title("Scatter Plot of Data and Model-Generated Samples")
+            plt.legend(loc="lower left", fontsize=10)
             plt.show()
             return samples
 
@@ -1752,7 +1783,7 @@ class KdeMdn:
         """
         return 0.5 * width * x + mean
 
-    def plot_density_3d(self, n_division=20):
+    def plot_density_3d(self, runtime_config, n_division=10):
         """plot the 3d density curves.
 
         Args:
@@ -1766,10 +1797,20 @@ class KdeMdn:
                 "b_store_training_data must be set to True to enable the plotting function."
             )
         else:
+            from mpl_toolkits.mplot3d import Axes3D
             fig = plt.figure()
             ax = fig.add_subplot(211, projection="3d")
+            # ax = fig.add_subplot(111, projection="3d")
             zs_plot = self.zs.reshape(1, -1)[0]
-            hist, xedges, yedges = np.histogram2d(self.xs, zs_plot, bins=n_division)
+            zs_plot_numeric = np.copy(zs_plot)
+            zs_plot_numeric[zs_plot_numeric == ""] = "0"
+
+            zs_plot_numeric = zs_plot_numeric.astype(np.float32)
+            xs = self.xs.reshape(1, -1)[0]
+            # print("xs",xs)
+            # print("zs_plot",zs_plot)
+            xxxs = np.array([denormalize(xi, self.meanx, self.widthx) for xi in xs]).reshape(1, -1)[0]
+            hist, xedges, yedges = np.histogram2d(xxxs, zs_plot_numeric, bins=n_division)
             # plt.scatter(zs, xs)
 
             # Construct arrays for the anchor positions of the 16 bars.
@@ -1781,26 +1822,51 @@ class KdeMdn:
             zpos = 0
 
             # Construct arrays with the dimensions for the 16 bars.
-            dx = dy = 0.5 * np.ones_like(zpos)
+            dx = 10 * np.ones_like(zpos)
+            dy = 10 * np.ones_like(zpos)
             dz = hist.ravel()
 
-            ax.bar3d(xpos, ypos, zpos, dx, dy, dz, zsort="average")
-            ax.set_xlabel("range predicate")
-            ax.set_ylabel("group by attribute")
-            ax.set_zlabel("frequency")
+            ax.bar3d(xpos, ypos, zpos, 10000, 10, dz, zsort="average")
+            ax.set_xlabel("Range predicate")
+            ax.set_ylabel("Group by attribute")
+            ax.set_zlabel("Frequency")
+            ax.set_title("Histogram of Data Distribution")
 
             ax1 = fig.add_subplot(212, projection="3d")
+            # ax1 = fig.add_subplot(111, projection="3d")
             zs_set = list(set(zs_plot))
             for z in zs_set:
-                xxs, yys = self.predict([[z]], 200, b_plot=True, n_division=n_division)
-                xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
-                yys = [yi / self.widthx * 2 for yi in yys]
-                zzs = [z] * len(xxs)
+                xxs, yys = self.predict(np.array([[z]]), np.array([[200]]), b_plot=True, runtime_config=runtime_config)
+                xxs = np.array([denormalize(xi, self.meanx, self.widthx) for xi in xxs]).reshape(1, -1)[0]
+                yys = np.array([yi / self.widthx * 2 for yi in yys]).reshape(1, -1)[0]
+                zzs = [int(z)] * len(xxs) if z != "" else [0] * len(xxs)
+                # print("xxs",xxs)
+                # print("zzs", zzs)
+                # print("yys", yys)
                 ax1.plot(xxs, zzs, yys)
-            ax1.set_xlabel("range predicate")
-            ax1.set_ylabel("group by attribute")
-            ax1.set_zlabel("frequency")
+            ax1.set_xlabel("Range predicate")
+            ax1.set_ylabel("Group by attribute")
+            ax1.set_zlabel("Frequency")
+            ax1.set_title("Distribution From Model")
             plt.show()
+
+            # fig = plt.figure()
+            # ax1 = fig.add_subplot(111, projection="3d")
+            # zs_set = list(set(zs_plot))
+            # for z in zs_set:
+            #     xxs, yys = self.predict(np.array([[z]]), np.array([[200]]), b_plot=True, runtime_config=runtime_config)
+            #     xxs = np.array([denormalize(xi, self.meanx, self.widthx) for xi in xxs]).reshape(1, -1)[0]
+            #     yys = np.array([yi / self.widthx * 2 for yi in yys]).reshape(1, -1)[0]
+            #     zzs = [int(z)] * len(xxs) if z != "" else [0] * len(xxs)
+            #     # print("xxs",xxs)
+            #     # print("zzs", zzs)
+            #     # print("yys", yys)
+            #     ax1.plot(xxs, zzs, yys)
+            # ax1.set_xlabel("ss_sold_date_sk",fontsize=14)
+            # ax1.set_ylabel("ss_store_sk",fontsize=14)
+            # ax1.set_zlabel("Frequency",fontsize=14)
+            # ax1.set_title("Distribution From Model")
+            # plt.show()
 
     def plot_density_per_group(self, n_division=100):
         """plot the density for a specific group.

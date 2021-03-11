@@ -37,6 +37,7 @@ RUNTIME_CONF = {
     "model_suffix": ".dill",
     "slaves": Slaves(),
     "sampling_only":False,
+    "plot":False,
 }
 
 

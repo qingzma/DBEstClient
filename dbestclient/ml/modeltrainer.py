@@ -113,6 +113,7 @@ class KdeModelTrainer:
     def fit_from_df(self, df, runtime_config, network_size=None,  b_shuffle_data=True):
         # init parameters
         device = runtime_config["device"]
+        b_plot = runtime_config["plot"]
 
         print("Starting training kde models for model " + self.mdl)
 
@@ -143,7 +144,7 @@ class KdeModelTrainer:
                 print("training regression...")
                 print("*"*80)
                 config = self.config.copy()
-                reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+                reg = RegMdnGroupBy(config).fit(
                     groupby, x, y, runtime_config)
 
             if b_skip_density_training:
@@ -154,7 +155,9 @@ class KdeModelTrainer:
                 # density = RegMdn(dim_input=1,n_mdn_layer_node=20)
                 config = self.config.copy()
                 density = KdeMdn(config,
-                                 b_store_training_data=False).fit(groupby, x, runtime_config)
+                                 b_store_training_data=b_plot).fit(groupby, x, runtime_config)
+                if b_plot:
+                    density.plot_density_3d(runtime_config=runtime_config)
         else:
             if network_size.lower() == "small":
                 if b_skip_reg_training:
