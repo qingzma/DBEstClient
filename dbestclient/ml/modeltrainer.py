@@ -158,6 +158,7 @@ class KdeModelTrainer:
                                  b_store_training_data=b_plot).fit(groupby, x, runtime_config)
                 if b_plot:
                     density.plot_density_3d(runtime_config=runtime_config)
+                    # density.plot_density_per_group(runtime_config=runtime_config)
         else:
             if network_size.lower() == "small":
                 if b_skip_reg_training:
@@ -246,7 +247,7 @@ class KdeModelTrainer:
             else:
                 raise ValueError("unexpected network_size passed in "+__file__)
 
-        # density.plot_density_per_group()
+
 
         # density = DBEstDensity(config=self.config).fit(x)
         self.kde_model_wrapper.load_model(self.mdl, density, reg)

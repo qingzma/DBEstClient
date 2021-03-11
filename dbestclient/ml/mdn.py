@@ -194,7 +194,7 @@ def gm(weights: list, mus: list, vars: list, x: list, b_plot=False, n_division=1
         # print(result)
         return result
     else:
-        xs = np.linspace(-1, 1, n_division)
+        xs = np.linspace(-1, 1, n_division*3)
         # ys = [gm(weights, mus, vars, xi, b_plot=False) for xi in xs]
         ys = gm(weights, mus, vars, xs, b_plot=False)
         return xs, ys
@@ -1783,7 +1783,7 @@ class KdeMdn:
         """
         return 0.5 * width * x + mean
 
-    def plot_density_3d(self, runtime_config, n_division=10):
+    def plot_density_3d(self, runtime_config, n_division=20):
         """plot the 3d density curves.
 
         Args:
@@ -1798,8 +1798,12 @@ class KdeMdn:
             )
         else:
             from mpl_toolkits.mplot3d import Axes3D
+            from mpl_toolkits import mplot3d
+            from matplotlib import cm
+            import matplotlib.colors as colors
+            fontsize=16
             fig = plt.figure()
-            ax = fig.add_subplot(211, projection="3d")
+            ax = fig.add_subplot(121, projection="3d")
             # ax = fig.add_subplot(111, projection="3d")
             zs_plot = self.zs.reshape(1, -1)[0]
             zs_plot_numeric = np.copy(zs_plot)
@@ -1807,11 +1811,12 @@ class KdeMdn:
 
             zs_plot_numeric = zs_plot_numeric.astype(np.float32)
             xs = self.xs.reshape(1, -1)[0]
-            # print("xs",xs)
-            # print("zs_plot",zs_plot)
-            xxxs = np.array([denormalize(xi, self.meanx, self.widthx) for xi in xs]).reshape(1, -1)[0]
-            hist, xedges, yedges = np.histogram2d(xxxs, zs_plot_numeric, bins=n_division)
-            # plt.scatter(zs, xs)
+
+            zs_set = list(set(zs_plot))
+            zs_set.sort(key=lambda x: float(x) if x != "" else 0.0)
+
+            xxxs = np.array(xs).reshape(1, -1)[0]
+            hist, xedges, yedges = np.histogram2d(xxxs, zs_plot_numeric, bins=[n_division,len(zs_set)])
 
             # Construct arrays for the anchor positions of the 16 bars.
             xpos, ypos = np.meshgrid(
@@ -1826,28 +1831,91 @@ class KdeMdn:
             dy = 10 * np.ones_like(zpos)
             dz = hist.ravel()
 
-            ax.bar3d(xpos, ypos, zpos, 10000, 10, dz, zsort="average")
-            ax.set_xlabel("Range predicate")
-            ax.set_ylabel("Group by attribute")
-            ax.set_zlabel("Frequency")
+            k=1
+            z_to_show= zs_set[k]
+
+            sz = len(zs_set)
+            for i in range(n_division):
+                for j in range(0, k):
+                    dz[i*sz+j]=0
+                for j in range(k+1, sz):
+                    dz[i * sz + j] = 0
+
+            offset = dz + np.abs(dz.min())
+            fracs = offset.astype(float) / offset.max()
+            norm = colors.Normalize(fracs.min(), fracs.max())
+            color_values = cm.jet(norm(fracs.tolist()))
+            ax.bar3d(xpos, ypos, zpos, 10, 10, dz, zsort="average",color=color_values)
+            ax.set_xlabel("Range predicate", fontsize=fontsize)
+            ax.set_ylabel("Group by attribute", fontsize=fontsize)
+            ax.set_zlabel("Frequency", fontsize=fontsize)
+            ax.grid(False)
             ax.set_title("Histogram of Data Distribution")
 
-            ax1 = fig.add_subplot(212, projection="3d")
+
+            # plt.show()
+
+            # fig = plt.figure()
+            ax1 = fig.add_subplot(122, projection="3d")
             # ax1 = fig.add_subplot(111, projection="3d")
-            zs_set = list(set(zs_plot))
+            # # ax1=ax
+            # zs_set = list(set(zs_plot))
             for z in zs_set:
                 xxs, yys = self.predict(np.array([[z]]), np.array([[200]]), b_plot=True, runtime_config=runtime_config)
                 xxs = np.array([denormalize(xi, self.meanx, self.widthx) for xi in xxs]).reshape(1, -1)[0]
                 yys = np.array([yi / self.widthx * 2 for yi in yys]).reshape(1, -1)[0]
                 zzs = [int(z)] * len(xxs) if z != "" else [0] * len(xxs)
-                # print("xxs",xxs)
-                # print("zzs", zzs)
-                # print("yys", yys)
-                ax1.plot(xxs, zzs, yys)
-            ax1.set_xlabel("Range predicate")
-            ax1.set_ylabel("Group by attribute")
-            ax1.set_zlabel("Frequency")
+                # print(z, z_to_show, type(z), type(z_to_show))
+                # ax1.plot(xxs, zzs, yys)
+                if z==z_to_show:
+                    ax1.plot(xxs, zzs, yys)
+                else:
+                    ax1.plot(xxs, zzs, yys, alpha=0.001)
+            ax1.set_xlabel("Range predicate", fontsize=fontsize)
+            ax1.set_ylabel("Group by attribute", fontsize=fontsize)
+            ax1.set_zlabel("Frequency", fontsize=fontsize)
             ax1.set_title("Distribution From Model")
+
+            # make the panes transparent
+            # ax.xaxis.set_pane_color((0.8,0.8,0.8, 1.0))
+            # ax.yaxis.set_pane_color((0.8,0.8,0.8, 1.0))
+            # ax.zaxis.set_pane_color((0.8,0.8,0.8, 1.0))
+            # make the grid lines transparent
+            # ax.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+            # ax.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+            # ax.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+
+            ax1.grid(False)
+
+            # make the panes transparent
+            # ax1.xaxis.set_pane_color((0.8,0.8,0.8, 1.0))
+            # ax1.yaxis.set_pane_color((0.8,0.8,0.8, 1.0))
+            # ax1.zaxis.set_pane_color((0.8,0.8,0.8, 1.0))
+            # make the grid lines transparent
+            # ax1.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+            # ax1.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+            # ax1.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+
+            def on_move(event):
+                if event.inaxes == ax:
+                    if ax.button_pressed in ax._rotate_btn:
+                        ax1.view_init(elev=ax.elev, azim=ax.azim)
+                    elif ax.button_pressed in ax._zoom_btn:
+                        ax1.set_xlim3d(ax.get_xlim3d())
+                        ax1.set_ylim3d(ax.get_ylim3d())
+                        ax1.set_zlim3d(ax.get_zlim3d())
+                elif event.inaxes == ax1:
+                    if ax1.button_pressed in ax1._rotate_btn:
+                        ax.view_init(elev=ax1.elev, azim=ax1.azim)
+                    elif ax1.button_pressed in ax1._zoom_btn:
+                        ax.set_xlim3d(ax1.get_xlim3d())
+                        ax.set_ylim3d(ax1.get_ylim3d())
+                        ax.set_zlim3d(ax1.get_zlim3d())
+                else:
+                    return
+                fig.canvas.draw_idle()
+
+            c1 = fig.canvas.mpl_connect('motion_notify_event', on_move)
             plt.show()
 
             # fig = plt.figure()
@@ -1868,7 +1936,7 @@ class KdeMdn:
             # ax1.set_title("Distribution From Model")
             # plt.show()
 
-    def plot_density_per_group(self, n_division=100):
+    def plot_density_per_group(self, runtime_config, n_division=100):
         """plot the density for a specific group.
 
         Args:
@@ -1882,9 +1950,14 @@ class KdeMdn:
                 "b_store_training_data must be set to True to enable the plotting function."
             )
         else:
-
-            zs_plot = self.zs.reshape(1, -1)[0]
-            df = pd.DataFrame({"z": zs_plot, "x": self.xs})
+            # print(self.zs)
+            zs_plot=self.zs
+            zs_plot[zs_plot==""]="0"
+            zs_plot = self.zs.reshape(1, -1)[0].astype(np.float32)
+            xs = self.xs.reshape(1, -1)[0]
+            # print(zs_plot)
+            # print(xs)
+            df = pd.DataFrame({"z": zs_plot, "x": xs})
 
             df = df.dropna(subset=["z", "x"])
             gp = df.groupby(["z"])
@@ -1896,7 +1969,7 @@ class KdeMdn:
             # the value of the parameter a to be used initially, when the graph is created
             z_init = zs_set[5]
 
-            self.fig = plt.figure(figsize=(8, 8))
+            fig = plt.figure(figsize=(8, 8))
 
             # first we create the general layount of the figure
             # with two axes objects: one for the plot of the function
@@ -1918,8 +1991,10 @@ class KdeMdn:
             # plt.xlim(0, 2 * math.pi)
             # plt.ylim(-1.1, 1.1)
 
+            # print(z_min)
+            # print(z_max)
             # here we create the slider
-            self.a_slider = Slider(
+            a_slider = Slider(
                 slider_ax,  # the axes object containing the slider
                 "groupz",  # the name of the slider parameter
                 z_min,  # minimal value of the parameter
@@ -1932,8 +2007,13 @@ class KdeMdn:
             ax_frequency = plt.gca()
             ax_density = ax_frequency.twinx()
             ax_density.set_ylabel("Density", color="tab:red")
-            xxs, yys = self.predict([[z_init]], 200, b_plot=True)
-            xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+            # print("asdfasdf",np.array([[z_init]]))
+            # print("z_init",z_init)
+            z_init = str(int(z_init))
+            # print("z_init", z_init)
+            xxs, yys = self.predict(np.array([[z_init]]), np.array([[200]]), runtime_config=runtime_config, b_plot=True)
+            # print("xxs ", xxs)
+            xxs = [denormalize(xi, self.meanx, self.widthx) for xi in xxs]
             yys = [yi / self.widthx * 2 for yi in yys]
             #
             # plt.plot(xxs, yys)
@@ -1961,18 +2041,20 @@ class KdeMdn:
                 #     ax_density = ax_frequency.twinx()
                 ax_density.cla()
                 ax_density.set_ylabel("Density", color="tab:red")
-                xxs, yys = self.predict([[group_approx]], 200, b_plot=True)
-                xxs = [self.denormalize(xi, self.meanx, self.widthx) for xi in xxs]
+                group_approx = str(int(group_approx))
+                xxs, yys = self.predict(np.array([[group_approx]]), np.array([[200]]), runtime_config=runtime_config,
+                                        b_plot=True)
+                xxs = [denormalize(xi, self.meanx, self.widthx) for xi in xxs]
                 yys = [yi / self.widthx * 2 for yi in yys]
                 #
                 # plt.plot(xxs, yys)
                 ax_density.plot(xxs, yys, "r")
 
-                self.fig.canvas.draw_idle()  # redraw the plot
+                fig.canvas.draw_idle()  # redraw the plot
 
             # the final step is to specify that the slider needs to
             # execute the above function when its value changes
-            self.a_slider.on_changed(update)
+            a_slider.on_changed(update)
 
             plt.show()
 
