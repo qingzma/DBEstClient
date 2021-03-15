@@ -1,5 +1,15 @@
-# Welcome to DBEst++
-This repository extends the work of  [DBEst: Revisiting Approximate Query Processing Engines with Machine Learning Models . Proceedings of the 2019 International Conference on Management of Data. ACM, 2019](https://dl.acm.org/citation.cfm?id=3324958) by applying MDN. This solves the problem of model updating.
+# Welcome to DBEst++: A LightWeight Approximate Query Processing (AQP) Engine
+This repository implements the idea for the following papers.
+
+<a id="1">[1]</a> 
+Qingzhi Ma, Peter Triantafillou. 
+DBEst: Revisiting Approximate Query Processing Engines with Machine Learning Models. 
+Proceedings of the 2019 International Conference on Management of Data. ACM, 2019.
+
+<a id="2">[2]</a> 
+Qingzhi Ma, Ali M Shanghooshabad, Mehrdad Almasi, Meghdad Kurmanji, Peter Triantafillou. 
+Learned Approximate Query Processing: Make it Light, Accurate and Fast. 
+The Conference on Innovative Data Systems Research (CIDR) . 2021.
 
 ## How to install
 ```pip install dbestclient```
