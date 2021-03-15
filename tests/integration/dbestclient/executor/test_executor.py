@@ -512,6 +512,8 @@ class TestTpcDs(unittest.TestCase):
 
         print(h.heap())
 
+        self.assertTrue(h.heap())
+
 
 
 
