@@ -14,15 +14,18 @@ with open('README.rst') as f:
 
 setup(
     name='dbestclient',
-    version='2.0',
+    version='3.0',
     description='Model-based Approximate Query Processing (AQP) engine.',
-    classifiers=[
-        'Development Status :: 2.0',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.7',
-        'Topic :: Approximate Query Processing :: AQP :: Data Warehouse',
-    ],
-    keywords='Approximate Query Processing AQP',
+    # classifiers=[
+    #     'Development Status :: 3.0',
+    #     'License :: OSI Approved :: MIT License',
+    #     'Programming Language :: Python :: 3.8',
+    #     'Topic :: Approximate Query Processing :: AQP :: Data Warehouse',
+    # ],
+    # classifiers=wtforms.fields.SelectMultipleField(
+    #     description="Classifier",
+    # ),
+keywords='Approximate Query Processing AQP',
     url='https://github.com/qingzma/DBEstClient',
     author='Qingzhi Ma',
     author_email='Q.Ma.2@warwick.ac.uk',
