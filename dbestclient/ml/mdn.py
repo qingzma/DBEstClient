@@ -1806,14 +1806,20 @@ class KdeMdn:
             ax = fig.add_subplot(121, projection="3d")
             # ax = fig.add_subplot(111, projection="3d")
             zs_plot = self.zs.reshape(1, -1)[0]
-            zs_plot_numeric = np.copy(zs_plot)
-            zs_plot_numeric[zs_plot_numeric == ""] = "0"
-
-            zs_plot_numeric = zs_plot_numeric.astype(np.float32)
+            # zs_plot_numeric = np.copy(zs_plot)
+            # zs_plot_numeric[zs_plot_numeric == ""] = "0"
+            #
+            # zs_plot_numeric = zs_plot_numeric.astype(np.float32)
+            zs_plot_numeric = range(0,len(zs_plot))
             xs = self.xs.reshape(1, -1)[0]
 
             zs_set = list(set(zs_plot))
-            zs_set.sort(key=lambda x: float(x) if x != "" else 0.0)
+            # zs_set.sort(key=lambda x: float(x) if x != "" else 0.0)
+            zs_set.sort()
+            zs_dic={}
+            for idx, z in enumerate(zs_set):
+                zs_dic[z] = idx
+            zs_plot_numeric = [zs_dic[i] for i in zs_plot]
 
             xxxs = np.array(xs).reshape(1, -1)[0]
             hist, xedges, yedges = np.histogram2d(xxxs, zs_plot_numeric, bins=[n_division,len(zs_set)])
@@ -1845,9 +1851,11 @@ class KdeMdn:
             fracs = offset.astype(float) / offset.max()
             norm = colors.Normalize(fracs.min(), fracs.max())
             color_values = cm.jet(norm(fracs.tolist()))
-            ax.bar3d(xpos, ypos, zpos, 10, 10, dz, zsort="average",color=color_values)
+            ax.bar3d(xpos, ypos, zpos, 0.3, 0.3, dz, zsort="average",color=color_values)
             ax.set_xlabel("Range predicate", fontsize=fontsize)
             ax.set_ylabel("Group by attribute", fontsize=fontsize)
+            ax.set_yticks(range(len(zs_set)))
+            ax.set_yticklabels(zs_set,rotation=90,fontsize=6)
             ax.set_zlabel("Frequency", fontsize=fontsize)
             ax.grid(False)
             ax.set_title("Histogram of Data Distribution")
@@ -1860,11 +1868,12 @@ class KdeMdn:
             # ax1 = fig.add_subplot(111, projection="3d")
             # # ax1=ax
             # zs_set = list(set(zs_plot))
-            for z in zs_set:
+            for idx, z in enumerate(zs_set):
                 xxs, yys = self.predict(np.array([[z]]), np.array([[200]]), b_plot=True, runtime_config=runtime_config)
                 xxs = np.array([denormalize(xi, self.meanx, self.widthx) for xi in xxs]).reshape(1, -1)[0]
                 yys = np.array([yi / self.widthx * 2 for yi in yys]).reshape(1, -1)[0]
-                zzs = [int(z)] * len(xxs) if z != "" else [0] * len(xxs)
+                # zzs = [int(z)] * len(xxs) if z != "" else [0] * len(xxs)
+                zzs = [idx] * len(xxs)
                 # print(z, z_to_show, type(z), type(z_to_show))
                 # ax1.plot(xxs, zzs, yys)
                 if z==z_to_show:
@@ -1873,6 +1882,8 @@ class KdeMdn:
                     ax1.plot(xxs, zzs, yys, alpha=0.001)
             ax1.set_xlabel("Range predicate", fontsize=fontsize)
             ax1.set_ylabel("Group by attribute", fontsize=fontsize)
+            ax1.set_yticks(range(len(zs_set)))
+            ax1.set_yticklabels(zs_set,rotation=90,fontsize=6)
             ax1.set_zlabel("Frequency", fontsize=fontsize)
             ax1.set_title("Distribution From Model")
 

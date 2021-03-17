@@ -58,11 +58,12 @@ class Query1:
             self.sql_executor.execute("set n_mdn_layer_node_density=15")      # 30
             self.sql_executor.execute("set n_jobs=1")                         # 
             self.sql_executor.execute("set n_hidden_layer=1")                 # 2
-            self.sql_executor.execute("set n_epoch=20")                       # 50
+            self.sql_executor.execute("set n_epoch=30")                       # 50
             self.sql_executor.execute("set n_gaussians_reg=8")                # 
             self.sql_executor.execute("set n_gaussians_density=10")           # 8
+            self.sql_executor.execute("set plot='true'")
             self.sql_executor.execute(
-                "create table "+mdl_name+"(dep_delay real, distance real) from '../data/flights/flight_1m.csv' GROUP BY unique_carrier method uniform size 'num_points/flights_group.csv' ") 
+                "create table "+mdl_name+"(dep_delay real, distance real) from '../data/flights/flight_1m.csv' GROUP BY unique_carrier method uniform size 100000 ")
         elif self.model_size == "5m":
             self.sql_executor.execute("set n_mdn_layer_node_reg=20")          # 20
             self.sql_executor.execute("set n_mdn_layer_node_density=30")      # 30
@@ -306,22 +307,22 @@ class query_equal_condition():
         # result=self.sql_executor.execute("SELECT dest_state_abr, SUM(taxi_out) FROM  "+"flights_"+mdl_size+"_q31_35"+ "  where 1500 <=distance <= 2500 AND unique_carrier = 'UA'  GROUP BY dest_state_abr")
 
 if __name__ == "__main__":
-    # query1 = Query1()
-    # query1.model_size = "1m"
+    query1 = Query1()
+    query1.model_size = "1m"
     # query1.build_model(mdl_name="flights_1m_binary_small",encoder="binary")
-    # # # query1.build_model(mdl_name="flights_1m_onehot",encoder="onehot")
-    # # # query1.build_model(mdl_name="flights_1m_embedding",encoder="embedding")
-    # # query1.workload("flights_5m_binary",result2file="experiments/flights/results/mdn5m/")
-
+    # # query1.build_model(mdl_name="flights_1m_onehot",encoder="onehot")
+    query1.build_model(mdl_name="flights_1m_embedding",encoder="embedding")
+    # query1.workload("flights_5m_binary",result2file="experiments/flights/results/mdn5m/")
+    #
     # query1.build_one_model("flight_one_model1",encoder="binary")
     # # query1.build_one_model("flight_one_model_embedding",encoder="embedding")
     # query1.workload("flight_one_model1",result2file="experiments/flights/results/mdn5m/")
 
-    q = query_equal_condition()
+    # q = query_equal_condition()
     # q.build_model(encoder="embedding",model_size="10m")
     # q.build_model(encoder="embedding",model_size="20m")
     
     # q.build_model("flights_equal_5m",encoder="embedding",model_size="5m")
     # q.query("1m")
-    q.query("5m")
+    # q.query("5m")
     # q.query("10m")

@@ -137,8 +137,8 @@ def plt_space():
 
 
 def plt_response_time():
-    plt.rcParams.update({'font.size': 20})
-    width = 0.35
+    plt.rcParams.update({'font.size': 14})
+    width = 0.3
     data = [
         [0.1342,0.1060,9.366,0.0311,0.0306 ],
         [3315.239,3322.649,3750.774,526.732,498.802],
@@ -149,15 +149,15 @@ def plt_response_time():
 
     fig, ax = plt.subplots()
 
-    p1 = plt.bar(
-        X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
+    # p1 = plt.bar(
+    #     X + 0.00, data[0], color=colors["DBEst_1k"], width=width, alpha=0.9)
     p2 = plt.bar(
         X + width, data[1], color=colors["BlinkDB_1k"], width=width, alpha=0.5)
     # p3 = plt.bar(
     #     X + 2*width, data[2], color=colors["green1"], width=width, alpha=0.7)
 
-    plt.legend((p1[0], p2[0]),  # , p3[0]),#, p4[0],p5[0]),
-               ('DBEst++', 'HIVE', ), loc='center right', prop={'size': 12})
+    # plt.legend((p1[0],p2[0]),  # , p3[0]),#, p4[0],p5[0]),
+    #            ('DBEst++', 'HIVE', ), loc='center right', prop={'size': 12})
 
     plt.xticks(X +  0.5* width, ("1", '2', '3','4','5'))
     ax.set_ylabel("Response Time (s)")
@@ -166,7 +166,7 @@ def plt_response_time():
     # formatter = FuncFormatter(to_percent)
     # ax.yaxis.set_major_formatter(formatter)
     # plt.subplots_adjust(bottom=0.11)
-    # plt.subplots_adjust(left=0.12)
+    # plt.subplots_adjust(left=0.12    ax.set_ylim([0.01,5000])
     plt.subplots_adjust(bottom=0.15)
     plt.subplots_adjust(left=0.18)
 
@@ -177,5 +177,5 @@ def plt_response_time():
     plt.show()
 
 if __name__=="__main__":
-    plt_space()
+    # plt_space()
     plt_response_time()

@@ -472,7 +472,7 @@ class TestTpcDs(unittest.TestCase):
         sqlExecutor = SqlExecutor()
         sqlExecutor.execute("set b_grid_search='False'")
         sqlExecutor.execute("set csv_split_char='|'")
-        sqlExecutor.execute("set n_epoch=30")
+        sqlExecutor.execute("set n_epoch=40")
         sqlExecutor.execute("set encoder='embedding'")
         sqlExecutor.execute("set one_model='true'")
         sqlExecutor.execute("set plot='True'")
@@ -486,7 +486,7 @@ class TestTpcDs(unittest.TestCase):
         )
         sqlExecutor.execute("drop table test_plot")
         sqlExecutor.execute(
-            "create table test_plot(ss_sales_price real, ss_sold_date_sk real) from '/home/quincy/Documents/workspace/data/tpcds/100g/ss_100g_2m.csv' GROUP BY ss_store_sk method uniform size 1000"  #data/tpcds/10g/ss_10g_100.csv
+            "create table test_plot(ss_sales_price real, ss_sold_date_sk real) from '/home/quincy/Documents/workspace/data/tpcds/100g/ss_100g_2m.csv' GROUP BY ss_store_sk method uniform size 2000"  #data/tpcds/10g/ss_10g_100.csv
         )
         results = sqlExecutor.execute(
             "select ss_store_sk, sum(ss_sales_price)  from test_plot where 2451119  <=ss_sold_date_sk<= 2451483  group by ss_store_sk"
@@ -534,5 +534,5 @@ if __name__ == "__main__":
     # TestTpcDs().test_no_continuous_categorical_one_model_uniform()
     # TestTpcDs().test_no_continuous_categorical1_one_model_stratified()
     # TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
-    # TestTpcDs().test_plot()
-    TestTpcDs().test_memory()
+    TestTpcDs().test_plot()
+    # TestTpcDs().test_memory()
