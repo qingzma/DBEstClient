@@ -12,10 +12,8 @@ Learned Approximate Query Processing: Make it Light, Accurate and Fast.
 The Conference on Innovative Data Systems Research (CIDR) . 2021.
 
 ## How to install
-```pip install dbestclient```
-
-If you have problems installing the code, you could go to the root directory of DBEst, and install the latest version by 
-```pip install -e```.
+instead of using ```pip install dbestclient``` to install this package, please download the folder and use command ```pip install -e path/to/the/downloaded/folder``` to install dbestclient.
+also, please follow instructions of branch 2.0 instead the instruction in this branch(demo).
 ## How to start
 After the installation of DBEstClient, simply type **dbestclient** in the terminal.
 ```>>> dbestclient```
