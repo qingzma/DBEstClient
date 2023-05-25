@@ -12,7 +12,16 @@ Learned Approximate Query Processing: Make it Light, Accurate and Fast.
 The Conference on Innovative Data Systems Research (CIDR) . 2021.
 
 ## How to install
-instead of using ```pip install dbestclient``` to install this package, please download the folder and use command ```pip install -e path/to/the/downloaded/folder``` to install dbestclient.
+DBEst is developed on Linux OS, and is tested on Mac OS as well.
+Please use Anaconda to manage the DBEst Python environment.
+
+there is a file called environment.yml, which could be used to create a separate Python environment.
+`conda env create -n torch --file environment.yml`
+`conda activate torch`
+After that, use
+`pip install -e path/to/dbest/folder`
+to install DBEst locally.
+Hopefully, you will get DBEst installed correctly. 
 also, please follow instructions of branch 2.0 instead the instruction in this branch(demo).
 ## How to start
 After the installation of DBEstClient, simply type **dbestclient** in the terminal.
