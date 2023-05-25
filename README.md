@@ -16,10 +16,15 @@ DBEst is developed on Linux OS, and is tested on Mac OS as well.
 Please use Anaconda to manage the DBEst Python environment.
 
 there is a file called environment.yml, which could be used to create a separate Python environment.
+
 ```conda env create -n torch --file environment.yml```
+
 ```conda activate torch```
+
 After that, use
+
 ```pip install -e path/to/dbest/folder```
+
 to install DBEst locally.
 Hopefully, you will get DBEst installed correctly. 
 also, please follow instructions of branch 2.0 instead the instruction in this branch(demo).
