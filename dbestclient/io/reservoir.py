@@ -82,7 +82,8 @@ class ReservoirSampling:
             if self.header is None:
                 # skip the first header row
                 first_row = next(iterator)
-                self.header = first_row.replace("\n", "").lower().split(split_char)
+                self.header = first_row.replace(
+                    "\n", "").lower().split(split_char)
             try:
                 j = 0
                 # iterator = iter(data)
@@ -120,7 +121,8 @@ class ReservoirSampling:
                             item,
                             res[k],
                         )
-                        item = next(iterator).replace("\n", "").split(split_char)
+                        item = next(iterator).replace(
+                            "\n", "").split(split_char)
                         res[k] = item
 
             except KeyboardInterrupt:
@@ -137,16 +139,19 @@ class ReservoirSampling:
                     usecols
                 ).get_continous_and_categorical_cols()
 
-                for col in columns_as_categorical:
-                    self.origin_sample[col] = self.origin_sample[col].astype(str)
+                if columns_as_categorical:
+                    for col in columns_as_categorical:
+                        self.origin_sample[col] = self.origin_sample[col].astype(
+                            str)
 
                 for col in columns_as_continous:
                     self.origin_sample[col] = self.origin_sample[col].apply(
                         pd.to_numeric, errors="coerce"
                     )
-
+                columns_selected = columns_as_continous + \
+                    columns_as_categorical if columns_as_categorical else columns_as_continous
                 self.origin_sample = self.origin_sample[
-                    columns_as_continous + columns_as_categorical
+                    columns_selected
                 ].dropna(subset=columns_as_continous)
                 # print("self.origin_sample",)
                 # print(self.origin_sample)
@@ -164,12 +169,14 @@ class ReservoirSampling:
                 columns_continous = [usecols["y"][0]]
 
                 if usecols["x_continous"]:
-                    columns_continous = columns_continous + usecols["x_continous"]
+                    columns_continous = columns_continous + \
+                        usecols["x_continous"]
 
                 columns_categorial = []
                 if usecols["x_categorical"]:
                     # columns = columns + usecols['x_categorical']
-                    columns_categorial = columns_categorial + usecols["x_categorical"]
+                    columns_categorial = columns_categorial + \
+                        usecols["x_categorical"]
                 if usecols["gb"]:
                     for col in usecols["gb"]:
                         if col not in columns_continous + columns_categorial:
@@ -206,7 +213,8 @@ class ReservoirSampling:
                         if item not in usecols["gb"]
                     ]
                 else:
-                    columns_to_float = [item for item in usecols["x_continous"]]
+                    columns_to_float = [
+                        item for item in usecols["x_continous"]]
                 # print("columns_to_float", columns_to_float)
                 for col in columns_to_float:
                     self.sampledf[col] = self.sampledf[col].apply(
@@ -341,7 +349,8 @@ class ReservoirSampling:
                     for item in self.usecols["x_continous"]
                     if item not in self.usecols["gb"]
                 ]
-                columns_to_use = columns_to_use + columns_to_float + self.usecols["gb"]
+                columns_to_use = columns_to_use + \
+                    columns_to_float + self.usecols["gb"]
                 gb_data = values[columns_to_use]
                 # gb_data = values[[self.usecols["y"]] +
                 #                  self.usecols["x_continous"] +
@@ -502,7 +511,8 @@ class ReservoirSampling:
                 key = grp
             # print("key", key)
             # print(values)
-            gb_in_gb = values.groupby(gbs).size().to_frame(name="count").reset_index()
+            gb_in_gb = values.groupby(gbs).size().to_frame(
+                name="count").reset_index()
             # print(gb_in_gb)
 
             frequency = {}

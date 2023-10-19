@@ -70,22 +70,24 @@ class UseCols:
         if self.usecols['x_continous']:
             columns_as_continous = columns_as_continous + \
                 self.usecols['x_continous']
+        if self.usecols["x_categorical"] and self.usecols["gb"]:
+            columns_as_categorical = self.usecols["x_categorical"] + \
+                self.usecols["gb"]
+            # print("columns_as_continous", columns_as_continous)
+            # print("columns_as_categorical", columns_as_categorical)
 
-        columns_as_categorical = self.usecols["x_categorical"] + \
-            self.usecols["gb"]
-        # print("columns_as_continous", columns_as_continous)
-        # print("columns_as_categorical", columns_as_categorical)
+            # remove the x column in continous if the column also appear in group by
+            for col_item in columns_as_continous:
+                if col_item in columns_as_categorical:
+                    # print("col_item", col_item)
+                    columns_as_continous.remove(col_item)
+                    self.overlap_cols.append(col_item)
 
-        # remove the x column in continous if the column also appear in group by
-        for col_item in columns_as_continous:
-            if col_item in columns_as_categorical:
-                # print("col_item", col_item)
-                columns_as_continous.remove(col_item)
-                self.overlap_cols.append(col_item)
-
-        self.continous_cols = columns_as_continous
-        self.categorical_cols = columns_as_categorical
-        return self.continous_cols, self.categorical_cols, self.overlap_cols
+            self.continous_cols = columns_as_continous
+            self.categorical_cols = columns_as_categorical
+            return self.continous_cols, self.categorical_cols, self.overlap_cols
+        else:
+            return columns_as_continous, None, None
 
     def get_gb_x_y_cols_for_one_model(self):
         gb = self.usecols["gb"] + self.usecols['x_categorical']

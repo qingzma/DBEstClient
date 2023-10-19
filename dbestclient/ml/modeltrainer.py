@@ -200,7 +200,7 @@ class KdeModelTrainer:
                     config.config["n_gaussians_reg"] = 5
                     # config.config["n_mdn_layer_node"] = 20
                     # config.config["b_grid_search"] = False
-                    reg = RegMdnGroupBy(config, b_store_training_data=False,).fit(
+                    reg = RegMdnGroupBy(config).fit(
                         groupby, x, y, runtime_config)
 
                 if b_skip_density_training:
@@ -246,8 +246,6 @@ class KdeModelTrainer:
 
             else:
                 raise ValueError("unexpected network_size passed in "+__file__)
-
-
 
         # density = DBEstDensity(config=self.config).fit(x)
         self.kde_model_wrapper.load_model(self.mdl, density, reg)

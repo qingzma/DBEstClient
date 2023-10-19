@@ -199,7 +199,7 @@ class MdnQueryEngineRangeNoCategorical(GenericQueryEngine):
             config = self.config.copy()
             if runtime_config['v']:
                 print("training regression...")
-            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+            self.reg = RegMdnGroupBy(config).fit(
                 gbs_data, xs_data, ys_data, runtime_config,usecols=usecols)
 
             if runtime_config['v']:
@@ -1307,7 +1307,7 @@ class MdnQueryEngineXCategoricalOneModel(GenericQueryEngine):
 
             if runtime_config['v']:
                 print("training regression...")
-            self.reg = RegMdnGroupBy(config, b_store_training_data=False).fit(
+            self.reg = RegMdnGroupBy(config).fit(
                 gbs, xs, ys, runtime_config,usecols=usecols)
             # kdeModelWrapper = KdeModelTrainer(
             #     mdl_name, origin_table_name, usecols["x_continous"][0], usecols["y"],
