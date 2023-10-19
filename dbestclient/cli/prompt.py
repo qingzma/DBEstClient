@@ -69,7 +69,8 @@ class DBEstPrompt(Cmd):
                 # go to the backend server
             else:
                 # sqlExecutor = SqlExecutor(config)
-                # print(self.query)
+                print(self.query)
+                self.query = self.query.lower()
                 # self.query.replace(";",'')
                 self.sqlExecutor.execute(self.query)
 

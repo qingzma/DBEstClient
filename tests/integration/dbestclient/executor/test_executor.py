@@ -526,9 +526,26 @@ class TestTpcDs(unittest.TestCase):
         self.assertTrue(h.heap())
 
 
+class BeijingPM25(unittest.TestCase):
+    def test_simple_model(self):
+        sqlExecutor = SqlExecutor()
+        sqlExecutor.execute("set n_epoch=10")
+        sqlExecutor.execute("set reg_type='mdn'")
+        sqlExecutor.execute("set density_type='mdn'")
+        sqlExecutor.execute("set b_grid_search='False'")
+        sqlExecutor.execute("set csv_split_char=','")
+        sqlExecutor.execute(
+            "create table pm25(pm25 real, PRES real) from pm25.csv  method uniform size 1000")  # scale data num_of_points2.csv
+        predictions = sqlExecutor.execute(
+            "select avg(pm25)  from pm25 where   1000  <=PRES<= 1020 ")
+        sqlExecutor.execute("drop table pm25")
+        # print(predictions)
+        self.assertFalse(predictions.empty)
+
+
 if __name__ == "__main__":
-    unittest.main()
-    # TestTpcDs().test_simple_model()
+    # unittest.main()
+    TestTpcDs().test_simple_model()
     # TestTpcDs().test_groupbys_range_no_categorical_gb1()
     # TestTpcDs().test_groupbys_range_no_categorical_gb2()
     # TestTpcDs().test_groupbys_range_no_categorical_gb1_stratified()
@@ -546,3 +563,4 @@ if __name__ == "__main__":
     # TestTpcDs().test_no_continuous_categorical2_one_model_stratified()
     # TestTpcDs().test_plot()
     # TestTpcDs().test_memory()
+    # BeijingPM25().test_simple_model()

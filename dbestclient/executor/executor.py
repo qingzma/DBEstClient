@@ -74,7 +74,8 @@ class SqlExecutor:
                     print("start loading pre-existing models.")
 
                 with open(
-                    self.config.get_config()["warehousedir"] + "/" + file_name, "rb"
+                    self.config.get_config()[
+                        "warehousedir"] + "/" + file_name, "rb"
                 ) as f:
                     model = dill.load(f)
                 self.model_catalog.model_catalog[
@@ -111,7 +112,7 @@ class SqlExecutor:
         # prepare the parser
         if type(sql) == str:
             self.parser = DBEstParser()
-            self.parser.parse(sql)
+            self.parser.parse(sql.lower())
         elif type(sql) == DBEstParser:
             self.parser = sql
         else:
@@ -228,7 +229,7 @@ class SqlExecutor:
                         split_char=self.config.get_config()["csv_split_char"],
                         num_total_records=self.n_total_records,
                     )
-                
+
                 if self.runtime_config["sampling_only"]:
                     print("sample is generated and saved, end.")
                     return
@@ -259,12 +260,15 @@ class SqlExecutor:
                         xys["data"], self.runtime_config, network_size="large"
                     )
 
-                    qe_mdn = MdnQueryEngine(kdeModelWrapper, config=self.config.copy())
+                    qe_mdn = MdnQueryEngine(
+                        kdeModelWrapper, config=self.config.copy())
 
                     qe_mdn.serialize2warehouse(
-                        self.config.get_config()["warehousedir"], self.runtime_config
+                        self.config.get_config()[
+                            "warehousedir"], self.runtime_config
                     )
-                    self.model_catalog.add_model_wrapper(qe_mdn, self.runtime_config)
+                    self.model_catalog.add_model_wrapper(
+                        qe_mdn, self.runtime_config)
 
                 else:  # if group by is involved in the query
                     if self.config.get_config()["reg_type"] == "qreg":
@@ -276,7 +280,8 @@ class SqlExecutor:
                             headers=table_header,
                         )
 
-                        n_sample_point = get_group_count_from_df(xys, groupby_attribute)
+                        n_sample_point = get_group_count_from_df(
+                            xys, groupby_attribute)
                         groupby_model_wrapper = GroupByModelTrainer(
                             mdl,
                             tbl,
@@ -427,7 +432,8 @@ class SqlExecutor:
                                 elif method.lower() == "stratified":
                                     # check if this query could be served by frequency table only.
 
-                                    b_ft_only = parse_y_check_need_ft_only(usecols)
+                                    b_ft_only = parse_y_check_need_ft_only(
+                                        usecols)
                                     # print("b_ft_only", b_ft_only)
                                     if b_ft_only:
                                         # print("to implement")
@@ -486,7 +492,8 @@ class SqlExecutor:
                                 if (
                                     not xheader_categorical
                                 ):  # For WHERE clause without categorical equality
-                                    n_total_point.pop("if_contain_x_categorical")
+                                    n_total_point.pop(
+                                        "if_contain_x_categorical")
                                     qe_mdn = MdnQueryEngineNoRange(
                                         config=self.config.copy()
                                     )
@@ -521,14 +528,16 @@ class SqlExecutor:
                             if method.lower() == "uniform":
                                 if not n_total_point["if_contain_x_categorical"]:
                                     if not self.config.get_config()["b_use_gg"]:
-                                        n_total_point.pop("if_contain_x_categorical")
+                                        n_total_point.pop(
+                                            "if_contain_x_categorical")
                                         kdeModelWrapper = KdeModelTrainer(
                                             mdl,
                                             tbl,
                                             xheader_continous[0],
                                             yheader,
                                             groupby_attribute=groupby_attribute,
-                                            groupby_values=list(n_total_point.keys()),
+                                            groupby_values=list(
+                                                n_total_point.keys()),
                                             n_total_point=n_total_point,
                                             x_min_value=-np.inf,
                                             x_max_value=np.inf,
@@ -543,7 +552,8 @@ class SqlExecutor:
                                             kdeModelWrapper, config=self.config.copy()
                                         )
                                         qe_mdn.serialize2warehouse(
-                                            self.config.get_config()["warehousedir"],
+                                            self.config.get_config()[
+                                                "warehousedir"],
                                             self.runtime_config,
                                         )
                                         self.model_catalog.add_model_wrapper(
@@ -568,7 +578,8 @@ class SqlExecutor:
                                             queryEngineBundle, self.runtime_config
                                         )
                                         queryEngineBundle.serialize2warehouse(
-                                            self.config.get_config()["warehousedir"],
+                                            self.config.get_config()[
+                                                "warehousedir"],
                                             self.runtime_config,
                                         )
                                 else:  # x has categorical attributes
@@ -640,7 +651,8 @@ class SqlExecutor:
                                             runtime_config=self.runtime_config,
                                         )
                                         qe.serialize2warehouse(
-                                            self.config.get_config()["warehousedir"],
+                                            self.config.get_config()[
+                                                "warehousedir"],
                                             self.runtime_config,
                                         )
                                         self.model_catalog.add_model_wrapper(
@@ -648,7 +660,8 @@ class SqlExecutor:
                                         )
 
                                     qe.serialize2warehouse(
-                                        self.config.get_config()["warehousedir"],
+                                        self.config.get_config()[
+                                            "warehousedir"],
                                         self.runtime_config,
                                     )
                                     self.model_catalog.add_model_wrapper(
@@ -685,7 +698,8 @@ class SqlExecutor:
                                         runtime_config=self.runtime_config,
                                     )
                                     qe.serialize2warehouse(
-                                        self.config.get_config()["warehousedir"],
+                                        self.config.get_config()[
+                                            "warehousedir"],
                                         self.runtime_config,
                                     )
                                     self.model_catalog.add_model_wrapper(
@@ -721,7 +735,8 @@ class SqlExecutor:
                                         runtime_config=self.runtime_config,
                                     )
                                     qe.serialize2warehouse(
-                                        self.config.get_config()["warehousedir"],
+                                        self.config.get_config()[
+                                            "warehousedir"],
                                         self.runtime_config,
                                     )
                                     self.model_catalog.add_model_wrapper(
@@ -762,7 +777,7 @@ class SqlExecutor:
                     )
 
                     if (
-                        mdl + self.runtime_config["model_suffix"] 
+                        mdl + self.runtime_config["model_suffix"]
                         not in self.model_catalog.model_catalog
                     ):
                         print("Model " + mdl + " does not exist.")
@@ -829,10 +844,11 @@ class SqlExecutor:
                     print(predictions.to_string(index=False))  # max_rows=5
 
                 if self.runtime_config["result2file"]:
-                    predictions.to_csv(self.runtime_config["result2file"],header=False, sep=',', index=False, quoting=csv.QUOTE_NONE, quotechar="",  escapechar=" ")
+                    predictions.to_csv(self.runtime_config["result2file"], header=False, sep=',',
+                                       index=False, quoting=csv.QUOTE_NONE, quotechar="",  escapechar=" ")
                     # print(predictions.to_csv(sep=',', index=False))  # sep='\t'
                     # with open(self.runtime_config["result2file"],'w') as f:
-                    #     out = 
+                    #     out =
                     #     f.write(predictions.to_string(index=False))  # max_rows=5
 
                 if self.runtime_config["b_show_latency"]:
@@ -883,7 +899,8 @@ class SqlExecutor:
                                         print("device is set to " + value)
                                 else:
                                     if value == "gpu":
-                                        print("GPU is not available, use CPU instead")
+                                        print(
+                                            "GPU is not available, use CPU instead")
                                         value = "cpu"
                                     if value == "cpu":
                                         if self.runtime_config["v"]:
@@ -923,7 +940,8 @@ class SqlExecutor:
                 t_start = datetime.now()
                 if self.runtime_config["b_print_to_screen"]:
                     for key in self.model_catalog.model_catalog:
-                        print(key.replace(self.runtime_config["model_suffix"], ""))
+                        print(key.replace(
+                            self.runtime_config["model_suffix"], ""))
                 if self.runtime_config["v"]:
                     t_end = datetime.now()
                     time_cost = (t_end - t_start).total_seconds()
