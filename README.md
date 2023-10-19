@@ -14,6 +14,7 @@ The Conference on Innovative Data Systems Research (CIDR) . 2021.
 # Note
 1. the file path of the csv file could not contain CAPITAL LETTERS.
 2. check `tests/integration/dbestclient/executor/test_executor.py` for more examples.
+3. try to tune parameters by the SET clause as introduced bellow.
 ## How to install
 DBEst is developed on Linux OS, and is tested on Mac OS as well.
 Please use Anaconda to manage the DBEst Python environment.
