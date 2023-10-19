@@ -11,6 +11,9 @@ Qingzhi Ma, Ali M Shanghooshabad, Mehrdad Almasi, Meghdad Kurmanji, Peter Triant
 Learned Approximate Query Processing: Make it Light, Accurate and Fast. 
 The Conference on Innovative Data Systems Research (CIDR) . 2021.
 
+# Note
+1. the file path of the csv file could not contain CAPITAL LETTERS.
+2. check `tests/integration/dbestclient/executor/test_executor.py` for more examples.
 ## How to install
 DBEst is developed on Linux OS, and is tested on Mac OS as well.
 Please use Anaconda to manage the DBEst Python environment.
