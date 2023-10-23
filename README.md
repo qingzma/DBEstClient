@@ -11,6 +11,10 @@ Qingzhi Ma, Ali M Shanghooshabad, Mehrdad Almasi, Meghdad Kurmanji, Peter Triant
 Learned Approximate Query Processing: Make it Light, Accurate and Fast. 
 The Conference on Innovative Data Systems Research (CIDR) . 2021.
 
+# Note
+1. the file path of the csv file could not contain CAPITAL LETTERS.
+2. check `tests/integration/dbestclient/executor/test_executor.py` for more examples.
+3. try to tune parameters by the SET clause as introduced bellow.
 ## How to install
 DBEst is developed on Linux OS, and is tested on Mac OS as well.
 Please use Anaconda to manage the DBEst Python environment.
@@ -133,7 +137,7 @@ Currently, there is no backend server, and DBEst handles csv files with headers.
 ```create table mdl(pm25 real, PRES real) from pm25.csv  method uniform size 1000```
  (Note, you need to open the file and rename the header from pm2.5 to pm25)
 - Then get result from model only!
-``` select count(pm25 real) from mdl where PRES between 1000 and 1020;```
+``` select count(pm25 real) from mdl where 1000<= PRES <=1020;```
 	```
 	OK
 	578.380307583211
